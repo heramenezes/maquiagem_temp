@@ -1,9 +1,5 @@
 # Como funciona essa parte do projeto (Detecção de Rosto)
 
-Essa pasta aqui é o começo do nosso backend. O objetivo dela é simples: pegar a foto que o usuário mandar, ver se tem uma pessoa ali de verdade e isolar a cara dela pra gente não perder tempo analisando parede, roupa ou fundo.
-
-A gente dividiu isso em dois arquivos separados pra não bagunçar nada:
-
 ---
 
 ## 1. O jeito rápido (quadrado) — `face_detector.py`
