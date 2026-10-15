@@ -3,7 +3,7 @@
 import logging
 from time import perf_counter
 
-from . import acne, vitiligo, beard, contrast
+from . import acne, vitiligo, beard
 from .compose import compose
 from .contracts import ModuleResult
 from .quality import evaluate
@@ -31,16 +31,6 @@ def run_module(key, rgb, anatomy):
 
 
 def finish(rgb, lab, anatomy, modules):
-    initial = compose(anatomy["allowed"], modules)
-    start = perf_counter()
-    try:
-        other = contrast.detect(lab, anatomy["allowed"], initial["excluded_mask"], initial["uncertain_mask"])
-        other.validate(rgb.shape[:2])
-    except Exception:
-        logger.exception("Falha no contraste residual")
-        other = ModuleResult.empty(rgb.shape[:2], status="falha", reason="falha_contraste", source="contraste_lab")
-    other.elapsed_ms = (perf_counter() - start) * 1000
-    modules = {**modules, "outras_regioes": other}
     result = compose(anatomy["allowed"], modules)
     result["model_versions"]["anatomia"] = ASSETS["bisenet"].metadata()
     result["quality"] = evaluate(rgb, lab, result)

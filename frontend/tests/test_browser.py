@@ -42,7 +42,6 @@ def selection_fixture(module_states=None, empty=()):
     modules['acne'].accepted[13:17, 23:27] = False
     modules['vitiligo'].accepted[15:25, 25:40] = True
     modules['barba'].accepted[40:45, 20:70] = True
-    modules['outras_regioes'].accepted[30:35, 70:75] = True
     modules['acne'].uncertain[25:30, 20:25] = True
     modules['acne'].uncertain[:5, :5] = True
     for key in empty:
@@ -130,7 +129,7 @@ class BrowserTests(unittest.TestCase):
         np.testing.assert_array_equal(final[:, :, :3][selected['valid_mask']], rgb[selected['valid_mask']])
         # Cada motivo mantém suas sobreposições; a prévia final usa a união sem duplicar pixels.
         for key, color in {'acne': [219, 76, 90], 'vitiligo': [142, 91, 205],
-                           'barba': [43, 120, 194], 'outras_regioes': [19, 139, 122]}.items():
+                           'barba': [43, 120, 194]}.items():
             expected = rgb.copy()
             uncertain = selected['debug_masks'][key]['raw_uncertain'] & selected['anatomical_mask']
             accepted = selected['accepted_masks'][key]
@@ -150,13 +149,11 @@ class BrowserTests(unittest.TestCase):
             }'''))
 
     def test_unavailable_is_distinct_from_empty_and_color_not_measured(self):
-        data, _, _ = selection_fixture({'vitiligo': 'indisponivel', 'barba': 'falha',
-                                         'outras_regioes': 'nao_executado'}, empty=('acne',))
+        data, _, _ = selection_fixture({'vitiligo': 'indisponivel', 'barba': 'falha'}, empty=('acne',))
         self.show_fixture(data)
         expect(self.page.locator('[data-category="acne"]')).to_contain_text('Nenhuma área selecionada')
         expect(self.page.locator('[data-mask-preview="acne"]')).to_be_visible()
-        for key, label in [('vitiligo', 'Modelo indisponível'), ('barba', 'Falha na análise'),
-                           ('outras_regioes', 'Não executado')]:
+        for key, label in [('vitiligo', 'Modelo indisponível'), ('barba', 'Falha na análise')]:
             card = self.page.locator(f'[data-category="{key}"]')
             expect(card).to_contain_text(label)
             expect(card.locator('img')).to_have_count(0)
@@ -223,7 +220,7 @@ class BrowserTests(unittest.TestCase):
         expect(overlay).to_be_visible()
         self.assertTrue(overlay.evaluate('img => img.complete && img.naturalWidth > 0'))
         self.assertEqual(self.page.locator('#marks, .segmentation-source').count(), 0)
-        self.assertEqual(self.page.locator('.exclusion-card').count(), 4)
+        self.assertEqual(self.page.locator('.exclusion-card').count(), 3)
         expect(self.page.locator('[data-mask-preview="anatomy"]')).to_be_visible()
         expect(self.page.locator('.mask-render[data-render-state="loading"]')).to_have_count(0)
         self.assertEqual(self.page.locator('.mask-render[data-render-state="error"]').count(), 0)

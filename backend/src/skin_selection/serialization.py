@@ -2,8 +2,7 @@
 
 import numpy as np
 
-NAMES = {"acne": "Acne", "vitiligo": "Vitiligo", "barba": "Barba e bigode",
-         "outras_regioes": "Outras regiões"}
+NAMES = {"acne": "Acne", "vitiligo": "Vitiligo", "barba": "Barba e bigode"}
 
 
 def serialize_selection(selection, encode):

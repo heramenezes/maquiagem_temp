@@ -5,7 +5,7 @@ from dataclasses import dataclass, field, asdict
 import cv2
 import numpy as np
 
-CATEGORIES = ("acne", "vitiligo", "barba", "outras_regioes")
+CATEGORIES = ("acne", "vitiligo", "barba")
 STATES = {"executado", "indisponivel", "nao_executado", "falha"}
 
 

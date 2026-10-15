@@ -1,6 +1,6 @@
-# Pesquisa: acne, vitiligo, barba e outras regiões antes do tom Monk
+# Pesquisa: acne, vitiligo e barba antes do tom Monk
 
-Revisão de **15/10/2026**. Escopo acordado: manter BiSeNet e acrescentar seleção independente de pele para excluir acne, vitiligo, barba e outras regiões de contraste intenso. **Rosácea saiu do escopo.** Delineado preto entra em “outras regiões”; não haverá análise específica de maquiagem.
+Revisão de **15/10/2026**. Escopo acordado: manter BiSeNet e acrescentar seleção independente de pele para excluir acne, vitiligo, barba e bigode. **Rosácea saiu do escopo.** Não haverá análise específica de maquiagem.
 
 Esta revisão substitui a recomendação anterior. Inclui novas buscas, inspeção de scripts, árvores de arquivos, ponteiros Git LFS e cabeçalhos HTTP. **Não houve execução dos novos modelos, download integral dos pesos ou benchmark local.** Arquivo disponível, qualidade da máscara e adequação ao rosto são evidências diferentes. O planejamento está em [PLANO_SELECAO_PELE.md](PLANO_SELECAO_PELE.md).
 
@@ -12,10 +12,9 @@ Esta revisão substitui a recomendação anterior. Inclui novas buscas, inspeç�
 | Acne | U-Net/ResNet34 de `rihem-bs02/Acnes` | SegFormer-B1; SA-RPN | Peso publicado; qualidade local desconhecida. |
 | Vitiligo | YOLO de `rayronvictor/vitiligo-segmentation` | GloW-VSNet; treinamento próprio | Peso localizado nesta revisão; falta validação facial. |
 | Barba, incluindo bigode | SAM ajustado de `HkKhan/beard` | EasyPortrait como auxiliar; segmentador leve treinado | Checkpoint SAM acessível, mas pesado; EasyPortrait não identifica barba nominalmente. |
-| Outras regiões | Contraste Lab + morfologia + componentes | FaceOcc para oclusões; GrabCut para refinamento | Operações disponíveis; combinação precisa de calibração. |
 | Composição e qualidade | União de exclusões aceitas, incerteza e cobertura | Comparação entre regiões e sensibilidade da cor | Nova lógica do projeto. |
 
-A tabela define **ordem de experimentação**, não adoção incondicional. Cada especialista recebe o recorte original, sem áreas pintadas de preto pelas etapas anteriores. As máscaras são alinhadas e combinadas depois. O filtro residual utiliza as exclusões confiáveis para evitar que contaminantes definam a referência de cor.
+A tabela define **ordem de experimentação**, não adoção incondicional. Cada especialista recebe o recorte original, sem áreas pintadas de preto pelas etapas anteriores. As máscaras são alinhadas e combinadas depois.
 
 ## 1. Acne
 
@@ -83,44 +82,14 @@ Se os modelos prontos não atenderem, treinar segmentador binário leve com as [
 
 O [jseobyun/FaceParsing](https://github.com/jseobyun/FaceParsing), VGG19/DINOv3 com classe de barba, continua sem peso localizado na árvore auditada e não é a primeira opção.
 
-## 4. Outras regiões de contraste intenso
-
-Inclui **pintas/verrugas grandes, tatuagens, piercings grandes e delineado preto que permaneça na máscara de pele**. Excluir a região visualmente discrepante basta; não precisamos diferenciar clinicamente pinta de verruga ou identificar cada acessório. Áreas já excluídas pelo BiSeNet não precisam de uma segunda exclusão.
-
-### Solução principal: contraste local e forma
-
-Proposta de engenharia com NumPy/OpenCV existentes:
-
-1. Estimar referências locais da pele candidata, considerando máscaras especializadas confiáveis. Usar várias vizinhanças e dispersão robusta, sem uma cor de pele universal.
-2. Medir diferenças de L*/a*/b*, textura e transições em várias escalas. Interior uniforme de tatuagem grande exige contexto além de suas bordas; delineado fino exige preservar detalhes.
-3. Usar black-hat para marcas escuras e top-hat para detalhes claros como evidências auxiliares. [Operações OpenCV](https://docs.opencv.org/4.x/d9/d61/tutorial_py_morphological_ops.html).
-4. Agrupar componentes e avaliar contraste, área relativa, forma e entorno. “Grande” será calibrado em relação ao rosto. Não remover todo poro, ruga ou borda forte.
-5. Refinar candidatos plausíveis. [GrabCut](https://docs.opencv.org/4.x/d8/d83/tutorial_py_grabcut.html) aceita máscara inicial; geração automática de sementes seria lógica nossa. Só usar com referências confiáveis de candidato e entorno: ele não detecta objetos sozinho.
-6. Preservar pele entre traços e no interior vazado de piercings. Evitar preencher caixas/contornos indiscriminadamente; margens de exclusão precisam de avaliação.
-
-**Tradeoff:** aumentar sensibilidade remove mais contaminantes e também mais sombras/rugas/variação natural. Contraste relativo evita um corte universal que penalize pele escura, mas não elimina viés. Metal pode ter brilho e partes escuras; clipping sozinho não delimita sua silhueta. Verruga da mesma cor da pele pode escapar; não prometer detecção universal por contraste.
-
-### Complementos, se houver lacunas
-
-| Recurso | Papel possível | Limite |
-|---|---|---|
-| [FaceOcc/FaceExtraction](https://github.com/face3d0725/FaceExtraction) | Face visível; autores publicam link de peso. Treinado para óculos, mãos, máscaras e outras oclusões. | Potencial para objetos grandes; sem evidência específica de piercings/tatuagens. |
-| [FaceOcc modernizado](https://github.com/mertakinstd/FaceOcc) e [peso](https://huggingface.co/mertakin/FaceOcc) | U-Net/ResNet18 com contrato e safetensors. | Derivação de terceiro; validar alinhamento e máscaras locais. |
-| [SAM 3/3.1](https://github.com/facebookresearch/sam3) | Conceitos/exemplos; apoio à anotação e investigação. | Custo elevado; não incluir no caminho padrão CPU sem ganho demonstrado. |
-| [jun710/deep-tattoo](https://huggingface.co/jun710/deep-tattoo) | Model card oferece U-Net de tatuagens. | Poucos dados manuais e muitas máscaras automáticas; GitHub indicado retornou 404. Não priorizar rede exclusiva de tatuagens. |
-
-Não incluí detector de maquiagem nem remoção generativa. Delineado é padrão escuro residual. A proposta não busca classificar maquiagem sutil ou reconstruir pele encoberta.
-
 ## Combinação e custos
 
-Vários módulos não significam instalar todos os candidatos. A configuração pretendida tem BiSeNet, uma solução aprovada para cada uma das três categorias específicas e o filtro residual. FaceOcc/refinamentos só entram com ganho adicional demonstrado.
+Vários módulos não significam instalar todos os candidatos. A configuração pretendida tem BiSeNet, uma solução aprovada para cada uma das três categorias específicas.
 
 | Estratégia | Benefício | Custo/risco |
 |---|---|---|
 | Especialistas separados | Substituição e avaliação por categoria. | Mais RAM, latência e adaptadores. |
 | Modelo único multiclasses | Uma inferência especializada. | Dataset comum e treinamento; não confirmado peso pronto adequado. |
-| Apenas contraste | Simples e CPU. | Não satisfaz detecção nominal de acne/vitiligo/barba. |
-| Especialistas + contraste | Categorias conhecidas e padrões inesperados. | Calibrar falsos positivos acumulados. **Rota recomendada.** |
 
 Unir somente exclusões aceitas; manter incerteza separada. Não somar probabilidades de redes como se fossem calibradas/independentes. A mesma região pode ter vários motivos e conta uma única vez na área total removida. Qualidade da captura é estado técnico, não categoria adicional.
 

@@ -1,6 +1,6 @@
 // Composição visual; a medição usa os pixels originais no backend.
 export const png = value => typeof value === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value) ? value : '';
-const colors = { acne: [219, 76, 90], vitiligo: [142, 91, 205], barba: [43, 120, 194], outras_regioes: [19, 139, 122] };
+const colors = { acne: [219, 76, 90], vitiligo: [142, 91, 205], barba: [43, 120, 194] };
 const uncertainColor = [244, 181, 57];
 
 async function loadPixels(url) {

@@ -35,9 +35,6 @@ def generate_analysis(*, example=False):
             {"id": "barba", "nome": "Barba e bigode", "detectada": False,
              "descricao": "Exemplo ilustrativo de exclusão de pelos faciais.",
              "intensidade": None, "local": None},
-            {"id": "outras_regioes", "nome": "Outras regiões", "detectada": False,
-             "descricao": "Regiões de contraste intenso, como tatuagens e acessórios.",
-             "intensidade": None, "local": None},
         ],
         "marcacoes": [
             {"nome": "Acne", "x": 50, "y": 20, "largura": 14, "altura": 9},

@@ -68,10 +68,9 @@ e acrescenta seleção independente antes de medir a cor. A API transmite o prog
 Olhos, boca, sobrancelhas e cabelo são separados pelo modelo, sem grandes
 exclusões geométricas. Acne usa U-Net, vitiligo usa YOLO e barba/bigode usam
 EasyPortrait com textura/localização; discordância isolada fica incerta.
-Contraste residual trata outras regiões. Qualidade insuficiente ou especialista
+Qualidade insuficiente ou especialista
 indisponível impede a medição e retorna os motivos. Rosácea saiu do escopo.
-ITA, Monk e KNN continuam para a fase seguinte. O frontend não foi adaptado
-às novas categorias/estados nesta implementação. A validação anotada e a
+ITA, Monk e KNN continuam para a fase seguinte. O frontend exibe as três categorias, suas máscaras e seus estados. A validação anotada e a
 calibração ainda estão pendentes; veja [seleção de pele](../backend/src/skin_selection/README.md).
 
 Veja o [método e os limites](../backend/src/segmentation/README.md), os

@@ -6,7 +6,6 @@ import json
 import unittest
 from unittest.mock import patch
 
-import cv2
 import numpy as np
 from PIL import Image
 
@@ -15,10 +14,10 @@ from backend.src.segmentation.color import rgb_to_lab
 from backend.src.segmentation.semantic import measure_skin, ModelUnavailableError
 from backend.src.segmentation.pipeline import analysis_events
 from backend.src.mock_analysis import generate_analysis
-from backend.src.skin_selection import acne, beard, contrast, vitiligo
+from backend.src.skin_selection import acne, beard, vitiligo
 from backend.src.skin_selection.contracts import Transform, ModuleResult, CATEGORIES, probability_masks
 from backend.src.skin_selection.compose import compose
-from backend.src.skin_selection.pipeline import run_module
+from backend.src.skin_selection.pipeline import run_module, finish
 from backend.src.skin_selection.quality import evaluate
 
 
@@ -80,12 +79,13 @@ class CompositionTests(unittest.TestCase):
         modules = empty_modules((20, 20))
         modules['vitiligo'].status = 'indisponivel'
         modules['barba'].status = 'falha'
-        del modules['outras_regioes']
         status = compose(np.ones((20, 20), bool), modules)['module_status']
         self.assertIs(status['acne']['detected'], False)
-        for key in ('vitiligo', 'barba', 'outras_regioes'):
+        for key in ('vitiligo', 'barba'):
             self.assertIsNone(status[key]['detected'])
-        self.assertEqual(status['outras_regioes']['state'], 'nao_executado')
+        del modules['barba']
+        status = compose(np.ones((20, 20), bool), modules)['module_status']
+        self.assertEqual(status['barba']['state'], 'nao_executado')
 
     def test_invalid_alignment_fails_instead_of_broadcasting(self):
         with self.assertRaises(ValueError):
@@ -180,29 +180,7 @@ class AdapterTests(unittest.TestCase):
             self.assertIn('modulo_obrigatorio_indisponivel', quality['reasons'])
 
 
-class ContrastQualityTests(unittest.TestCase):
-    def test_uniform_light_dark_and_smooth_shadow_are_not_exclusions(self):
-        for color in ([220, 170, 140], [35, 23, 18]):
-            rgb = np.full((120, 160, 3), color, np.uint8)
-            for shadow in (False, True):
-                values = rgb if not shadow else (rgb * np.linspace(.7, 1., 160)[None, :, None]).astype(np.uint8)
-                mask = np.ones(values.shape[:2], bool)
-                result = contrast.detect(rgb_to_lab(values), mask, ~mask, ~mask)
-                self.assertFalse(result.accepted.any())
-
-    def test_dark_ring_preserves_hole_and_exclusions_are_not_references(self):
-        rgb = np.full((160, 160, 3), [190, 140, 110], np.uint8)
-        ring = np.zeros((160, 160), np.uint8)
-        cv2.circle(ring, (80, 80), 10, 1, 3)
-        rgb[ring > 0] = 5
-        mask = np.ones(ring.shape, bool)
-        result = contrast.detect(rgb_to_lab(rgb), mask, ~mask, ~mask)
-        self.assertGreater((result.accepted & (ring > 0)).sum(), 0)
-        self.assertFalse(result.accepted[80, 80])
-        excluded = ring.astype(bool)
-        result = contrast.detect(rgb_to_lab(rgb), mask, excluded, ~mask)
-        self.assertFalse((result.accepted & excluded).any())
-
+class QualityTests(unittest.TestCase):
     def test_quality_rejects_empty_tiny_clipped_and_uncertainty_sensitive_samples(self):
         rgb = textured_skin()
         mask = np.ones(rgb.shape[:2], bool)
@@ -231,6 +209,19 @@ class ContrastQualityTests(unittest.TestCase):
 
 
 class PipelineIntegrationTests(unittest.TestCase):
+    def test_final_selection_preserves_contrasts_outside_specialist_masks(self):
+        rgb = textured_skin()
+        rgb[40:50, 70:80] = 5
+        masks = anatomy(rgb.shape[:2])
+        modules = empty_modules(rgb.shape[:2])
+        modules['acne'].accepted[10:20, 20:30] = True
+        modules['barba'].uncertain[60:65, 30:40] = True
+        selected = finish(rgb, rgb_to_lab(rgb), masks, modules)
+        expected = masks['allowed'] & ~modules['acne'].accepted & ~modules['barba'].uncertain
+        np.testing.assert_array_equal(selected['valid_mask'], expected)
+        self.assertEqual(set(selected['module_status']), {'acne', 'vitiligo', 'barba'})
+        self.assertEqual(set(selected['accepted_masks']), {'acne', 'vitiligo', 'barba'})
+
     def test_native_resolution_and_quality_gate_prevent_measurement(self):
         rgb = textured_skin((600, 900))
         before = rgb.copy()

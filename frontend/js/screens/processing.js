@@ -7,7 +7,7 @@ const descriptions = {
   acne: ['Analisando regiões de acne', 'Separamos as áreas apontadas pelo modelo e suas incertezas.'],
   vitiligo: ['Analisando regiões de vitiligo', 'Localizamos áreas candidatas à exclusão da medição.'],
   barba: ['Analisando barba e bigode', 'Comparamos o EasyPortrait com a anatomia, a textura e a localização.'],
-  selecao: ['Unindo as máscaras', 'Avaliamos os demais contrastes, reunimos as exclusões e verificamos a qualidade.'],
+  selecao: ['Unindo as máscaras', 'Reunimos as exclusões e verificamos a qualidade.'],
   clusters: ['Descrevendo as cores da pele', 'Contamos os grupos de cor sem alterar a seleção.'],
   medidas: ['Avaliando a medição de cor', 'Medimos somente se os pixels restantes passarem pelos critérios de qualidade.'],
   resultado: ['Preparando as imagens e métricas', 'Organizamos as máscaras reais. Tom e bases continuam demonstrativos.'],
@@ -48,6 +48,6 @@ export function processing(state) {
     <div class="processing-heading stack tight"><span class="eyebrow">Um instante para cuidar dos detalhes</span><h1>${state.example ? 'Preparando o exemplo…' : 'Processando sua foto…'}</h1><p class="muted" id="processing-status" role="status">${state.example ? 'Carregando a demonstração.' : 'Enviando a foto e aguardando o servidor.'}</p></div>
     <div class="processing-progress-label" id="processing-count">${state.example ? 'Exemplo demonstrativo' : 'Aguardando o início das etapas'}</div>
     <div class="loading-bar" id="processing-progress" role="progressbar" aria-label="Etapas de processamento" aria-valuemin="0" aria-valuemax="100"><span></span></div>
-    <div class="processing-steps" id="processing-steps">${state.example ? '<p class="small muted">Nenhuma foto pessoal será enviada. Este exemplo não executa o processamento real.</p>' : '<p class="small muted">Vamos separar a pele, analisar acne, vitiligo, barba e demais regiões e reunir os pixels restantes.</p>'}</div>
+    <div class="processing-steps" id="processing-steps">${state.example ? '<p class="small muted">Nenhuma foto pessoal será enviada. Este exemplo não executa o processamento real.</p>' : '<p class="small muted">Vamos separar a pele, analisar acne, vitiligo e barba e reunir os pixels restantes.</p>'}</div>
     <div><button class="btn btn-outline-primary" data-action="home">Cancelar e voltar ao início</button></div><p class="privacy-note">${icon('shield')} Sua foto não fica salva no servidor.</p></div></section>`;
 }

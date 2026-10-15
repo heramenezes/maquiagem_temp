@@ -37,7 +37,7 @@ def validate_manifest(records):
             raise ValueError(f'Pessoa em mais de uma divisão: {person}')
         people[person] = row['split']
         if set(row['exclusions']) != set(CATEGORIES):
-            raise ValueError('Anote os quatro motivos, inclusive máscaras vazias para negativos.')
+            raise ValueError('Anote os três motivos, inclusive máscaras vazias para negativos.')
 
 
 def read_mask(path, shape):
@@ -90,9 +90,7 @@ def evaluate_record(row, root):
     selected = finish(rgb, lab, anatomy, modules)
     elapsed = (perf_counter() - start) * 1000
     variants = {'bisenet': anatomy['allowed'], 'manual': reference,
-                'especialistas': compose(anatomy['allowed'], modules)['valid_mask'],
-                'completa': selected['valid_mask'],
-                'contraste': finish(rgb, lab, anatomy, {})['valid_mask']}
+                'completa': selected['valid_mask']}
     for key in modules:
         variants[key] = compose(anatomy['allowed'], {key: modules[key]})['valid_mask']
     return {'id': row['id'], 'person_id': row['person_id'], 'split': row['split'],

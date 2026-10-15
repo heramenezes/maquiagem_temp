@@ -9,12 +9,10 @@ const categories = [
   ['acne', 'Acne', 'Áreas apontadas pelo modelo de acne.'],
   ['vitiligo', 'Vitiligo', 'Áreas apontadas pelo modelo de vitiligo.'],
   ['barba', 'Barba e bigode', 'Candidatos a pelos por EasyPortrait, textura e localização.'],
-  ['outras_regioes', 'Demais regiões', 'Contrastes residuais, como marcas escuras e acessórios.'],
 ];
 const statusNames = { indisponivel: 'Modelo indisponível', falha: 'Falha na análise', nao_executado: 'Não executado' };
 const reasons = {
   modulo_obrigatorio_indisponivel: 'Uma das análises necessárias não ficou disponível.',
-  referencia_local_insuficiente: 'Faltou pele de referência nas proximidades das regiões analisadas.',
   poucos_pixels_nativos: 'Restaram poucos pixels com detalhes suficientes.',
   cobertura_insuficiente: 'A área restante é pequena em relação à pele inicial.',
   incerteza_excessiva: 'Muitas regiões ainda estão incertas.',
@@ -57,7 +55,6 @@ export function categoryPreviews(data) {
           ${metric('Tempo de análise', typeof status?.elapsed_ms === 'number' ? `${format(status.elapsed_ms)} ms` : '—')}
         </dl>
         ${key === 'barba' ? '<p class="small muted category-note">EasyPortrait não tem uma classe própria de barba. As regiões destacadas são candidatas; discordâncias sem apoio suficiente ficam incertas.</p>' : ''}
-        ${executed && status.reason === 'referencia_local_insuficiente' ? '<p class="small muted category-note">Referência local insuficiente. Esta análise requer revisão.</p>' : ''}
       </article>`;
     }).join('')}</div>
     <p class="small muted">Os percentuais usam a pele anatômica inicial (${format(selection.anatomical_pixels)} pixels). Uma região pode aparecer em mais de um cartão; a seleção final conta cada pixel uma única vez.</p>

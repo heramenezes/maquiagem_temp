@@ -1,7 +1,7 @@
 # Seleção independente antes da medição
 
 Backend implementado em 15/10/2026, usando EasyPortrait para candidatos a
-barba e bigode. Frontend não alterado. O piloto de 100–200 fotos anotadas por
+barba e bigode. O frontend exibe máscaras e estados das três categorias. O piloto de 100–200 fotos anotadas por
 pessoa ainda não existe no repositório: esta implementação é experimental,
 com limiares provisórios, sem declaração de acurácia ou liberação para Monk.
 
@@ -12,15 +12,12 @@ com limiares provisórios, sem declaração de acurácia ou liberação para Mon
 3. Acne (U-Net), vitiligo (YOLO) e EasyPortrait recebem vistas do mesmo RGB.
 4. Restaurar probabilidades ao recorte antes dos limiares. YOLO registra e
    desfaz letterbox. Rótulos BiSeNet usam vizinho mais próximo.
-5. Contraste Lab multiescala usa somente referências fora das exclusões e
-   incertezas dos especialistas. Pesos robustos reduzem contaminação; componentes
-   pequenos são ignorados e áreas grandes/ambíguas permanecem incertas.
-6. Compor união, avaliar qualidade e medir somente a `valid_mask` aprovada.
+5. Compor união, avaliar qualidade e medir somente a `valid_mask` aprovada.
 
 `excluded_mask = anatomical_mask & union(accepted_masks)`;
 `valid_mask = anatomical_mask & ~excluded_mask & ~uncertain_mask`.
 Motivos podem sobrepor; a área total conta a união uma vez. Componentes usam
-pixels reais, não caixas preenchidas; furos em acessórios são preservados.
+pixels reais, não caixas preenchidas; furos nas máscaras são preservados.
 Máscaras brutas, inclusive previsões externas à anatomia, ficam em `debug_masks`.
 Regiões carregam motivo, origem, bbox, área e referência à evidência do módulo.
 
@@ -75,7 +72,7 @@ JSON/NDJSON e garante que só a máscara aprovada entra na medição. As fotos
 locais e a equivalência PyTorch/ONNX verificam execução, não qualidade facial.
 
 Para concluir a validação do plano faltam máscaras manuais, positivos,
-negativos e confusores dos quatro grupos; separação por pessoa entre ajuste
+negativos e confusores dos três grupos; separação por pessoa entre ajuste
 e teste; calibração conjunta; avaliação por tom/luz; e comparação com seleção
 manual. Até isso acontecer, a etapa de liberação do plano permanece pendente.
 
@@ -83,8 +80,7 @@ manual. Até isso acontecer, a etapa de liberação do plano permanece pendente.
 
 Instale `backend/requirements-evaluation.txt` em ambiente separado. O comando
 `python -m backend.evaluate_selection manifest.json --split test --output report.json`
-compara BiSeNet, cada especialista, contraste isolado, especialistas juntos,
-combinação completa e máscara manual. Produz precisão/recall/Dice/IoU, pele
+compara BiSeNet, cada especialista, combinação completa e máscara manual. Produz precisão/recall/Dice/IoU, pele
 válida removida, contaminação, ΔLab/ΔE00, estados, qualidade, tempos e memória.
 ΔE00 usa [scikit-image](https://scikit-image.org/docs/stable/api/skimage.color.html#skimage.color.deltaE_ciede2000).
 Resultados individuais preservam tom, luz e tags para estratificação.
@@ -103,7 +99,7 @@ Negativos exigem máscara vazia explícita para cada categoria:
     "image": "foto001.png", "valid_mask": "foto001_pele_util.png",
     "exclusions": {
       "acne": "foto001_acne.png", "vitiligo": "foto001_vitiligo.png",
-      "barba": "foto001_barba.png", "outras_regioes": "foto001_outras.png"
+      "barba": "foto001_barba.png"
     },
     "tone_group": "anotacao_manual", "lighting": "uniforme",
     "tags": ["negativo", "bigode_isolado"]

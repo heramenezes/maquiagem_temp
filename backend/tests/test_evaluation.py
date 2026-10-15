@@ -44,7 +44,7 @@ class EvaluationIntegrationTests(unittest.TestCase):
             self.assertEqual(result['failed_photos'], 1)
             self.assertFalse(result['quality_validated'])
             self.assertEqual(set(result['results'][0]['variants']),
-                             {'bisenet', 'manual', 'acne', 'vitiligo', 'barba', 'especialistas', 'completa', 'contraste'})
+                             {'bisenet', 'manual', 'acne', 'vitiligo', 'barba', 'completa'})
             self.assertEqual(result['results'][0]['variants']['manual']['dice'], 1)
             self.assertIn('error', result['results'][1])
 

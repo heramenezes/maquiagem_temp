@@ -274,7 +274,6 @@ main:focus { outline: 0; }
 .category-acne { --mask-color: #db4c5a; }
 .category-vitiligo { --mask-color: #8e5bcd; }
 .category-barba { --mask-color: #2b78c2; }
-.category-outras_regioes { --mask-color: #138b7a; }
 .category-dot { background: var(--mask-color); }
 .uncertain-dot { background: #f4b539; }
 .selection-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }

@@ -30,8 +30,6 @@ def evaluate(rgb, lab, selection, config=QualityConfig()):
                "uncertain_fraction": float((selection["uncertain_mask"] & ~selection["excluded_mask"]).sum()) / max(total, 1)}
     if any(v["state"] != "executado" for v in selection["module_status"].values()):
         reasons.append("modulo_obrigatorio_indisponivel")
-    if any(v.get("reason") == "referencia_local_insuficiente" for v in selection["module_status"].values()):
-        reasons.append("referencia_local_insuficiente")
     if n < config.min_pixels:
         reasons.append("poucos_pixels_nativos")
     if metrics["valid_fraction"] < config.min_fraction:

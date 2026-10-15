@@ -5,10 +5,10 @@ Atualizado em **15/10/2026**. Planejamento; nenhuma etapa abaixo foi implementad
 **Implementação posterior em 15/10/2026:** o backend foi integrado conforme
 [skin_selection/README.md](../backend/src/skin_selection/README.md), usando
 **EasyPortrait para barba/bigode por decisão do usuário**, em lugar de SAM.
-Frontend permanece pendente. Há inferência, máscaras, qualidade, API, testes
+Frontend integrado com máscaras e estados por categoria. Há inferência, máscaras, qualidade, API, testes
 e ferramenta de avaliação offline; anotação do piloto, calibração e validação
-das quatro capacidades ainda são necessárias para cumprir a condição de
-conclusão deste plano. A proposta original abaixo permanece como referência.
+das três capacidades ainda são necessárias para cumprir a condição de
+conclusão deste plano. O plano abaixo reflete o escopo atual.
 
 ## Objetivo e escopo fechado
 
@@ -17,11 +17,10 @@ Preservar o BiSeNet atual e entregar uma máscara confiável para medir a cor, e
 1. Acne.
 2. Vitiligo.
 3. Barba e bigode.
-4. Outras regiões de contraste intenso: pintas/verrugas grandes, tatuagens, piercings grandes e traços como delineado preto.
 
-Rosácea não terá detector, mapa de vermelhidão difusa ou cartão de resultado. Maquiagem não terá módulo próprio. “Outras regiões” é categoria visual de exclusão; não precisa classificar cada tipo de objeto ou lesão.
+Rosácea não terá detector, mapa de vermelhidão difusa ou cartão de resultado. Maquiagem não terá módulo próprio.
 
-A saída desta fase alimentará a medição de cor e, depois, Monk. Não inclui implementar a conversão para Monk ou o recomendador de bases. Não basta filtrar contraste e declarar que as três categorias específicas foram detectadas.
+A saída desta fase alimentará a medição de cor e, depois, Monk. Não inclui implementar a conversão para Monk ou o recomendador de bases.
 
 ## Fluxo de execução pretendido
 
@@ -36,9 +35,8 @@ flowchart TD
     C --> F
     D --> F
     E --> F
-    F --> G[Contraste residual: outras regiões]
-    L --> G
-    G --> H[União de exclusões aceitas e incerteza]
+    F --> H[União de exclusões aceitas e incerteza]
+    L --> I
     H --> I{Pele restante suficiente e consistente?}
     I -->|Sim| J[Medição de cor e dispersão]
     J --> K[Etapa futura: Monk]
@@ -51,8 +49,7 @@ As ramificações representam independência dos dados, não obrigação de exec
 2. BiSeNet e especialistas recebem vistas preparadas do mesmo RGB. Cada adaptador guarda escala, padding e eventual alinhamento/inversa. Nenhum recebe o resultado com exclusões pintadas de preto.
 3. Mapear todas as máscaras para o recorte preservado. Reamostrar probabilidades antes de aplicar limiar; usar vizinho mais próximo para rótulos. Conferir ordem dos canais e classes por modelo.
 4. Obter máscaras aceitas e incertezas dos especialistas. Restringir o efeito sobre a medição à anatomia candidata, preservando previsões externas para depuração. BiSeNet permanece o limite inicial: pele que ele perdeu não será recuperada silenciosamente.
-5. Executar filtro de outras regiões com referências locais que não sejam dominadas pelas exclusões já confiáveis. Não há pressuposto de testa ou bochechas sempre limpas.
-6. Compor a seleção, verificar qualidade e medir cor nos pixels originais selecionados. O overlay é somente visualização, nunca entrada da medição.
+5. Compor a seleção, verificar qualidade e medir cor nos pixels originais selecionados. O overlay é somente visualização, nunca entrada da medição.
 
 ## Contrato interno proposto
 
@@ -65,7 +62,6 @@ selection = {
         "acne": ...,
         "vitiligo": ...,
         "barba": ...,
-        "outras_regioes": ...,
     },
     "uncertain_mask": ...,        # bool: regiões ainda ambíguas
     "excluded_mask": ...,         # união aceita, limitada à anatomia
@@ -83,24 +79,23 @@ Regras:
 - `valid_mask = anatomical_mask & ~excluded_mask & ~uncertain_mask`.
 - Máscaras de motivos podem se sobrepor. Contar a união uma vez; percentuais por motivo não são somáveis. Se a UI exigir uma cor única por pixel, uma prioridade visual não apaga os motivos originais.
 - Resultado vazio de um modelo executado é diferente de modelo indisponível, não executado ou falha de inferência. Não converter esses estados em “não detectado”.
-- `confidence` de rede não equivale a certeza clínica. Preservar origem da evidência: modelo específico, heurística de contraste ou discordância entre parsers.
+- `confidence` de rede não equivale a certeza clínica. Preservar origem da evidência: modelo específico ou discordância entre parsers.
 - EasyPortrait pode sugerir exclusões/áreas incertas, mas sua diferença com BiSeNet não recebe automaticamente o rótulo `barba`.
 
 ## Etapas de desenvolvimento e critérios de saída
 
 | Etapa | Trabalho e entrega | Critério para avançar | Esforço relativo |
 |---|---|---|---|
-| 0. Referência de avaliação | Selecionar fotos e anotar máscaras de pele utilizável/exclusões; fixar divisão por pessoa. | Haver casos positivos, negativos e confusores para os quatro grupos. | Médio; depende de dados. |
+| 0. Referência de avaliação | Selecionar fotos e anotar máscaras de pele utilizável/exclusões; fixar divisão por pessoa. | Haver casos positivos, negativos e confusores para os três grupos. | Médio; depende de dados. |
 | 1. Infraestrutura de máscaras | Preservar resolução, transformações, contrato, composição e prévias. Usar máscaras controladas em testes. | Alinhamento e união corretos, sem alterar RGB de medição; falhas explícitas. | Baixo a médio. |
-| 2. Outras regiões | Contraste Lab multiescala, morfologia, componentes e máscara de incerteza. | Reduzir contaminação sem penalizar sistematicamente pele escura ou remover sombras/poros como regra. | Médio. |
-| 3. Acne | Executar U-Net no ambiente original; comparar máscaras, calibrar e exportar se viável. | Ganho sobre BiSeNet e baseline; falsos positivos e custo aceitáveis. | Médio. |
-| 4. Vitiligo | Avaliar `vitiligon-seg.pt` em faces, negativos e iluminação desigual; auditar classes e máscaras. | Localização facial útil, referência restante adequada e identidade do peso esclarecida. | Médio a alto/incerto. |
-| 5. Barba | Avaliar SAM com prompts automáticos e EasyPortrait como comparação de exclusão. | Barba/bigode identificados sem remover mandíbula inteira; CPU/RAM aceitáveis. | Médio a alto/incerto. |
-| 6. Combinação | Calibrar união, áreas ambíguas, margens e qualidade com especialistas juntos. | Ganho mantido na combinação, sem excesso cumulativo de exclusões. | Médio. |
-| 7. API e interface | Retirar rosácea do produto, exibir quatro categorias, disponibilidade e máscaras reais. | Sem marcação fictícia em foto analisada; contratos JSON/NDJSON consistentes. | Médio. |
-| 8. Liberação para medição | Congelar versões e validar teste separado, cor e tempo no Windows/CPU. | Só emitir medição utilizável quando a qualidade passar. | Médio. |
+| 2. Acne | Executar U-Net no ambiente original; comparar máscaras, calibrar e exportar se viável. | Ganho sobre BiSeNet e baseline; falsos positivos e custo aceitáveis. | Médio. |
+| 3. Vitiligo | Avaliar `vitiligon-seg.pt` em faces, negativos e iluminação desigual; auditar classes e máscaras. | Localização facial útil, referência restante adequada e identidade do peso esclarecida. | Médio a alto/incerto. |
+| 4. Barba | Avaliar SAM com prompts automáticos e EasyPortrait como comparação de exclusão. | Barba/bigode identificados sem remover mandíbula inteira; CPU/RAM aceitáveis. | Médio a alto/incerto. |
+| 5. Combinação | Calibrar união, áreas ambíguas, margens e qualidade com especialistas juntos. | Ganho mantido na combinação, sem excesso cumulativo de exclusões. | Médio. |
+| 6. API e interface | Retirar rosácea do produto, exibir três categorias, disponibilidade e máscaras reais. | Sem marcação fictícia em foto analisada; contratos JSON/NDJSON consistentes. | Médio. |
+| 7. Liberação para medição | Congelar versões e validar teste separado, cor e tempo no Windows/CPU. | Só emitir medição utilizável quando a qualidade passar. | Médio. |
 
-Os esforços são estimativas de engenharia, não prazos medidos. As etapas 3–5 têm dependência comum na infraestrutura e podem ser investigadas independentemente. O filtro genérico pode ser desenvolvido cedo, mas no fluxo final roda após avaliação das máscaras específicas.
+Os esforços são estimativas de engenharia, não prazos medidos. As etapas 2–4 têm dependência comum na infraestrutura e podem ser investigadas independentemente.
 
 ### Decisões se um candidato falhar
 
@@ -109,7 +104,6 @@ Os esforços são estimativas de engenharia, não prazos medidos. As etapas 3–
 | U-Net perde acne ou gera muitas exclusões falsas | Comparar SegFormer-B1 nas mesmas fotos. Usar SA-RPN somente se o ganho justificar stack e custo maiores. |
 | YOLO de vitiligo não generaliza para rosto | Buscar esclarecimento técnico do peso/dados; avaliar ajuste supervisionado com máscaras faciais. GloW-VSNet só entra após resolver seu contrato de saída. |
 | SAM de barba lento ou dependente de prompts frágeis | Avaliar treinamento de modelo binário leve. EasyPortrait pode melhorar exclusão, mas não fecha sozinho a detecção nominal. |
-| Piercings/objetos escapam do contraste | Comparar FaceOcc. Adotar somente se melhorar esses casos sem perder pele válida. |
 | Bordas locais deixam contaminação | Testar GrabCut/margem local nos candidatos; não aumentar erosão de todo o rosto. |
 | Modelo obrigatório indisponível | Informar análise parcial/indisponível e impedir que seja apresentada como seleção completa para Monk. |
 
@@ -125,7 +119,6 @@ backend/src/skin_selection/
     acne.py            # adaptador do candidato aprovado
     vitiligo.py        # adaptador do candidato aprovado
     beard.py           # máscara específica e eventuais auxiliares
-    contrast.py        # outras regiões
     compose.py         # união, motivos e incerteza
     quality.py         # cobertura e consistência
     pipeline.py        # orquestração desta etapa independente
@@ -138,7 +131,7 @@ backend/src/skin_selection/
 | [segmentation/skin.py](../backend/src/segmentation/skin.py) | K-means continua descritivo. Se usado para candidatos, distinguir descritores anteriores das estatísticas finais. Não reativar `grow_skin()` inteiro nem impor grupo dominante/conectividade única. |
 | [segmentation/model_asset.py](../backend/src/segmentation/model_asset.py) e [download_model.py](../backend/download_model.py) | Ampliar registro/download explícito de modelos com origem, versão e SHA-256. |
 | [mock_analysis.py](../backend/src/mock_analysis.py) | Retirar rosácea e atualizar demonstração para o escopo. Manter separação entre exemplo e saídas reais. |
-| [preprocessing.js](../frontend/js/screens/preprocessing.js) e [result.js](../frontend/js/screens/result.js) | Exibir antes/depois, quatro motivos, qualidade e área utilizada. |
+| [preprocessing.js](../frontend/js/screens/preprocessing.js) e [result.js](../frontend/js/screens/result.js) | Exibir antes/depois, três motivos, qualidade e área utilizada. |
 | [processing.js](../frontend/js/screens/processing.js) | Já renderiza lista dinâmica; revisar textos/estados para novas etapas e capacidades indisponíveis. |
 | [API.md](API.md) e README | Atualizar contrato, erros, modelos e fronteira entre real/simulado. |
 
@@ -164,7 +157,7 @@ Para a primeira comparação de seleção, preservar a média Lab existente e ca
 
 Montar piloto de aproximadamente 100–200 fotos como ponto inicial para encontrar falhas, sem tratar esse tamanho como validação suficiente de todos os grupos. Usar pessoas distintas entre ajuste e teste. Incluir tons claros a escuros, negativos, acne junto a pintas, vitiligo junto a reflexos, barba escura/branca/rala, bigode isolado, tatuagem, delineado, verruga pouco contrastante e piercing vazado. Ter exemplos de condições simultâneas.
 
-Comparações: BiSeNet isolado; cada especialista individual; contraste isolado; especialistas juntos; combinação completa; máscara manual de referência. Avaliar:
+Comparações: BiSeNet isolado; cada especialista individual; combinação completa; máscara manual de referência. Avaliar:
 
 | Medida | Pergunta respondida |
 |---|---|
@@ -178,4 +171,4 @@ Comparações: BiSeNet isolado; cada especialista individual; contraste isolado;
 
 Testes de código devem cobrir transformações não quadradas/letterbox, máscara vazia, sobreposições, cores preservadas, falha de modelo e eventos terminais do stream. Testes de integração verificam que só `valid_mask` entra na medição e que nenhuma marcação fictícia aparece como detecção real. Não declarar qualidade de segmentação com testes sintéticos apenas.
 
-**Condição de conclusão:** quatro capacidades avaliadas, máscaras alinhadas, estado explícito por módulo, qualidade/abstenção funcionando e medição alimentada somente por seleção aprovada. A etapa de Monk continua posterior.
+**Condição de conclusão:** três capacidades avaliadas, máscaras alinhadas, estado explícito por módulo, qualidade/abstenção funcionando e medição alimentada somente por seleção aprovada. A etapa de Monk continua posterior.

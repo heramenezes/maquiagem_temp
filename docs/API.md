@@ -27,7 +27,7 @@ Regras:
 5. Se não houver rosto ou forem detectados múltiplos rostos, responder 422 antes da segmentação.
 6. Preservar o recorte RGB, converter para CIELAB/D65 e executar BiSeNet ONNX.
    Executar acne, vitiligo e EasyPortrait em vistas do mesmo RGB, restaurar as
-   máscaras e aplicar contraste residual. K-means continua apenas descritivo.
+   máscaras e compor a seleção de pele. K-means continua apenas descritivo.
 7. Anatomia insuficiente interrompe com `PELE_INSUFICIENTE`. Seleção insuficiente,
    incerta ou com especialista indisponível retorna análise inconclusiva com
    máscaras, razões e médias nulas; não chama a medição.
@@ -120,7 +120,7 @@ As prévias se referem ao recorte processado. `pele` tem alfa zero nos pixels ex
 - `selecao.schema_version: 1` e `coordinate_space: recorte_rgb`.
 - `selecao.masks`: PNGs 0/255 de `anatomical_mask`, `excluded_mask`,
   `uncertain_mask`, `valid_mask` e `accepted_masks` por motivo.
-- `selecao.module_status`: `acne`, `vitiligo`, `barba`, `outras_regioes`, com
+- `selecao.module_status`: `acne`, `vitiligo`, `barba`, com
   `state`, `reason`, `source`, `elapsed_ms`, `evidence`, `detected` e contagens.
 - `selecao.regions`: `reason`, `source`, `state`, `bbox: [x,y,largura,altura]`,
   `area_pixels`, `evidence_ref`; coordenadas em pixels do recorte, não da foto completa.

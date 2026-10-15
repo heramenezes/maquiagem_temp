@@ -34,7 +34,7 @@ inconclusiva e não emite medição. A conversão dos pesos ocorre em ambiente s
 - Sem rosto ou com múltiplos rostos detectados, a API retorna 422 e a interface pede outra foto. Conversão CIELAB, segmentação e resultado não são executados. No stream, o evento de erro informa o status 422.
 - Conversão real sRGB → RGB linear → XYZ → CIELAB (D65), normalizando perfis ICC para sRGB quando presentes.
 - Segmentação semântica com BiSeNet ResNet18 pré-treinado, executada localmente em CPU via ONNX Runtime. Pele e nariz são selecionados pixel a pixel, sem exclusões geométricas grandes. O modelo não tem classe específica de barba.
-- Seleção independente com U-Net para acne, YOLO para vitiligo, EasyPortrait para candidatos a barba/bigode e contraste residual; estados e máscaras reais por módulo.
+- Seleção independente com U-Net para acne, YOLO para vitiligo, EasyPortrait para candidatos a barba/bigode; estados e máscaras reais por módulo.
 - K-means descreve a anatomia sem remover pixels. A medição recebe somente a máscara válida aprovada pelos critérios técnicos de qualidade.
 - Progresso real em dez etapas, recorte RGB preservado, prévias e estatísticas; análise inconclusiva mantém máscaras/razões e retorna médias nulas.
 - Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
@@ -48,7 +48,7 @@ Tom Monk, ITA e a porcentagem do cartão de tom continuam fixtures de
 `backend/src/mock_analysis.py`. Condições e máscaras de fotos enviadas agora
 vêm da seleção real; marcações fictícias ficam apenas em `/api/exemplo`.
 Rosácea saiu do backend. A interface preserva as três prévias anatômicas e
-mostra abaixo acne, vitiligo, barba e demais regiões com máscaras e métricas.
+mostra abaixo acne, vitiligo e barba com máscaras e métricas.
 A imagem final reúne somente a pele útil restante. Disponibilidade dos modelos
 e resultados inconclusivos são indicados sem apresentar medições nulas como zero.
 
@@ -68,7 +68,7 @@ backend/
   src/mock_analysis.py          Respostas demonstrativas
   src/preprocessing/            Detectores e isolamento existentes
   src/segmentation/             Conversão, BiSeNet, estatísticas de cor e eventos
-  src/skin_selection/           Especialistas, contraste, composição e qualidade
+  src/skin_selection/           Especialistas, composição e qualidade
   src/tone_matching/             Etapa futura
   src/distributed/               Etapa futura
   tests/test_api.py              Testes HTTP e integração com o detector
