@@ -8,8 +8,8 @@ import { result } from './screens/result.js';
 const state = { screen: 'home', file: null, photoURL: null, result: null, error: '', example: false };
 const screens = { home, capture, review, processing, result };
 // Pausas artificiais para visualizar as etapas durante a demonstração.
-const PROCESSING_STAGE_DELAY_MS = 2000;
-const COMPLETED_STAGE_DELAY_MS = 200;
+const PROCESSING_STAGE_DELAY_MS = 4000;
+const COMPLETED_STAGE_DELAY_MS = 500;
 const main = document.querySelector('#main');
 let revision = 0;
 let pendingRequest = null;
@@ -96,7 +96,7 @@ async function runAnalysis(example = false) {
   } catch (error) {
     if (current !== revision || error.name === 'AbortError') return;
     state.error = error.message;
-    if (['ROSTO_NAO_ENCONTRADO', 'PELE_INSUFICIENTE', 'FOTO_INVALIDA', 'FOTO_MUITO_GRANDE'].includes(error.code)) {
+    if (['ROSTO_NAO_ENCONTRADO', 'MULTIPLOS_ROSTOS', 'PELE_INSUFICIENTE', 'FOTO_INVALIDA', 'FOTO_MUITO_GRANDE'].includes(error.code)) {
       releasePhoto();
       state.screen = 'capture';
     } else state.screen = example ? 'home' : 'review';
@@ -115,6 +115,15 @@ document.addEventListener('click', event => {
     case 'camera': document.querySelector('#camera-input')?.click(); break;
     case 'analyze': runAnalysis(); break;
     case 'example': runAnalysis(true); break;
+    case 'segmentation': {
+      const overlay = document.querySelector('#segmentation-overlay');
+      if (!overlay) break;
+      overlay.hidden = !overlay.hidden;
+      overlay.closest('.photo-frame').classList.toggle('segmentation-visible', !overlay.hidden);
+      button.textContent = overlay.hidden ? 'Mostrar segmentação' : 'Ocultar segmentação';
+      button.setAttribute('aria-pressed', String(!overlay.hidden));
+      break;
+    }
     case 'marks': {
       const marks = document.querySelector('#marks');
       marks.hidden = !marks.hidden;

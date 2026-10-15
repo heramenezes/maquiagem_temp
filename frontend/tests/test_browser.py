@@ -13,6 +13,7 @@ from playwright.sync_api import sync_playwright, expect
 from werkzeug.serving import make_server
 
 from backend.app import create_app
+from backend.tests.images import face_photo
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS = ROOT / ".test-artifacts"
@@ -73,13 +74,29 @@ class BrowserTests(unittest.TestCase):
           }).observe(document.querySelector('main'), {childList: true, subtree: true});
         }""")
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.locator('[data-step="cielab"][data-state="processando"]')).to_be_visible()
+        expect(self.page.locator('[data-step="cielab"][data-state="processando"]')).to_be_visible(timeout=10000)
         self.page.screenshot(path=str(ARTIFACTS / "pipeline-progress-desktop.png"), full_page=True)
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=20000)
+        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
         states = self.page.evaluate("window.pipelineStates")
         for stage in ("rosto", "cielab", "mascara", "clusters", "refinamento", "resultado"):
             self.assertIn(stage, states)
         expect(self.page.get_by_role("heading", name="Pele separada para a próxima etapa")).to_be_visible()
+        overlay = self.page.locator('#segmentation-overlay')
+        expect(overlay).to_be_visible()
+        self.assertTrue(overlay.evaluate('img => img.complete && img.naturalWidth > 0'))
+        source = self.page.locator('.segmentation-source')
+        self.assertEqual(source.bounding_box(), overlay.bounding_box())
+        expect(self.page.locator('#marks')).to_be_visible()
+        self.page.get_by_role('button', name='Ocultar segmentação', exact=True).click()
+        expect(overlay).to_be_hidden()
+        expect(self.page.locator('#marks')).to_be_visible()
+        self.assertEqual(source.evaluate('img => getComputedStyle(img).filter'), 'none')
+        self.page.get_by_role('button', name='Mostrar segmentação', exact=True).click()
+        expect(overlay).to_be_visible()
+        self.page.get_by_role('button', name='Ocultar marcações', exact=True).click()
+        expect(self.page.locator('#marks')).to_be_hidden()
+        expect(overlay).to_be_visible()
+        self.page.get_by_role('button', name='Mostrar marcações', exact=True).click()
         self.assertEqual(self.page.locator('.preprocessing-previews img').count(), 3)
         self.assertTrue(self.page.locator('.preprocessing-previews img').evaluate_all("images => images.every(i => i.complete && i.naturalWidth > 0)"))
         self.assertEqual(self.page.locator(".product-card").count(), 3)
@@ -99,7 +116,7 @@ class BrowserTests(unittest.TestCase):
         self.page.screenshot(path=str(ARTIFACTS / "no-face-error.png"), full_page=True)
         self.page.locator("#gallery-input").set_input_files(str(ROOT / "samples/imagem_teste.jpeg"))
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=20000)
+        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
 
     def test_example_and_marks(self):
         self.page.get_by_role("button", name="Ver um exemplo", exact=True).click()
@@ -112,6 +129,19 @@ class BrowserTests(unittest.TestCase):
         self.page.get_by_role("button", name="Mostrar marcações").click()
         expect(self.page.locator("#marks")).to_be_visible()
 
+    def test_multiple_faces_requests_new_photo_before_analysis(self):
+        self.page.get_by_role('button', name='Começar', exact=True).click()
+        self.page.locator('#gallery-input').set_input_files({
+            'name': 'two-faces.png', 'mimeType': 'image/png', 'buffer': face_photo().getvalue()})
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.get_by_role('alert')).to_contain_text('Encontramos mais de um rosto', timeout=10000)
+        expect(self.page.get_by_role('heading', name='Vamos começar pela sua foto.')).to_be_visible()
+        self.assertEqual(self.page.locator('.product-card').count(), 0)
+        self.assertEqual(self.page.locator('#gallery-input').input_value(), '')
+        self.page.locator('#gallery-input').set_input_files(str(ROOT / 'samples/imagem_teste.jpeg'))
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.locator('#segmentation-overlay')).to_be_visible(timeout=40000)
+
     def test_connection_failure_keeps_photo_for_retry(self):
         self.select_sample()
         self.page.route("**/api/analises", lambda route: route.abort())
@@ -120,13 +150,25 @@ class BrowserTests(unittest.TestCase):
         expect(self.page.get_by_alt_text("Prévia da foto selecionada")).to_be_visible()
         self.page.unroute("**/api/analises")
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=20000)
+        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
 
     def test_invalid_file(self):
         self.page.get_by_role("button", name="Começar", exact=True).click()
         self.page.locator("#gallery-input").set_input_files({"name": "fake.jpg", "mimeType": "image/jpeg", "buffer": b"bad image"})
         expect(self.page.get_by_role("alert")).to_contain_text("Não foi possível abrir esta imagem")
         expect(self.page.get_by_role("heading", name="Vamos começar pela sua foto.")).to_be_visible()
+
+    def test_old_backend_without_segmentation_keeps_photo_for_retry(self):
+        self.select_sample()
+        legacy = self.page.request.get(self.url + '/api/exemplo').json()
+        legacy['exemplo'] = False
+        legacy['precheck'] = {'executado': True, 'rosto_detectado': True}
+        self.page.route('**/api/analises', lambda route: route.fulfill(
+            status=200, content_type='application/json', body=json.dumps(legacy)))
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.get_by_role('alert')).to_contain_text('O servidor não enviou a segmentação')
+        expect(self.page.get_by_alt_text('Prévia da foto selecionada')).to_be_visible()
+        self.assertEqual(self.page.locator('.product-card').count(), 0)
 
     def test_reset_cancels_pending_request(self):
         requests = []
@@ -155,7 +197,7 @@ class BrowserTests(unittest.TestCase):
                 self.page.get_by_role("button", name="Tirar foto", exact=True).click()
             chooser.value.set_files(str(ROOT / "samples/imagem_teste.jpeg"))
             self.page.get_by_role("button", name="Enviar para análise").click()
-            expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible()
+            expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
             self.assertLessEqual(self.page.evaluate("document.documentElement.scrollWidth"), width)
             self.page.screenshot(path=str(ARTIFACTS / f"result-mobile-{width}.png"), full_page=True)
 
@@ -180,7 +222,7 @@ class BrowserTests(unittest.TestCase):
     def test_cancel_real_processing_does_not_show_stale_result(self):
         self.select_sample()
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.locator('[data-step="cielab"][data-state="processando"]')).to_be_visible()
+        expect(self.page.locator('[data-step="cielab"][data-state="processando"]')).to_be_visible(timeout=10000)
         self.page.get_by_role("button", name="Cancelar e voltar ao início").click()
         expect(self.page.get_by_role("heading", name="Encontre a base certa para o seu tom de pele.")).to_be_visible()
         # A próxima interação garante que eventos antigos não alteram a captura.

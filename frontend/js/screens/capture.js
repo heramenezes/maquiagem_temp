@@ -13,6 +13,7 @@ export function capture(state) {
       <p class="small muted capture-help">No celular, “Tirar foto” pode abrir a câmera. No computador, abre o seletor de arquivos. Sua foto não fica salva no servidor.</p>
     </div><div class="col-lg-5"><aside class="tips stack"><div class="tips-heading">${icon('sun')}<span class="eyebrow">Vale a dica</span></div><h3>Uma boa foto faz<br>toda a diferença.</h3><ul class="tip-list">
       <li><span><b>Luz natural de frente.</b> Perto de uma janela é o ideal. Evite sombras no rosto.</span></li>
+      <li><span><b>Somente você na foto.</b> Evite outras pessoas e rostos em espelhos, telas ou ao fundo.</span></li>
       <li><span><b>Rosto sem maquiagem.</b> Base ou pó mudam a cor da pele na imagem.</span></li>
       <li><span><b>Sem óculos e com o cabelo preso.</b> Deixe o rosto visível.</span></li>
       <li><span><b>Olhe direto para a câmera.</b> Centralize o rosto, na altura dos olhos.</span></li>

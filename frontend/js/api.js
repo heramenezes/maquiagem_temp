@@ -42,7 +42,7 @@ async function request(url, options, signal, onProgress) {
   const cancel = () => controller.abort();
   signal?.addEventListener('abort', cancel, { once: true });
   if (signal?.aborted) controller.abort();
-  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 90000);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
     if (response.ok && response.headers.get('content-type')?.includes('application/x-ndjson')) {
@@ -61,10 +61,14 @@ async function request(url, options, signal, onProgress) {
   }
 }
 
-export function analyzePhoto(file, signal, onProgress) {
+export async function analyzePhoto(file, signal, onProgress) {
   const body = new FormData();
   body.append('foto', file);
-  return request('/api/analises', { method: 'POST', body, headers: { Accept: 'application/x-ndjson' } }, signal, onProgress);
+  const result = await request('/api/analises', { method: 'POST', body, headers: { Accept: 'application/x-ndjson' } }, signal, onProgress);
+  if (!result.preprocessamento?.previas?.rosto || !result.preprocessamento?.previas?.pele || result.preprocessamento.simulado) {
+    throw new ApiError('O servidor não enviou a segmentação da foto. Reinicie o backend atualizado e tente novamente.', 'SEGMENTACAO_AUSENTE');
+  }
+  return result;
 }
 
 export function getExample(signal) {

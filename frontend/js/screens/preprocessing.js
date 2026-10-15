@@ -1,6 +1,6 @@
 import { escapeHTML as e } from './shared.js';
 
-const png = value => typeof value === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value) ? value : '';
+export const png = value => typeof value === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value) ? value : '';
 const format = value => Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 
 export function preprocessing(data) {

@@ -147,11 +147,12 @@ Todos usam a estrutura:
 | 400 | `FOTO_INVALIDA` | Voltar à seleção com explicação |
 | 413 | `FOTO_MUITO_GRANDE` | Pedir arquivo menor |
 | 422 | `ROSTO_NAO_ENCONTRADO` | Descartar a foto selecionada e solicitar outra |
+| 422 | `MULTIPLOS_ROSTOS` | Descartar a foto e solicitar outra com somente uma pessoa; interrompe antes de converter cores ou segmentar |
 | 422 | `PELE_INSUFICIENTE` | Solicitar foto frontal mais nítida/com iluminação uniforme |
 | 500 | `ERRO_INTERNO` | Manter a prévia e permitir tentar novamente |
 | outros | `REQUISICAO_INVALIDA` | Exibir mensagem de erro |
 
-Falhas de conexão e timeout de 45 segundos são tratados pelo cliente,
+Falhas de conexão e timeout de 90 segundos (incluindo as pausas de apresentação) são tratados pelo cliente,
 respectivamente como `CONEXAO` e `TEMPO_ESGOTADO`. Cancelamentos voluntários
 não exibem erro. O resultado de uma solicitação antiga não altera uma tela reiniciada.
 

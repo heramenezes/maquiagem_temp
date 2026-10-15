@@ -9,6 +9,7 @@ from PIL import Image
 
 from .color import rgb_to_lab
 from .skin import InsufficientSkinError, adaptive_clusters, facial_masks, grow_skin
+from ..preprocessing.face_detector import MultipleFacesError
 
 
 class PipelineError(Exception):
@@ -18,7 +19,7 @@ class PipelineError(Exception):
 
 
 STAGES = [
-    ("rosto", "Verificando o rosto", "Detecção e recorte facial", False),
+    ("rosto", "Verificando o rosto", "Confirmação de um único rosto e recorte facial", False),
     ("cielab", "Convertendo as cores para CIELAB", "sRGB → RGB linear → XYZ → L*a*b* (D65)", False),
     ("mascara", "Separando as regiões do rosto", "Contorno, olhos, sobrancelhas e boca", False),
     ("clusters", "Agrupando as cores da pele", "K-means adaptativo nos canais a* e b*", False),
@@ -89,6 +90,8 @@ def analysis_events(image_bgr, detect_face, mock_result):
             else:
                 result = mock_result()
                 result["preprocessamento"] = summarize(rgb, masks, clusters, skin)
+        except MultipleFacesError as exc:
+            raise PipelineError("MULTIPLOS_ROSTOS", str(exc)) from exc
         except InsufficientSkinError as exc:
             raise PipelineError("PELE_INSUFICIENTE", str(exc)) from exc
         step["estado"] = "concluida"

@@ -8,9 +8,10 @@ Esse aqui faz o corte mais bruto da imagem.
 
 * **O que ele faz:** Ele acha onde tá o rosto e recorta uma caixa (bounding box) ao redor da cabeça com uma folguinha de 15% nas bordas (pra não decepar a testa nem o queixo).
 * **Como ele acha a cara:**
-  1. Ele tenta usar o **MediaPipe** primeiro, que é muito rápido e quase nunca erra em foto tipo selfie.
-  2. Se por acaso o MediaPipe não achar nada ou der ruim, ele ativa o plano B sozinho: o **Haar Cascades** do OpenCV.
-  3. Se nenhum dos dois achar nada, ele avisa e devolve `None` (ou seja, não tem rosto).
+  1. Ele tenta usar o **MediaPipe** primeiro, quando instalado, e conta todos os rostos detectados.
+  2. O **Haar Cascades** do OpenCV só entra como fallback quando o MediaPipe não está disponível ou não detecta nada. Se o MediaPipe detectou um rosto, já passa; se detectou vários, já aborta.
+  3. Se nenhum dos dois achar nada, ele devolve `None`. Se qualquer motor encontrar mais de um rosto, levanta `MultipleFacesError`; a API informa `MULTIPLOS_ROSTOS` e pede outra foto, antes de converter as cores ou segmentar a pele.
+  4. Só com um rosto detectado ele aplica a margem e recorta. A contagem usa as detecções retornadas, sem uma segunda conferência nem reagrupamento por sobreposição. Fotos muito desfocadas, rostos pequenos ou de perfil ainda podem enganar os detectores.
 * **O detalhe das cores (importante):** O OpenCV lê imagem em BGR. Mas a gente já configurou a função pra devolver em **RGB**, porque se mandasse em BGR pro CIELAB na próxima etapa, o vermelho e o azul iam ficar trocados e a pele ia parecer azulada, estragando o tom da base.
 * **Pensando na rede P2P:** A função aceita tanto o caminho do arquivo (`.jpg`, `.jpeg`, etc.) quanto a imagem já carregada na memória (array NumPy). Assim, quando os nós da rede distribuída trocarem dados entre si, ninguém precisa ficar salvando e lendo arquivo do disco toda hora.
 

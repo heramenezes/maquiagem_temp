@@ -24,15 +24,15 @@ Em Linux/macOS, substitua `.venv\Scripts\python` por `.venv/bin/python`.
 - Botão de câmera nativa (`capture="user"`): no celular, depende do navegador; no computador, abre o seletor de arquivos. Não há webcam ao vivo.
 - Upload de JPG, PNG ou WebP, com até 10 MiB e 24 megapixels. HEIC precisa ser convertido para JPG.
 - Correção de orientação EXIF e redimensionamento proporcional até 1600 pixels antes da detecção.
-- Detecção facial real com o módulo existente: MediaPipe quando disponível, com fallback Haar/OpenCV.
-- Sem rosto detectado, a API retorna 422 e a interface pede outra foto. A análise simulada não é executada.
+- Pré-verificação de um único rosto: MediaPipe quando disponível; Haar/OpenCV como fallback quando o MediaPipe não retorna uma detecção. Um rosto é aceito sem uma segunda conferência; múltiplos rostos abortam imediatamente.
+- Sem rosto ou com múltiplos rostos detectados, a API retorna 422 e a interface pede outra foto. Conversão CIELAB, segmentação e resultado não são executados. No stream, o evento de erro informa o status 422.
 - Conversão real sRGB → RGB linear → XYZ → CIELAB (D65), normalizando perfis ICC para sRGB quando presentes.
 - Máscara facial, exclusão de olhos/sobrancelhas/boca, K-means adaptativo e crescimento de regiões. Cor e contraste reduzem cabelo e barba; não é uma segmentação semântica perfeita.
 - Progresso real em seis etapas, prévias do recorte, máscara e pele selecionada, com média CIELAB e área calculadas da imagem.
 - Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
 - Exemplo acessível sem enviar foto, erros de conexão, nova tentativa e cancelamento de solicitações na interface.
 
-A detecção confirma somente que o detector encontrou um rosto. Não certifica iluminação, nitidez, ausência de maquiagem ou presença de apenas uma pessoa; o módulo atual seleciona um rosto.
+A pré-verificação conta as detecções válidas antes do recorte: zero rostos pede outra foto, um rosto passa e mais de um aborta. Não há conferência por um segundo detector nem reagrupamento das caixas retornadas pelo detector. O Haar considera caixas a partir de 40 × 40 pixels na imagem redimensionada. A detecção ainda pode falhar em rostos muito pequenos, de perfil ou parcialmente cobertos e pode produzir falsos positivos. Ela não certifica iluminação, nitidez ou ausência de maquiagem.
 
 ## O que continua simulado
 
@@ -85,10 +85,10 @@ Esse arquivo fixa MediaPipe 0.10.21 e usa `opencv-contrib-python`, evitando inst
 
 ## Testar
 
-API, catálogo, detector real, rejeição de imagem sem rosto, limites, orientação EXIF e recuperação entre tentativas:
+API, catálogo, detector real, rejeição de imagens sem rosto ou com múltiplos rostos, limites, orientação EXIF e recuperação entre tentativas:
 
 ```powershell
-.venv\Scripts\python -m unittest backend.tests.test_api backend.tests.test_segmentation -v
+.venv\Scripts\python -m unittest backend.tests.test_face_detector backend.tests.test_api backend.tests.test_segmentation -v
 ```
 
 Interface automatizada (dependências opcionais para desenvolvimento):

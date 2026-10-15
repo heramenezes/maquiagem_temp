@@ -1,6 +1,6 @@
 import { escapeHTML as e, safeColor, safeLink, money, scale, icon } from './shared.js';
 
-import { preprocessing } from './preprocessing.js';
+import { preprocessing, png } from './preprocessing.js';
 
 function productCard(product, index) {
   const color = safeColor(product.hex);
@@ -37,6 +37,10 @@ export function result(state) {
   const tone = data.tom;
   const products = data.recomendacoes.map(productCard).join('');
   const conditions = data.condicoes.map(conditionCard).join('');
+  const segmentation = data.preprocessamento;
+  const face = !segmentation?.simulado && png(segmentation?.previas?.rosto);
+  const skin = !segmentation?.simulado && png(segmentation?.previas?.pele);
+  const hasSegmentation = Boolean(face && skin);
   const marks = data.marcacoes.map(mark => `<div class="mark" style="left:${Number(mark.x)}%;top:${Number(mark.y)}%;width:${Number(mark.largura)}%;height:${Number(mark.altura)}%"><span>${e(mark.nome)}</span></div>`).join('');
 
   return `<section class="container section result-summary stack">
@@ -56,7 +60,15 @@ export function result(state) {
   <section class="container section skin-section stack">
     <div class="section-heading"><div class="stack tight"><span class="eyebrow">Um olhar mais de perto</span><h2>Características da pele</h2><p class="muted">Veja como serão exibidas as áreas desconsideradas no cálculo do tom. Neste exemplo, as condições e marcações são fictícias.</p></div></div>
     <div class="row g-4 g-lg-5">
-      <div class="col-lg-5"><div class="stack photo-column"><div class="photo-frame">${state.photoURL ? `<img src="${e(state.photoURL)}" alt="Foto enviada, com marcações fictícias de demonstração">` : `<div class="example-face" style="--swatch:${safeColor(tone.hex)}"></div>`}<div class="marks" id="marks" aria-hidden="true">${marks}</div><span class="photo-label tag neutral">Marcações simuladas</span></div><button class="btn btn-outline-primary" data-action="marks" aria-pressed="true" aria-controls="marks">Ocultar marcações</button></div></div>
+      <div class="col-lg-5"><div class="stack photo-column">
+        <div class="photo-frame ${hasSegmentation ? 'segmentation-photo segmentation-visible' : ''}" ${hasSegmentation ? 'aria-describedby="segmentation-legend"' : ''}>
+          ${hasSegmentation ? `<img class="segmentation-source" src="${face}" alt="Recorte da foto enviada usado na segmentação real"><img class="segmentation-overlay" id="segmentation-overlay" src="${skin}" alt="Pele selecionada pela segmentação real">` : state.photoURL ? `<img src="${e(state.photoURL)}" alt="Foto enviada, com marcações fictícias de demonstração">` : `<div class="example-face" style="--swatch:${safeColor(tone.hex)}"></div>`}
+          <div class="marks" id="marks" aria-hidden="true">${marks}</div>
+          <span class="photo-label tag neutral">Marcações simuladas</span>
+        </div>
+        ${hasSegmentation ? `<p class="small muted segmentation-legend" id="segmentation-legend">Segmentação real sobre o recorte analisado: pele selecionada em cor; áreas excluídas escurecidas. As marcações de problemas de pele continuam fictícias.</p><button class="btn btn-outline-primary" data-action="segmentation" aria-pressed="true" aria-controls="segmentation-overlay">Ocultar segmentação</button>` : ''}
+        <button class="btn btn-outline-primary" data-action="marks" aria-pressed="true" aria-controls="marks">Ocultar marcações</button>
+      </div></div>
       <div class="col-lg-7"><div class="card condition-panel">${conditions}</div><p class="medical-note">${icon('info')} Estas informações são ilustrativas e não constituem diagnóstico médico.</p></div>
     </div>
     <div class="new-analysis"><div><h3>Quer tentar com outra foto?</h3><p class="muted">Um novo começo, com o mesmo cuidado.</p></div><button class="btn btn-primary" data-action="capture">${icon('refresh')} Fazer nova análise</button></div>

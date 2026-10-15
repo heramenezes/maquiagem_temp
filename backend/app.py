@@ -132,7 +132,7 @@ def create_app(test_config=None):
 
     @app.after_request
     def headers(response):
-        if request.path.startswith("/api/"):
+        if request.path == "/" or request.path.startswith(("/api/", "/js/", "/css/")):
             response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         return response
@@ -141,4 +141,4 @@ def create_app(test_config=None):
 
 
 if __name__ == "__main__":
-    create_app().run(host="127.0.0.1", port=5000)
+    create_app().run(host="127.0.0.1", port=5000, use_reloader=True)

@@ -206,6 +206,12 @@ main:focus { outline: 0; }
 .review-layout { padding-block: 12px; }
 .photo-frame { position: relative; aspect-ratio: 3 / 4; width: 100%; max-width: 440px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: #e8eee4; }
 .photo-frame>img { width: 100%; height: 100%; object-fit: contain; }
+.photo-frame.segmentation-photo { aspect-ratio: auto; background: #17242a; }
+.photo-frame.segmentation-photo>.segmentation-source { display: block; height: auto; }
+.segmentation-visible>.segmentation-source { filter: grayscale(1) brightness(.35); }
+.photo-frame>.segmentation-overlay { position: absolute; inset: 0; pointer-events: none; }
+.photo-frame>.segmentation-overlay[hidden] { display: none; }
+.segmentation-legend { max-width: 440px; margin: 0; }
 .photo-label { position: absolute; bottom: 14px; left: 14px; max-width: calc(100% - 28px); background: rgb(255 255 255 / 94%); box-shadow: 0 2px 8px rgb(25 50 25 / 8%); font-size: .62rem; }
 .photo-filename { margin-top: 12px; font-size: .7rem; color: #64715f; text-align: center; overflow-wrap: anywhere; }
 .review-copy { padding-left: 15px; gap: 23px; }

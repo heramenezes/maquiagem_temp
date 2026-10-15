@@ -57,6 +57,34 @@ HAAR_MIN_NEIGHBORS: int = 5
 BOUNDING_BOX_MARGIN: float = 0.15
 
 
+class MultipleFacesError(ValueError):
+    """A foto precisa conter exatamente um rosto detectado."""
+
+    def __init__(self, count):
+        self.count = count
+        super().__init__("Encontramos mais de um rosto na foto. Tire outra foto com apenas você, de frente e com o rosto inteiro visível.")
+
+
+def selecionar_rosto_unico(deteccoes, largura, altura):
+    """Conta as detecções válidas: zero retorna None, uma passa, mais aborta."""
+    caixas = []
+    for deteccao in deteccoes:
+        if not np.isfinite(deteccao).all():
+            continue
+        x, y, w, h = map(int, deteccao)
+        if w <= 0 or h <= 0:
+            continue
+        x1, y1 = max(0, x), max(0, y)
+        x2, y2 = min(largura, x + w), min(altura, y + h)
+        if x2 > x1 and y2 > y1:
+            caixas.append((x1, y1, x2 - x1, y2 - y1))
+    if len(caixas) > 1:
+        raise MultipleFacesError(len(caixas))
+    if not caixas:
+        return None
+    return aplicar_margem_bounding_box(*caixas[0], largura, altura)
+
+
 # ============================================================================
 # Funções utilitárias (carregamento e validação de imagem)
 # ============================================================================
@@ -86,9 +114,9 @@ def carregar_imagem(origem: Union[str, np.ndarray]) -> np.ndarray:
         Se o arquivo não puder ser decodificado ou se a matriz for inválida.
     """
     if isinstance(origem, np.ndarray):
-        if origem.ndim != 3 or origem.shape[2] != 3:
+        if origem.ndim != 3 or origem.shape[2] != 3 or origem.size == 0 or origem.dtype != np.uint8:
             raise ValueError(
-                f"Matriz de imagem inválida. Formato esperado (H, W, 3), recebido {origem.shape}."
+                f"Matriz de imagem inválida. Esperado uint8 não vazio (H, W, 3), recebido {origem.shape}, {origem.dtype}."
             )
         return np.ascontiguousarray(origem)
 
@@ -151,8 +179,8 @@ def aplicar_margem_bounding_box(
 
     x_novo = max(0, x - delta_w)
     y_novo = max(0, y - delta_h)
-    w_novo = min(largura_img - x_novo, w + 2 * delta_w)
-    h_novo = min(altura_img - y_novo, h + 2 * delta_h)
+    w_novo = max(0, min(largura_img, x + w + delta_w) - x_novo)
+    h_novo = max(0, min(altura_img, y + h + delta_h) - y_novo)
 
     return x_novo, y_novo, w_novo, h_novo
 
@@ -189,7 +217,7 @@ def detectar_rosto_mediapipe(
     confianca_minima: float = MEDIAPIPE_CONFIDENCE_THRESHOLD,
 ) -> Optional[Tuple[int, int, int, int]]:
     """
-    Detecta o rosto mais proeminente na imagem usando o MediaPipe
+    Aceita um único rosto na imagem usando o MediaPipe
     Face Detection (modelo curto, otimizado para rostos a até 2 metros).
 
     Parâmetros
@@ -233,27 +261,20 @@ def detectar_rosto_mediapipe(
             logger.info("MediaPipe: nenhum rosto detectado.")
             return None
 
-        # Selecionar a detecção com maior confiança
-        melhor_deteccao = max(
-            resultados.detections,
-            key=lambda d: d.score[0],
-        )
-        score = melhor_deteccao.score[0]
-        logger.info("MediaPipe: rosto detectado com confiança %.4f.", score)
-
-        # Converter coordenadas relativas (0-1) para absolutas (pixels)
-        bbox_relativa = melhor_deteccao.location_data.relative_bounding_box
-        x = int(bbox_relativa.xmin * largura)
-        y = int(bbox_relativa.ymin * altura)
-        w = int(bbox_relativa.width * largura)
-        h = int(bbox_relativa.height * altura)
-
-        # Aplicar margem e clampar nos limites da imagem
-        return aplicar_margem_bounding_box(x, y, w, h, largura, altura)
+        caixas = []
+        for deteccao in resultados.detections:
+            if not deteccao.score or not np.isfinite(deteccao.score[0]) or deteccao.score[0] < confianca_minima:
+                continue
+            bbox = deteccao.location_data.relative_bounding_box
+            caixas.append((bbox.xmin * largura, bbox.ymin * altura,
+                           bbox.width * largura, bbox.height * altura))
 
     except Exception as exc:
         logger.warning("Falha na execução do MediaPipe: %s. Tentando fallback.", exc)
         return None
+
+    # Fora do try: vários rostos são uma rejeição, não uma falha do motor.
+    return selecionar_rosto_unico(caixas, largura, altura)
 
 
 # ============================================================================
@@ -266,7 +287,7 @@ def detectar_rosto_haar(
     min_vizinhos: int = HAAR_MIN_NEIGHBORS,
 ) -> Optional[Tuple[int, int, int, int]]:
     """
-    Detecta o rosto mais proeminente na imagem usando o classificador
+    Aceita um único rosto na imagem usando o classificador
     Haar Cascade do OpenCV. Serve como fallback quando o MediaPipe não
     está disponível ou falha na detecção.
 
@@ -295,7 +316,7 @@ def detectar_rosto_haar(
         logger.error(
             "Falha ao carregar Haar Cascade de: %s", caminho_cascade
         )
-        return None
+        raise RuntimeError("Classificador facial Haar indisponível.")
 
     # Converter para escala de cinza (requisito do Haar Cascade)
     cinza = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
@@ -307,7 +328,7 @@ def detectar_rosto_haar(
         cinza,
         scaleFactor=fator_escala,
         minNeighbors=min_vizinhos,
-        minSize=(60, 60),
+        minSize=(40, 40),
         flags=cv2.CASCADE_SCALE_IMAGE,
     )
 
@@ -315,13 +336,8 @@ def detectar_rosto_haar(
         logger.info("Haar Cascade: nenhum rosto detectado.")
         return None
 
-    # Selecionar a maior detecção (maior área = rosto mais próximo)
-    maior_deteccao = max(deteccoes, key=lambda d: d[2] * d[3])
-    x, y, w, h = maior_deteccao
-    logger.info("Haar Cascade: rosto detectado em (%d, %d, %d, %d).", x, y, w, h)
-
     altura, largura, _ = imagem.shape
-    return aplicar_margem_bounding_box(x, y, w, h, largura, altura)
+    return selecionar_rosto_unico(deteccoes, largura, altura)
 
 
 # ============================================================================
@@ -335,7 +351,7 @@ def detectar_e_isolar_rosto(
     """
     Pipeline completo de detecção e isolamento facial.
 
-    Identifica a bounding box do rosto (tentando MediaPipe e fallback Haar),
+    Exige um único rosto (MediaPipe com fallback Haar),
     recorta a região excluindo o fundo e retorna a matriz facial isolada.
 
     Parâmetros
@@ -352,6 +368,7 @@ def detectar_e_isolar_rosto(
     Optional[np.ndarray]
         Matriz NumPy (C-contígua) contendo exclusivamente a região do rosto
         recortada (em RGB ou BGR). Retorna None se nenhum rosto for detectado.
+        Levanta MultipleFacesError se qualquer motor encontrar vários rostos.
 
     Exemplo de uso no pipeline:
         >>> # Entrada por caminho de arquivo
@@ -371,9 +388,8 @@ def detectar_e_isolar_rosto(
     # --- Etapa 2: Tentar detecção com MediaPipe ---
     bbox = detectar_rosto_mediapipe(imagem_bgr)
 
-    # --- Etapa 3: Fallback para Haar Cascade se necessário ---
+    # Um rosto já basta. Só usa Haar se MediaPipe não detectar nenhum.
     if bbox is None:
-        logger.info("Ativando fallback: Haar Cascade.")
         bbox = detectar_rosto_haar(imagem_bgr)
 
     # --- Etapa 4: Verificar se algum rosto foi detectado ---

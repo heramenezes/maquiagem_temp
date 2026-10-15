@@ -12,6 +12,7 @@ from PIL import Image, ImageCms
 
 from backend.app import MAX_FILE_BYTES, create_app, decode_photo
 from backend.src.catalog import load_catalog
+from backend.tests.images import face_photo
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -92,6 +93,29 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.json["precheck"], {"executado": True, "rosto_detectado": True})
         self.assertFalse(response.json["exemplo"])
         self.assertTrue(response.json["simulado"])
+
+    def test_multiple_real_faces_stop_before_color_conversion_in_json_and_stream(self):
+        for count, scale in [(2, 1), (3, 1), (2, 0.6)]:
+            for stream in [False, True]:
+                with self.subTest(count=count, secondary_scale=scale, stream=stream):
+                    with patch('backend.src.preprocessing.face_detector.detectar_rosto_mediapipe', return_value=None):
+                        with patch('backend.src.segmentation.pipeline.rgb_to_lab') as convert:
+                            with patch('backend.app.generate_analysis') as generate:
+                                response = self.client.post('/api/analises',
+                                    data={'foto': (face_photo(count, scale), 'faces.png')},
+                                    headers={'Accept': 'application/x-ndjson' if stream else 'application/json'})
+                                if stream:
+                                    events = [json.loads(line) for line in response.data.splitlines()]
+                                    self.assertEqual(len(events), 2)
+                                    self.assertEqual(events[0]['concluidas'], 0)
+                                    self.assertEqual(events[-1]['tipo'], 'erro')
+                                    self.assertEqual(events[-1]['status'], 422)
+                                    self.assertEqual(events[-1]['codigo'], 'MULTIPLOS_ROSTOS')
+                                else:
+                                    self.assertEqual(response.status_code, 422)
+                                    self.assertEqual(response.json['codigo'], 'MULTIPLOS_ROSTOS')
+                                convert.assert_not_called()
+                                generate.assert_not_called()
 
     def test_repeated_attempts_do_not_reuse_approved_photo(self):
         with patch("backend.app.detectar_e_isolar_rosto", side_effect=[np.full((100, 100, 3), (200, 150, 100), dtype=np.uint8), None]):
