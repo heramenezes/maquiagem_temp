@@ -2,11 +2,14 @@ import { analyzePhoto, getExample } from './api.js';
 import { home } from './screens/home.js';
 import { capture } from './screens/capture.js';
 import { review } from './screens/review.js';
-import { processing } from './screens/processing.js';
+import { processing, updateProcessing } from './screens/processing.js';
 import { result } from './screens/result.js';
 
 const state = { screen: 'home', file: null, photoURL: null, result: null, error: '', example: false };
 const screens = { home, capture, review, processing, result };
+// Pausas artificiais para visualizar as etapas durante a demonstração.
+const PROCESSING_STAGE_DELAY_MS = 2000;
+const COMPLETED_STAGE_DELAY_MS = 200;
 const main = document.querySelector('#main');
 let revision = 0;
 let pendingRequest = null;
@@ -74,17 +77,26 @@ async function runAnalysis(example = false) {
   pendingRequest?.abort();
   pendingRequest = new AbortController();
   if (example) releasePhoto();
-  Object.assign(state, { screen: 'processing', error: '', example, result: null });
+  Object.assign(state, { screen: 'processing', error: '', example, result: null, progress: null });
   render();
   try {
-    const data = await (example ? getExample(pendingRequest.signal) : analyzePhoto(state.file, pendingRequest.signal));
+    const onProgress = async progress => {
+      if (current !== revision) return;
+      state.progress = progress;
+      updateProcessing(progress);
+      // Atrasa apenas a apresentação dos eventos recebidos do servidor.
+      const delay = progress.etapas.some(stage => stage.estado === 'processando')
+        ? PROCESSING_STAGE_DELAY_MS : COMPLETED_STAGE_DELAY_MS;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    };
+    const data = await (example ? getExample(pendingRequest.signal) : analyzePhoto(state.file, pendingRequest.signal, onProgress));
     if (current !== revision) return;
     state.result = data;
     state.screen = 'result';
   } catch (error) {
     if (current !== revision || error.name === 'AbortError') return;
     state.error = error.message;
-    if (['ROSTO_NAO_ENCONTRADO', 'FOTO_INVALIDA', 'FOTO_MUITO_GRANDE'].includes(error.code)) {
+    if (['ROSTO_NAO_ENCONTRADO', 'PELE_INSUFICIENTE', 'FOTO_INVALIDA', 'FOTO_MUITO_GRANDE'].includes(error.code)) {
       releasePhoto();
       state.screen = 'capture';
     } else state.screen = example ? 'home' : 'review';

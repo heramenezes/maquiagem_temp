@@ -4,6 +4,7 @@ from io import BytesIO
 from pathlib import Path
 import os
 import logging
+import json
 import threading
 import unittest
 
@@ -64,8 +65,23 @@ class BrowserTests(unittest.TestCase):
         self.page.screenshot(path=str(ARTIFACTS / "home-desktop.png"), full_page=True)
         self.select_sample()
         self.page.screenshot(path=str(ARTIFACTS / "review-desktop.png"), full_page=True)
+        self.page.evaluate("""() => {
+          window.pipelineStates = [];
+          new MutationObserver(() => {
+            const active = document.querySelector('.processing-step.active');
+            if (active) window.pipelineStates.push(active.dataset.step);
+          }).observe(document.querySelector('main'), {childList: true, subtree: true});
+        }""")
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible()
+        expect(self.page.locator('[data-step="cielab"][data-state="processando"]')).to_be_visible()
+        self.page.screenshot(path=str(ARTIFACTS / "pipeline-progress-desktop.png"), full_page=True)
+        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=20000)
+        states = self.page.evaluate("window.pipelineStates")
+        for stage in ("rosto", "cielab", "mascara", "clusters", "refinamento", "resultado"):
+            self.assertIn(stage, states)
+        expect(self.page.get_by_role("heading", name="Pele separada para a próxima etapa")).to_be_visible()
+        self.assertEqual(self.page.locator('.preprocessing-previews img').count(), 3)
+        self.assertTrue(self.page.locator('.preprocessing-previews img').evaluate_all("images => images.every(i => i.complete && i.naturalWidth > 0)"))
         self.assertEqual(self.page.locator(".product-card").count(), 3)
         self.page.screenshot(path=str(ARTIFACTS / "result-desktop.png"), full_page=True)
         self.page.get_by_role("button", name="Fazer nova análise").click()
@@ -83,7 +99,7 @@ class BrowserTests(unittest.TestCase):
         self.page.screenshot(path=str(ARTIFACTS / "no-face-error.png"), full_page=True)
         self.page.locator("#gallery-input").set_input_files(str(ROOT / "samples/imagem_teste.jpeg"))
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible()
+        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=20000)
 
     def test_example_and_marks(self):
         self.page.get_by_role("button", name="Ver um exemplo", exact=True).click()
@@ -104,7 +120,7 @@ class BrowserTests(unittest.TestCase):
         expect(self.page.get_by_alt_text("Prévia da foto selecionada")).to_be_visible()
         self.page.unroute("**/api/analises")
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible()
+        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=20000)
 
     def test_invalid_file(self):
         self.page.get_by_role("button", name="Começar", exact=True).click()
@@ -142,6 +158,35 @@ class BrowserTests(unittest.TestCase):
             expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible()
             self.assertLessEqual(self.page.evaluate("document.documentElement.scrollWidth"), width)
             self.page.screenshot(path=str(ARTIFACTS / f"result-mobile-{width}.png"), full_page=True)
+
+    def test_truncated_stream_retains_preview_and_reports_failure(self):
+        self.select_sample()
+        self.page.route("**/api/analises", lambda route: route.fulfill(
+            status=200, content_type="application/x-ndjson", body='\n'))
+        self.page.get_by_role("button", name="Enviar para análise").click()
+        expect(self.page.get_by_role("alert")).to_contain_text("O processamento foi interrompido")
+        expect(self.page.get_by_alt_text("Prévia da foto selecionada")).to_be_visible()
+
+    def test_late_skin_error_requests_new_photo(self):
+        self.select_sample()
+        body = json.dumps({"tipo": "erro", "codigo": "PELE_INSUFICIENTE",
+                           "mensagem": "Não conseguimos separar pele suficiente.", "status": 422}) + '\n'
+        self.page.route("**/api/analises", lambda route: route.fulfill(
+            status=200, content_type="application/x-ndjson", body=body))
+        self.page.get_by_role("button", name="Enviar para análise").click()
+        expect(self.page.get_by_role("alert")).to_contain_text("Não conseguimos separar pele suficiente")
+        expect(self.page.get_by_role("heading", name="Vamos começar pela sua foto.")).to_be_visible()
+
+    def test_cancel_real_processing_does_not_show_stale_result(self):
+        self.select_sample()
+        self.page.get_by_role("button", name="Enviar para análise").click()
+        expect(self.page.locator('[data-step="cielab"][data-state="processando"]')).to_be_visible()
+        self.page.get_by_role("button", name="Cancelar e voltar ao início").click()
+        expect(self.page.get_by_role("heading", name="Encontre a base certa para o seu tom de pele.")).to_be_visible()
+        # A próxima interação garante que eventos antigos não alteram a captura.
+        self.page.get_by_role("button", name="Começar", exact=True).click()
+        expect(self.page.get_by_role("heading", name="Vamos começar pela sua foto.")).to_be_visible()
+        self.assertEqual(self.page.locator('.real-preprocessing').count(), 0)
 
 
 if __name__ == "__main__":

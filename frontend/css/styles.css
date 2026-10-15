@@ -236,6 +236,23 @@ main:focus { outline: 0; }
 .step-number { width: 34px; height: 34px; display: grid; place-items: center; flex-shrink: 0; background: var(--soft); border-radius: 9px; color: var(--accent); font-size: .7rem; font-weight: 600; }
 .processing-step.pending { opacity: .55; }
 .processing-card>.privacy-note { justify-content: center; }
+.loading-bar.determinate::after { display: none; }
+.loading-bar.determinate>span { display: block; height: 100%; background: var(--accent); transition: width .15s ease; }
+.processing-progress-label { font-size: .75rem; color: var(--accent); }
+.processing-step.completed .step-number { color: white; background: var(--accent); }
+.step-status { font-size: .65rem; color: #64715f; }
+.preprocessing-previews { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.preprocessing-previews figure { padding: 12px; margin: 0; }
+.preprocessing-previews img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(#edf0eb 0% 25%, #fff 0% 50%) 50% / 16px 16px; border-radius: 10px; }
+.preprocessing-previews figcaption { font-size: .8rem; font-weight: 600; padding-top: 12px; text-align: center; }
+.preprocessing-metrics { display: flex; flex-direction: row; gap: 24px; flex-wrap: wrap; padding: 24px; }
+.preprocessing-metrics>div { flex: 1 1 180px; display: flex; flex-direction: column; gap: 8px; }
+.preprocessing-metrics span { font-size: .75rem; color: #64715f; }
+.preprocessing-metrics b { font-size: .9rem; }
+.preprocessing-details { font-size: .8rem; line-height: 1.6; }
+.preprocessing-details summary { cursor: pointer; font-weight: 600; }
+.preprocessing-details p { padding-top: 12px; }
+@media (max-width: 575px) { .preprocessing-previews { grid-template-columns: 1fr; } .step-status { max-width: 55px; } }
 @keyframes loading { from { transform: translateX(-100%); } to { transform: translateX(390%); } }
 
 /* Resultado, catálogo e características da pele. */

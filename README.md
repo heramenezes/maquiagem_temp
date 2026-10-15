@@ -26,6 +26,9 @@ Em Linux/macOS, substitua `.venv\Scripts\python` por `.venv/bin/python`.
 - Correção de orientação EXIF e redimensionamento proporcional até 1600 pixels antes da detecção.
 - Detecção facial real com o módulo existente: MediaPipe quando disponível, com fallback Haar/OpenCV.
 - Sem rosto detectado, a API retorna 422 e a interface pede outra foto. A análise simulada não é executada.
+- Conversão real sRGB → RGB linear → XYZ → CIELAB (D65), normalizando perfis ICC para sRGB quando presentes.
+- Máscara facial, exclusão de olhos/sobrancelhas/boca, K-means adaptativo e crescimento de regiões. Cor e contraste reduzem cabelo e barba; não é uma segmentação semântica perfeita.
+- Progresso real em seis etapas, prévias do recorte, máscara e pele selecionada, com média CIELAB e área calculadas da imagem.
 - Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
 - Exemplo acessível sem enviar foto, erros de conexão, nova tentativa e cancelamento de solicitações na interface.
 
@@ -33,7 +36,7 @@ A detecção confirma somente que o detector encontrou um rosto. Não certifica 
 
 ## O que continua simulado
 
-Tom Monk, ITA, porcentagem de pele utilizada, acne, rosácea, vitiligo e marcações são fixtures de `backend/src/mock_analysis.py`, independentes da foto. A tela identifica esses resultados como demonstrativos.
+Tom Monk, ITA, porcentagem exibida no cartão de tom demonstrativo, acne, rosácea, vitiligo e marcações de condições são fixtures de `backend/src/mock_analysis.py`, independentes da foto. A seção separada de pré-processamento mostra a máscara, a média CIELAB e a porcentagem reais de pixels selecionados no contorno estimado.
 
 As três recomendações usam proximidade RGB a um **tom fixo de exemplo**, sem implementar o pipeline futuro de ITA/KNN. Os nomes, cores, preços e links são lidos do CSV real. O CSV não contém fotos ou acabamento; os cartões mostram uma amostra de cor e não inventam esses dados. Não há percentual fictício de compatibilidade.
 
@@ -46,7 +49,7 @@ backend/
   src/catalog.py                Leitura e normalização do CSV
   src/mock_analysis.py          Respostas demonstrativas
   src/preprocessing/            Detectores e isolamento existentes
-  src/segmentation/             Etapa futura
+  src/segmentation/             Conversão, máscaras, K-means, refinamento e eventos
   src/tone_matching/             Etapa futura
   src/distributed/               Etapa futura
   tests/test_api.py              Testes HTTP e integração com o detector
@@ -78,14 +81,14 @@ py -3.12 -m venv .venv-mediapipe
 .venv-mediapipe\Scripts\python backend/tests/test_preprocessing.py
 ```
 
-Esse arquivo fixa MediaPipe 0.10.21 e usa `opencv-contrib-python`, evitando instalar duas distribuições que fornecem `cv2`. A opção requer a versão de Python indicada instalada. A pré-verificação web utiliza o detector de rosto; não utiliza o segmentador anatômico.
+Esse arquivo fixa MediaPipe 0.10.21 e usa `opencv-contrib-python`, evitando instalar duas distribuições que fornecem `cv2`. A opção requer a versão de Python indicada instalada. Na segmentação web, Face Mesh fornece contorno e exclusões quando disponível. Na instalação padrão, usa-se uma máscara geométrica conservadora para fotos frontais, com detecção auxiliar de olhos Haar. A resposta informa o método utilizado.
 
 ## Testar
 
 API, catálogo, detector real, rejeição de imagem sem rosto, limites, orientação EXIF e recuperação entre tentativas:
 
 ```powershell
-.venv\Scripts\python -m unittest backend.tests.test_api -v
+.venv\Scripts\python -m unittest backend.tests.test_api backend.tests.test_segmentation -v
 ```
 
 Interface automatizada (dependências opcionais para desenvolvimento):
@@ -98,7 +101,7 @@ Interface automatizada (dependências opcionais para desenvolvimento):
 
 Para usar o Edge já instalado, pode omitir a instalação do Chromium e definir `$env:BROWSER_CHANNEL='msedge'` antes do comando de testes. O teste abre um navegador isolado sem janela e inicia seu próprio servidor local em uma porta livre. As capturas ficam em `.test-artifacts/`, ignorado pelo Git.
 
-São verificados envio real, rejeição sem rosto e nova tentativa, demonstração, alternância de marcações, erro de conexão, arquivo inválido, cancelamento e larguras de 390/320 pixels. O acionamento físico da câmera deve ser conferido em um celular real.
+São verificados envio real, rejeição sem rosto e nova tentativa, demonstração, alternância de marcações, erro de conexão, arquivo inválido, cancelamento e larguras de 390/320 pixels. Também são testados valores CIELAB de referência, comparação com OpenCV float, faces sintéticas claras/escuras, crescimento conectado, ordem dos eventos, interrupções do stream e área da máscara. O acionamento físico da câmera deve ser conferido em um celular real.
 
 ## Fotos e execução local
 
@@ -113,3 +116,9 @@ Para demonstrar em um celular na mesma rede, execute manualmente:
 Acesse `http://IP-DO-COMPUTADOR:5000` no celular. O Windows pode solicitar liberação de rede; use uma rede de confiança. A execução padrão fica restrita ao próprio computador. Esta é uma aplicação de demonstração com o servidor de desenvolvimento do Flask.
 
 Detalhes dos contratos e da integração futura: [docs/API.md](docs/API.md). Documentação do processamento original: [docs/COMO_FUNCIONA.md](docs/COMO_FUNCIONA.md).
+
+## Segmentação: método e limites
+
+A implementação segue o fluxo das seções 4.1–4.2 do artigo do projeto. O K adaptativo é uma adaptação por variância cromática residual, não uma reprodução exata do método de Islam et al. (2024). Não há garantia de remover todos os pelos, óculos ou fundo com cor semelhante; fotos frontais, nítidas e sem maquiagem são recomendadas. A conversão CIELAB não corrige iluminação por si só.
+
+Leia [backend/src/segmentation/README.md](backend/src/segmentation/README.md) para fórmulas, parâmetros, referências e limites. Não foram acrescentadas dependências de execução.

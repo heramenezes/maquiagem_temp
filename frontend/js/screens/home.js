@@ -23,7 +23,7 @@ export function home(state) {
           <div class="hero-art-footer"><div class="mini-palette" aria-hidden="true">${MONK.filter((_, i) => i % 2 === 0).map(color => `<span style="--swatch:${color}"></span>`).join('')}</div><span>Todos os tons.<br>O seu também.</span></div>
         </div>
       </div>
-      <p class="demo-caption">${icon('info')} <span>Você está em uma versão demonstrativa. A verificação do rosto é real; a análise de tom e as recomendações são simuladas.</span></p>
+      <p class="demo-caption">${icon('info')} <span>A verificação do rosto e a separação básica da pele são reais; o tom e as recomendações ainda são simulados.</span></p>
     </section>
     <section class="container section how-section">
       <div class="section-heading"><div><span class="eyebrow">Sem complicação</span><h2>Seu tom, em três passos.</h2></div><p class="muted">Uma foto é o começo de tudo.</p></div>

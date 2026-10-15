@@ -56,9 +56,16 @@ Se aparecer `[TODOS OS TESTES PASSARAM COM SUCESSO!]`, tá tudo 100%.
 
 ---
 
-## Próximo passo do pipeline
+## Etapa seguinte: já integrada à aplicação web
 
-Com o rosto isolado na mão (seja o quadrado ou a silhueta contornada), o próximo nó do sistema vai:
-1. Pegar essa matriz RGB e converter pra **CIELAB** (`cv2.COLOR_RGB2LAB`).
-2. Rodar o **K-Means dinâmico** pra achar os clusters da cor real da pele (tirando olho, boca e marcas como acne).
-3. Calcular o **ITA** da pele e achar a base certa na **escala Monk** usando o KNN.
+O recorte RGB agora é convertido explicitamente para **CIELAB/D65 em ponto
+flutuante**, seguido de máscara facial com exclusões, **K-means adaptativo**
+em a*/b* e crescimento de regiões. A API transmite o progresso de cada etapa.
+O frontend mostra o recorte, a máscara, a pele selecionada e sua média CIELAB.
+
+Essa segmentação é básica: cor, contraste e posição reduzem olhos, boca,
+sobrancelhas, barba e cabelo, mas não garantem remoção perfeita. Acne, rosácea
+e vitiligo ainda não são detectados. ITA, Monk e KNN continuam para a fase seguinte.
+
+Veja o [método e os limites](../backend/src/segmentation/README.md), os
+[contratos HTTP](API.md) e os [comandos atuais de execução](../README.md).

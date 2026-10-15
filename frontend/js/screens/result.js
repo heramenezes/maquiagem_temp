@@ -1,4 +1,6 @@
-﻿import { escapeHTML as e, safeColor, safeLink, money, scale, icon } from './shared.js';
+import { escapeHTML as e, safeColor, safeLink, money, scale, icon } from './shared.js';
+
+import { preprocessing } from './preprocessing.js';
 
 function productCard(product, index) {
   const color = safeColor(product.hex);
@@ -38,13 +40,14 @@ export function result(state) {
   const marks = data.marcacoes.map(mark => `<div class="mark" style="left:${Number(mark.x)}%;top:${Number(mark.y)}%;width:${Number(mark.largura)}%;height:${Number(mark.altura)}%"><span>${e(mark.nome)}</span></div>`).join('');
 
   return `<section class="container section result-summary stack">
-    <div class="alert notice demo-notice">${icon('info')}<div><b>Resultado demonstrativo</b>${data.precheck.executado ? 'A presença de um rosto foi verificada na sua foto.' : 'Este exemplo não enviou uma foto nem executou a verificação facial.'} O tom, as condições e as recomendações são simulados e não descrevem sua pele.</div></div>
+    <div class="alert notice demo-notice">${icon('info')}<div><b>Resultado demonstrativo</b>${data.precheck.executado ? 'O rosto foi verificado e a pele passou por um pré-processamento real, mostrado abaixo.' : 'Este exemplo não enviou uma foto nem executou a verificação facial.'} O tom, as condições e as recomendações são simulados e não descrevem sua pele.</div></div>
     <div class="row g-4 g-lg-5 align-items-center result-title">
       <div class="col-lg-7 stack"><span class="tag">${data.precheck.rosto_detectado ? '✓ Rosto detectado · verificação real' : 'Exemplo de resultado'}</span><h1>Uma prévia das bases para o seu tom.</h1><p class="lead-copy">Um universo de cores. Três opções para você conhecer.</p></div>
       <div class="col-lg-5"><div class="card tone-card"><div class="tone-swatch" style="--swatch:${safeColor(tone.hex)}"></div><div class="stack tight"><span class="eyebrow">Tom demonstrativo</span><span class="tone-value">Tom ${String(tone.monk).padStart(2, '0')}</span><span class="small muted">na Escala Monk, de 01 a 10</span><span class="tone-metrics">ITA ${e(tone.ita)}° · ${e(tone.pele_utilizada)}% da face<br>Valores simulados</span></div></div></div>
     </div>
     <div class="result-scale">${scale(data.escala_monk, tone.monk)}</div>
   </section>
+  ${preprocessing(data.preprocessamento)}
   <section class="recommendations-section"><div class="container section stack">
     <div class="section-heading"><div><span class="eyebrow">Do nosso catálogo</span><h2>Suas 3 bases</h2></div><span class="small muted">Seleção demonstrativa · ${e(data.catalogo_total)} cores no catálogo</span></div>
     <div class="product-grid">${products}</div>

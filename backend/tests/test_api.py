@@ -4,9 +4,11 @@ from io import BytesIO
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+import json
+import base64
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageCms
 
 from backend.app import MAX_FILE_BYTES, create_app, decode_photo
 from backend.src.catalog import load_catalog
@@ -92,7 +94,7 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(response.json["simulado"])
 
     def test_repeated_attempts_do_not_reuse_approved_photo(self):
-        with patch("backend.app.detectar_e_isolar_rosto", side_effect=[np.ones((10, 10, 3), dtype=np.uint8), None]):
+        with patch("backend.app.detectar_e_isolar_rosto", side_effect=[np.full((100, 100, 3), (200, 150, 100), dtype=np.uint8), None]):
             first = self.client.post("/api/analises", data={"foto": (image_file(), "one.png")})
             second = self.client.post("/api/analises", data={"foto": (image_file(), "two.png")})
         self.assertEqual(first.status_code, 200)
@@ -114,6 +116,26 @@ class ApiTests(unittest.TestCase):
         decoded = decode_photo(data.getvalue())
         self.assertEqual(decoded.shape, (1600, 800, 3))
 
+    def test_embedded_srgb_profile(self):
+        source = Image.new("RGB", (20, 20), (190, 120, 85))
+        profile = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+        data = BytesIO()
+        source.save(data, format="PNG", icc_profile=profile)
+        decoded = decode_photo(data.getvalue())
+        # A função de upload entrega BGR ao detector, apesar da conversão ICC RGB.
+        np.testing.assert_array_equal(decoded[0, 0], [85, 120, 190])
+
+    def test_invalid_profile_is_rejected_before_detection(self):
+        source = Image.new("RGB", (20, 20), (190, 120, 85))
+        data = BytesIO()
+        source.save(data, format="PNG", icc_profile=b"invalid profile")
+        data.seek(0)
+        with patch("backend.app.detectar_e_isolar_rosto") as detector:
+            response = self.client.post("/api/analises", data={"foto": (data, "profile.png")})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["codigo"], "FOTO_INVALIDA")
+        detector.assert_not_called()
+
     def test_pixel_limit(self):
         data = BytesIO()
         Image.new("RGB", (6000, 4100)).save(data, format="PNG")
@@ -128,6 +150,73 @@ class ApiTests(unittest.TestCase):
         from backend.app import MemoryUploadRequest
         stream = MemoryUploadRequest.from_values()._get_file_stream(900_000, "image/jpeg", "photo.jpg")
         self.assertIsInstance(stream, BytesIO)
+
+    def test_segmentation_statistics_match_actual_mask(self):
+        with (ROOT / "samples/imagem_teste.jpeg").open("rb") as source:
+            response = self.client.post("/api/analises", data={"foto": (source, "sample.jpg")})
+        self.assertEqual(response.status_code, 200)
+        data = response.json["preprocessamento"]
+        self.assertFalse(data["simulado"])
+        self.assertEqual(data["branco_referencia"], "D65")
+        mask = np.array(Image.open(BytesIO(base64.b64decode(data["previas"]["mascara"].split(",")[1]))))
+        self.assertEqual(int((mask > 0).sum()), data["pixels_pele"])
+        self.assertAlmostEqual(data["percentual_pele"], 100 * data["pixels_pele"] / data["pixels_contorno"], places=2)
+        rgba = np.array(Image.open(BytesIO(base64.b64decode(data["previas"]["pele"].split(",")[1]))))
+        np.testing.assert_array_equal(rgba[..., 3], mask)
+        self.assertEqual(len(response.json["etapas"]), 6)
+
+    def test_stream_announces_stage_before_work_and_finishes_in_order(self):
+        face = np.full((100, 100, 3), (200, 150, 100), np.uint8)
+        with patch("backend.app.detectar_e_isolar_rosto", return_value=face) as detector:
+            response = self.client.post("/api/analises", data={"foto": (image_file(), "face.png")},
+                                        headers={"Accept": "application/x-ndjson"}, buffered=False)
+            events = iter(response.response)
+            first = json.loads(next(events))
+            detector.assert_not_called()
+            self.assertEqual(first["etapas"][0]["estado"], "processando")
+            self.assertTrue(all(s["estado"] == "aguardando" for s in first["etapas"][1:]))
+            remaining = [json.loads(chunk) for chunk in events]
+            self.assertEqual(remaining[-1]["tipo"], "resultado")
+            stages = [first] + [e for e in remaining if e["tipo"] == "etapa"]
+            self.assertEqual([e["concluidas"] for e in stages], [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6])
+            self.assertTrue(all(s["estado"] == "concluida" for s in remaining[-1]["dados"]["etapas"]))
+            response.close()
+
+    def test_stream_no_face_stops_before_color_conversion(self):
+        with patch("backend.src.segmentation.pipeline.rgb_to_lab") as convert:
+            response = self.client.post("/api/analises", data={"foto": (image_file(), "blank.png")},
+                                        headers={"Accept": "application/x-ndjson"})
+            events = [json.loads(line) for line in response.data.splitlines()]
+        self.assertEqual(events[-1]["tipo"], "erro")
+        self.assertEqual(events[-1]["codigo"], "ROSTO_NAO_ENCONTRADO")
+        self.assertEqual(events[-1]["status"], 422)
+        self.assertEqual(len(events), 2)
+        convert.assert_not_called()
+
+    def test_stream_disconnect_stops_remaining_steps(self):
+        with patch("backend.app.detectar_e_isolar_rosto") as detector:
+            response = self.client.post("/api/analises", data={"foto": (image_file(), "face.png")},
+                                        headers={"Accept": "application/x-ndjson"}, buffered=False)
+            next(iter(response.response))
+            response.close()
+            detector.assert_not_called()
+
+    def test_insufficient_skin_blocks_recommendations(self):
+        with patch("backend.app.detectar_e_isolar_rosto", return_value=np.full((8, 8, 3), 150, np.uint8)):
+            with patch("backend.app.generate_analysis") as mock:
+                response = self.client.post("/api/analises", data={"foto": (image_file(), "tiny.png")})
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json["codigo"], "PELE_INSUFICIENTE")
+        mock.assert_not_called()
+
+    def test_stream_failure_never_returns_fake_success(self):
+        with patch("backend.app.detectar_e_isolar_rosto", side_effect=RuntimeError("failure")):
+            with self.assertLogs(self.app.logger, level="ERROR"):
+                response = self.client.post("/api/analises", data={"foto": (image_file(), "face.png")},
+                                            headers={"Accept": "application/x-ndjson"})
+                events = [json.loads(line) for line in response.data.splitlines()]
+        self.assertEqual(events[-1]["codigo"], "ERRO_INTERNO")
+        self.assertFalse(any(e["tipo"] == "resultado" for e in events))
 
 
 if __name__ == "__main__":

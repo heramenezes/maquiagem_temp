@@ -1,17 +1,19 @@
-"""Servidor local: frontend estático + pré-verificação real + análise mockada."""
+"""Frontend + pré-processamento real, com eventos de progresso e resultado parcial."""
 
 from io import BytesIO
 from pathlib import Path
 import warnings
+import json
 
 import cv2
-from flask import Flask, Request, jsonify, request, send_from_directory
+from flask import Flask, Request, Response, jsonify, request, send_from_directory, stream_with_context
 import numpy as np
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageCms, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
 
 from backend.src.mock_analysis import generate_analysis
 from backend.src.preprocessing import detectar_e_isolar_rosto
+from backend.src.segmentation.pipeline import PipelineError, analysis_events
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_FILE_BYTES = 10 * 1024 * 1024
@@ -32,7 +34,14 @@ def decode_photo(data):
                 raise ValueError("Use uma foto JPG, PNG ou WebP.")
             if source.width * source.height > MAX_PIXELS:
                 raise ValueError("A foto deve ter no máximo 24 megapixels.")
-            oriented = ImageOps.exif_transpose(source).convert("RGB")
+            oriented = ImageOps.exif_transpose(source)
+            profile = source.info.get("icc_profile")
+            if profile:
+                oriented = ImageCms.profileToProfile(
+                    oriented, ImageCms.ImageCmsProfile(BytesIO(profile)),
+                    ImageCms.createProfile("sRGB"), outputMode="RGB")
+            else:
+                oriented = oriented.convert("RGB")
             oriented.thumbnail((1600, 1600))
             return cv2.cvtColor(np.array(oriented), cv2.COLOR_RGB2BGR)
 
@@ -78,16 +87,35 @@ def create_app(test_config=None):
             return error("FOTO_MUITO_GRANDE", "A foto deve ter no máximo 10 MB.", 413)
         try:
             image = decode_photo(data)
-        except (ValueError, OSError, UnidentifiedImageError,
+        except (ValueError, OSError, UnidentifiedImageError, ImageCms.PyCMSError,
                 Image.DecompressionBombError, Image.DecompressionBombWarning):
             return error("FOTO_INVALIDA", "Não foi possível ler a foto. Use JPG, PNG ou WebP com até 24 megapixels.", 400)
 
-        # Validação no servidor: não pode ser pulada pelo frontend.
-        face = detectar_e_isolar_rosto(image)
-        if face is None or face.size == 0:
-            return error("ROSTO_NAO_ENCONTRADO",
-                         "Não encontramos um rosto visível. Tire outra foto de frente, com boa luz e sem cobrir o rosto.", 422)
-        return jsonify(generate_analysis())
+        # O mesmo pipeline atende JSON e progresso em tempo real, sem guardar jobs.
+        events = analysis_events(image, detectar_e_isolar_rosto, generate_analysis)
+        if request.accept_mimetypes.best == "application/x-ndjson":
+            def stream():
+                try:
+                    for event in events:
+                        yield json.dumps(event, ensure_ascii=False, allow_nan=False) + "\n"
+                except PipelineError as exc:
+                    yield json.dumps({"tipo": "erro", "codigo": exc.code,
+                                      "mensagem": str(exc), "status": exc.status}, ensure_ascii=False) + "\n"
+                except Exception:
+                    app.logger.exception("Falha no pipeline durante streaming")
+                    yield json.dumps({"tipo": "erro", "codigo": "ERRO_INTERNO",
+                                      "mensagem": "Não foi possível processar agora. Tente novamente.", "status": 500}) + "\n"
+                finally:
+                    events.close()
+            response = Response(stream_with_context(stream()), mimetype="application/x-ndjson")
+            response.headers["X-Accel-Buffering"] = "no"
+            return response
+        try:
+            for event in events:
+                if event["tipo"] == "resultado":
+                    return jsonify(event["dados"])
+        except PipelineError as exc:
+            return error(exc.code, str(exc), exc.status)
 
     @app.errorhandler(RequestEntityTooLarge)
     def too_large(_exc):
