@@ -7,6 +7,8 @@
   <meta name="description" content="Meu tom: projeto acadêmico de análise de tons de pele e recomendação de bases.">
   <title>Meu tom · Encontre sua base</title>
   <link rel="icon" href="/assets/tonzinha.svg" type="image/svg+xml">
+  <link rel="preload" href="/assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/vendor/bootstrap.min.css">
   <link rel="stylesheet" href="/css/styles.css">
   <script type="module" src="/js/app.js"></script>
 </head>
@@ -14,13 +16,13 @@
   <a class="skip-link" href="#main">Pular para o conteúdo</a>
   <header class="site-header">
     <div class="container header-inner">
-      <button class="brand" data-action="home" aria-label="Meu tom, início"><img src="/assets/tonzinha.svg" alt="" width="36" height="36"><span>Meu tom</span></button>
+      <button class="brand" data-action="home" aria-label="Meu tom, início"><span class="brand-symbol"><img src="/assets/tonzinha.svg" alt="" width="32" height="32"></span><span>Meu tom<span class="brand-subtitle">Sua pele. Sua cor.</span></span></button>
       <nav id="flow" aria-label="Etapas da análise"></nav>
-      <button class="btn secondary" id="header-action" data-action="capture">Começar</button>
+      <button class="btn btn-primary btn-sm" id="header-action" data-action="capture">Começar</button>
     </div>
   </header>
   <main id="main" tabindex="-1"></main>
-  <footer class="site-footer"><div class="container"><b>Meu tom</b><span>Projeto acadêmico · ICEI, PUC Minas</span><span>As análises de pele não constituem diagnóstico médico.</span></div></footer>
+  <footer class="site-footer"><div class="container"><div class="footer-brand"><img src="/assets/tonzinha.svg" alt="" width="25" height="25"><b>Meu tom</b><span>Projeto acadêmico · ICEI, PUC Minas</span></div><span>Feito para acolher todos os tons.</span></div></footer>
   <noscript><p class="container">Ative o JavaScript para enviar sua foto e usar a demonstração.</p></noscript>
 </body>
 </html>

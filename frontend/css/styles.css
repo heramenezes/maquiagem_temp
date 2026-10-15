@@ -1,588 +1,439 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;
-600;
-800&display=swap');
-:root{
-  --bg: #f5f7f2;
-  --surface: #e9efe6;
-  --ink: #1b2a20;
-  --accent: #2f8f52;
-  --dark: #1b5532;
-  --pale: #eef8f0;
-  --line: #a2ada0;
-  --soft: #d7efdc;
-  font-family: Archivo,system-ui,sans-serif;
-  color: var(--ink);
-  background: var(--bg);
-  font-synthesis:none}
-  *{
-    box-sizing:border-box}
-    body{
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction:column}
-      main{
-        flex:1}
-        button,input,a{
-          -webkit-tap-highlight-color:transparent}
-          button,input{
-            font:inherit}
-            button,a{
-              touch-action:manipulation}
-              button{
-                cursor:pointer}
-                button:disabled{
-                  cursor: wait;
-                  opacity:.6}
-                  a{
-                    color:var(--dark)}
-                    a:hover{
-                      color:var(--accent)}
-                      img{
-                        max-width: 100%;
-                        display:block}
-                        h1,h2,h3,h4,p{
-                          margin:0}
-                          h1{
-                            font-size: clamp(30px,4.6vw,50px);
-                            line-height: 1.08;
-                            letter-spacing: -.035em;
-                            text-wrap:balance}
-                            h2{
-                              font-size: clamp(24px,3vw,32px);
-                              letter-spacing:-.025em}
-                              h3{
-                                font-size:20px}
-                                p{
-                                  line-height:1.6}
-                                  small,.small{
-                                    font-size: 13px;
-                                    line-height:1.5}
-                                    .muted{
-                                      color:#536250}
-                                      .eyebrow{
-                                        font-size: 12px;
-                                        letter-spacing: .1em;
-                                        text-transform: uppercase;
-                                        font-weight: 600;
-                                        color:var(--dark)}
-                                        .container{
-                                          width: min(1160px,100%);
-                                          padding-inline: clamp(16px,4vw,32px);
-                                          margin-inline:auto}
-                                          .section{
-                                            padding-block:clamp(28px,5vw,56px)}
-                                            .border-bottom{
-                                              border-bottom:2px solid var(--line)}
-                                              .stack{
-                                                display: flex;
-                                                flex-direction: column;
-                                                gap:20px}
-                                                .tight{
-                                                  gap:10px}
-                                                  .grid-two{
-                                                    display: grid;
-                                                    grid-template-columns: 1fr 1fr;
-                                                    gap: clamp(24px,4vw,48px);
-                                                    align-items:start}
-                                                    .actions{
-                                                      display: flex;
-                                                      gap: 10px;
-                                                      flex-wrap:wrap}
-                                                      .actions .btn{
-                                                        flex:1 1 175px}
-                                                        .btn{
-                                                          display: inline-flex;
-                                                          align-items: center;
-                                                          justify-content: center;
-                                                          gap: 10px;
-                                                          padding: 13px 18px;
-                                                          border: 2px solid var(--accent);
-                                                          background: var(--accent);
-                                                          color: #fff;
-                                                          font-size: 15px;
-                                                          font-weight: 600;
-                                                          text-decoration: none;
-                                                          line-height:1.35}
-                                                          .btn:hover{
-                                                            background: var(--dark);
-                                                            border-color: var(--dark);
-                                                            color:#fff}
-                                                            .btn.secondary{
-                                                              color: var(--ink);
-                                                              background: transparent;
-                                                              border-color:var(--line)}
-                                                              .btn.secondary:hover{
-                                                                background: var(--surface);
-                                                                border-color:var(--ink)}
-                                                                :focus-visible{
-                                                                  outline: 3px solid #986416;
-                                                                  outline-offset:4px}
-                                                                  main:focus{
-                                                                    outline:none}
-                                                                    .tag{
-                                                                      display: inline-block;
-                                                                      background: var(--soft);
-                                                                      padding: 5px 9px;
-                                                                      font-size: 12px;
-                                                                      font-weight: 600;
-                                                                      line-height: 1.3;
-                                                                      align-self:flex-start}
-                                                                      .tag.outline{
-                                                                        background: transparent;
-                                                                        border:1px solid var(--line)}
-                                                                        .tag.neutral{
-                                                                          background:var(--surface)}
-                                                                          .tags{
-                                                                            display: flex;
-                                                                            flex-wrap: wrap;
-                                                                            gap:8px}
-                                                                            .notice{
-                                                                              padding: 16px 18px;
-                                                                              background: var(--pale);
-                                                                              border-left: 4px solid var(--accent);
-                                                                              font-size: 14px;
-                                                                              line-height:1.6}
-                                                                              .notice.error{
-                                                                                background: #fff1e8;
-                                                                                border-color: #ab3d23;
-                                                                                color:#752d1a}
-                                                                                .notice b{
-                                                                                  display: block;
-                                                                                  margin-bottom:3px}
-                                                                                  .site-header{
-                                                                                    border-bottom: 2px solid var(--line);
-                                                                                    background: var(--bg);
-                                                                                    position: sticky;
-                                                                                    top: 0;
-                                                                                    z-index:10}
-                                                                                    .header-inner{
-                                                                                      display: flex;
-                                                                                      align-items: center;
-                                                                                      gap: 20px;
-                                                                                      flex-wrap: wrap;
-                                                                                      padding-block:12px}
-                                                                                      .brand{
-                                                                                        display: flex;
-                                                                                        align-items: center;
-                                                                                        gap: 10px;
-                                                                                        background: transparent;
-                                                                                        border: 0;
-                                                                                        padding: 0;
-                                                                                        margin-right: auto;
-                                                                                        color: var(--ink);
-                                                                                        font-size: 21px;
-                                                                                        font-weight: 800;
-                                                                                        letter-spacing:-.02em}
-                                                                                        #header-action{
-                                                                                          padding: 8px 14px;
-                                                                                          font-size:13px}
-                                                                                          #flow{
-                                                                                            display: flex;
-                                                                                            gap: 18px;
-                                                                                            font-size:13px}
-                                                                                            .flow-step{
-                                                                                              padding: 5px 0;
-                                                                                              border-bottom: 2px solid transparent;
-                                                                                              color:#667362}
-                                                                                              .flow-step.active{
-                                                                                                border-color: var(--accent);
-                                                                                                color: var(--ink);
-                                                                                                font-weight:600}
-                                                                                                .flow-step.done{
-                                                                                                  color:var(--dark)}
-                                                                                                  .site-footer{
-                                                                                                    border-top:2px solid var(--line)}
-                                                                                                    .site-footer .container{
-                                                                                                      display: flex;
-                                                                                                      gap: 12px 24px;
-                                                                                                      flex-wrap: wrap;
-                                                                                                      padding-block: 22px;
-                                                                                                      font-size: 12px;
-                                                                                                      color:#536250}
-                                                                                                      .site-footer span:first-of-type{
-                                                                                                        margin-right:auto}
-                                                                                                        .skip-link{
-                                                                                                          position: fixed;
-                                                                                                          left: 12px;
-                                                                                                          top: -100px;
-                                                                                                          background: white;
-                                                                                                          padding: 12px;
-                                                                                                          z-index:100}
-                                                                                                          .skip-link:focus{
-                                                                                                            top:10px}
-                                                                                                            .hero{
-                                                                                                              display: grid;
-                                                                                                              grid-template-columns: 1fr 1fr;
-                                                                                                              max-width: 1160px;
-                                                                                                              margin:auto}
-                                                                                                              .hero-copy{
-                                                                                                                padding:clamp(32px,6vw,72px) clamp(16px,4vw,32px)}
-                                                                                                                .hero h1{
-                                                                                                                  font-size: clamp(36px,5.6vw,60px);
-                                                                                                                  line-height:1.02}
-                                                                                                                  .hero-copy>p{
-                                                                                                                    font-size:18px}
-                                                                                                                    .hero-art{
-                                                                                                                      background: var(--pale);
-                                                                                                                      border-left: 2px solid var(--line);
-                                                                                                                      padding: clamp(24px,4vw,40px);
-                                                                                                                      display: flex;
-                                                                                                                      flex-direction: column;
-                                                                                                                      justify-content: space-between;
-                                                                                                                      gap:24px}
-                                                                                                                      .hero-art img{
-                                                                                                                        width: min(62%,260px);
-                                                                                                                        align-self:center}
-                                                                                                                        .hero-art p{
-                                                                                                                          max-width: 26em;
-                                                                                                                          font-size: 14px;
-                                                                                                                          color:var(--dark)}
-                                                                                                                          .how-grid{
-                                                                                                                            display: grid;
-                                                                                                                            grid-template-columns: repeat(3,1fr);
-                                                                                                                            border-top: 2px solid var(--line);
-                                                                                                                            margin-top:24px}
-                                                                                                                            .how-card{
-                                                                                                                              padding: 28px 24px 28px 0;
-                                                                                                                              display: flex;
-                                                                                                                              flex-direction: column;
-                                                                                                                              gap:12px}
-                                                                                                                              .how-card+.how-card{
-                                                                                                                                border-left: 2px solid var(--line);
-                                                                                                                                padding-left:24px}
-                                                                                                                                .how-number{
-                                                                                                                                  font-size: 40px;
-                                                                                                                                  font-weight: 800;
-                                                                                                                                  color:var(--accent)}
-                                                                                                                                  .scale{
-                                                                                                                                    display: grid;
-                                                                                                                                    grid-template-columns: repeat(10,1fr);
-                                                                                                                                    gap: 5px;
-                                                                                                                                    align-items:end}
-                                                                                                                                    .scale-item{
-                                                                                                                                      display: flex;
-                                                                                                                                      flex-direction: column;
-                                                                                                                                      gap: 8px;
-                                                                                                                                      font-size:11px}
-                                                                                                                                      .scale-color{
-                                                                                                                                        height: 44px;
-                                                                                                                                        background:var(--swatch)}
-                                                                                                                                        .scale-item.selected{
-                                                                                                                                          font-weight:800}
-                                                                                                                                          .scale-item.selected .scale-color{
-                                                                                                                                            height: 64px;
-                                                                                                                                            outline: 2px solid var(--ink);
-                                                                                                                                            outline-offset:2px}
-                                                                                                                                            .intro{
-                                                                                                                                              max-width: 660px;
-                                                                                                                                              margin-bottom:28px}
-                                                                                                                                              .drop-zone{
-                                                                                                                                                border: 2px dashed var(--line);
-                                                                                                                                                background: var(--surface);
-                                                                                                                                                padding: 36px 24px;
-                                                                                                                                                min-height: 295px;
-                                                                                                                                                display: flex;
-                                                                                                                                                flex-direction: column;
-                                                                                                                                                justify-content: center;
-                                                                                                                                                gap: 18px;
-                                                                                                                                                text-align:center}
-                                                                                                                                                .drop-zone.dragover{
-                                                                                                                                                  background: var(--pale);
-                                                                                                                                                  border-color:var(--accent)}
-                                                                                                                                                  .upload-icon{
-                                                                                                                                                    font-size: 36px;
-                                                                                                                                                    color: var(--accent);
-                                                                                                                                                    line-height:1}
-                                                                                                                                                    .tips{
-                                                                                                                                                      background: var(--pale);
-                                                                                                                                                      padding:24px}
-                                                                                                                                                      .tip-list{
-                                                                                                                                                        list-style: none;
-                                                                                                                                                        margin: 0;
-                                                                                                                                                        padding: 0;
-                                                                                                                                                        display: flex;
-                                                                                                                                                        flex-direction: column;
-                                                                                                                                                        gap:20px}
-                                                                                                                                                        .tip-list li{
-                                                                                                                                                          display: flex;
-                                                                                                                                                          gap: 12px;
-                                                                                                                                                          font-size: 14px;
-                                                                                                                                                          line-height:1.5}
-                                                                                                                                                          .tip-list li::before{
-                                                                                                                                                            content: '✓';
-                                                                                                                                                            background: var(--accent);
-                                                                                                                                                            color: white;
-                                                                                                                                                            width: 24px;
-                                                                                                                                                            height: 24px;
-                                                                                                                                                            flex-shrink: 0;
-                                                                                                                                                            text-align:center}
-                                                                                                                                                            .photo-frame{
-                                                                                                                                                              position: relative;
-                                                                                                                                                              aspect-ratio: 3/4;
-                                                                                                                                                              width: 100%;
-                                                                                                                                                              max-width: 440px;
-                                                                                                                                                              overflow: hidden;
-                                                                                                                                                              background: var(--surface);
-                                                                                                                                                              border:2px solid var(--line)}
-                                                                                                                                                              .photo-frame>img{
-                                                                                                                                                                width: 100%;
-                                                                                                                                                                height: 100%;
-                                                                                                                                                                object-fit:contain}
-                                                                                                                                                                .photo-label{
-                                                                                                                                                                  position: absolute;
-                                                                                                                                                                  left: 12px;
-                                                                                                                                                                  bottom: 12px;
-                                                                                                                                                                  max-width:calc(100% - 24px)}
-                                                                                                                                                                  .check-list{
-                                                                                                                                                                    list-style: none;
-                                                                                                                                                                    margin: 0;
-                                                                                                                                                                    padding: 0;
-                                                                                                                                                                    border-top:2px solid var(--line)}
-                                                                                                                                                                    .check-list li{
-                                                                                                                                                                      padding: 15px 0;
-                                                                                                                                                                      border-bottom: 1px solid var(--line);
-                                                                                                                                                                      font-size:15px}
-                                                                                                                                                                      .check-list li::before{
-                                                                                                                                                                        content: '○';
-                                                                                                                                                                        color: var(--accent);
-                                                                                                                                                                        margin-right:12px}
-                                                                                                                                                                        .processing{
-                                                                                                                                                                          max-width:720px}
-                                                                                                                                                                          .processing-heading{
-                                                                                                                                                                            display: flex;
-                                                                                                                                                                            gap: 20px;
-                                                                                                                                                                            align-items:center}
-                                                                                                                                                                            .processing-heading img{
-                                                                                                                                                                              width:72px}
-                                                                                                                                                                              .loading-bar{
-                                                                                                                                                                                height: 8px;
-                                                                                                                                                                                background: var(--soft);
-                                                                                                                                                                                overflow:hidden}
-                                                                                                                                                                                .loading-bar::after{
-                                                                                                                                                                                  content: '';
-                                                                                                                                                                                  display: block;
-                                                                                                                                                                                  height: 100%;
-                                                                                                                                                                                  width: 35%;
-                                                                                                                                                                                  background: var(--accent);
-                                                                                                                                                                                  animation:loading 1.4s infinite ease-in-out}
-                                                                                                                                                                                  .processing-step{
-                                                                                                                                                                                    display: flex;
-                                                                                                                                                                                    gap: 14px;
-                                                                                                                                                                                    align-items: center;
-                                                                                                                                                                                    border-bottom: 1px solid var(--line);
-                                                                                                                                                                                    padding:18px 0}
-                                                                                                                                                                                    .step-number{
-                                                                                                                                                                                      background: var(--soft);
-                                                                                                                                                                                      padding: 8px 12px;
-                                                                                                                                                                                      font-weight:800}
-                                                                                                                                                                                      .tone-card{
-                                                                                                                                                                                        padding: 24px;
-                                                                                                                                                                                        background: var(--surface);
-                                                                                                                                                                                        display: flex;
-                                                                                                                                                                                        gap: 20px;
-                                                                                                                                                                                        align-items:center}
-                                                                                                                                                                                        .tone-swatch{
-                                                                                                                                                                                          width: 88px;
-                                                                                                                                                                                          min-height: 100px;
-                                                                                                                                                                                          flex-shrink: 0;
-                                                                                                                                                                                          background:var(--swatch)}
-                                                                                                                                                                                          .tone-value{
-                                                                                                                                                                                            font-weight: 800;
-                                                                                                                                                                                            font-size: 30px;
-                                                                                                                                                                                            line-height:1.1}
-                                                                                                                                                                                            .result-title{
-                                                                                                                                                                                              align-items:end}
-                                                                                                                                                                                              .section-heading{
-                                                                                                                                                                                                display: flex;
-                                                                                                                                                                                                gap: 12px;
-                                                                                                                                                                                                align-items: baseline;
-                                                                                                                                                                                                justify-content: space-between;
-                                                                                                                                                                                                flex-wrap:wrap}
-                                                                                                                                                                                                .product-grid{
-                                                                                                                                                                                                  display: grid;
-                                                                                                                                                                                                  grid-template-columns: repeat(3,1fr);
-                                                                                                                                                                                                  gap:20px}
-                                                                                                                                                                                                  .product-card{
-                                                                                                                                                                                                    border: 2px solid var(--line);
-                                                                                                                                                                                                    display: flex;
-                                                                                                                                                                                                    flex-direction: column;
-                                                                                                                                                                                                    min-width:0}
-                                                                                                                                                                                                    .product-card:first-child{
-                                                                                                                                                                                                      border-color:var(--accent)}
-                                                                                                                                                                                                      .product-art{
-                                                                                                                                                                                                        background: #fff;
-                                                                                                                                                                                                        position: relative;
-                                                                                                                                                                                                        min-height: 205px;
-                                                                                                                                                                                                        display: grid;
-                                                                                                                                                                                                        place-items: center;
-                                                                                                                                                                                                        gap: 8px;
-                                                                                                                                                                                                        padding: 48px 20px 20px;
-                                                                                                                                                                                                        border-bottom:2px solid var(--line)}
-                                                                                                                                                                                                        .product-art>.tag{
-                                                                                                                                                                                                          position: absolute;
-                                                                                                                                                                                                          top: 12px;
-                                                                                                                                                                                                          left:12px}
-                                                                                                                                                                                                          .color-chip{
-                                                                                                                                                                                                            width: 100px;
-                                                                                                                                                                                                            height: 100px;
-                                                                                                                                                                                                            border-radius: 50%;
-                                                                                                                                                                                                            background: var(--swatch);
-                                                                                                                                                                                                            box-shadow:0 0 0 10px var(--bg)}
-                                                                                                                                                                                                            .product-art small{
-                                                                                                                                                                                                              color: #667362;
-                                                                                                                                                                                                              font-size:11px}
-                                                                                                                                                                                                              .product-info{
-                                                                                                                                                                                                                padding: 20px;
-                                                                                                                                                                                                                display: flex;
-                                                                                                                                                                                                                flex-direction: column;
-                                                                                                                                                                                                                gap: 12px;
-                                                                                                                                                                                                                flex:1}
-                                                                                                                                                                                                                .product-info h3{
-                                                                                                                                                                                                                  font-size:21px}
-                                                                                                                                                                                                                  .shade{
-                                                                                                                                                                                                                    display: flex;
-                                                                                                                                                                                                                    gap: 8px;
-                                                                                                                                                                                                                    align-items: center;
-                                                                                                                                                                                                                    font-size:14px}
-                                                                                                                                                                                                                    .mini-swatch{
-                                                                                                                                                                                                                      width: 18px;
-                                                                                                                                                                                                                      height: 18px;
-                                                                                                                                                                                                                      flex-shrink: 0;
-                                                                                                                                                                                                                      background: var(--swatch);
-                                                                                                                                                                                                                      border:1px solid var(--line)}
-                                                                                                                                                                                                                      .price{
-                                                                                                                                                                                                                        font-size: 25px;
-                                                                                                                                                                                                                        font-weight: 800;
-                                                                                                                                                                                                                        margin-top: auto;
-                                                                                                                                                                                                                        padding-top:8px}
-                                                                                                                                                                                                                        .condition{
-                                                                                                                                                                                                                          border-bottom: 1px solid var(--line);
-                                                                                                                                                                                                                          padding: 20px 0;
-                                                                                                                                                                                                                          display: flex;
-                                                                                                                                                                                                                          flex-direction: column;
-                                                                                                                                                                                                                          gap:12px}
-                                                                                                                                                                                                                          .condition:first-child{
-                                                                                                                                                                                                                            border-top:2px solid var(--line)}
-                                                                                                                                                                                                                            .condition-head{
-                                                                                                                                                                                                                              display: flex;
-                                                                                                                                                                                                                              align-items: center;
-                                                                                                                                                                                                                              justify-content: space-between;
-                                                                                                                                                                                                                              gap: 8px;
-                                                                                                                                                                                                                              flex-wrap:wrap}
-                                                                                                                                                                                                                              .condition-detail{
-                                                                                                                                                                                                                                display: grid;
-                                                                                                                                                                                                                                grid-template-columns: 1fr 1fr;
-                                                                                                                                                                                                                                gap: 2px;
-                                                                                                                                                                                                                                background:var(--line)}
-                                                                                                                                                                                                                                .condition-detail>div{
-                                                                                                                                                                                                                                  display: flex;
-                                                                                                                                                                                                                                  flex-direction: column;
-                                                                                                                                                                                                                                  gap: 4px;
-                                                                                                                                                                                                                                  background: var(--surface);
-                                                                                                                                                                                                                                  padding: 12px;
-                                                                                                                                                                                                                                  font-size:14px}
-                                                                                                                                                                                                                                  .condition-detail span{
-                                                                                                                                                                                                                                    font-size: 11px;
-                                                                                                                                                                                                                                    text-transform: uppercase;
-                                                                                                                                                                                                                                    letter-spacing: .06em;
-                                                                                                                                                                                                                                    color:#536250}
-                                                                                                                                                                                                                                    .example-face{
-                                                                                                                                                                                                                                      position: absolute;
-                                                                                                                                                                                                                                      left: 20%;
-                                                                                                                                                                                                                                      top: 12%;
-                                                                                                                                                                                                                                      width: 60%;
-                                                                                                                                                                                                                                      height: 72%;
-                                                                                                                                                                                                                                      border-radius: 50%;
-                                                                                                                                                                                                                                      background:var(--swatch)}
-                                                                                                                                                                                                                                      .mark{
-                                                                                                                                                                                                                                        position: absolute;
-                                                                                                                                                                                                                                        border: 2px solid white;
-                                                                                                                                                                                                                                        box-shadow:0 0 0 1px #555}
-                                                                                                                                                                                                                                        .mark span{
-                                                                                                                                                                                                                                          position: absolute;
-                                                                                                                                                                                                                                          bottom: 100%;
-                                                                                                                                                                                                                                          left: -2px;
-                                                                                                                                                                                                                                          font-size: 10px;
-                                                                                                                                                                                                                                          font-weight: 600;
-                                                                                                                                                                                                                                          color: white;
-                                                                                                                                                                                                                                          background: var(--ink);
-                                                                                                                                                                                                                                          padding: 2px 5px;
-                                                                                                                                                                                                                                          white-space:nowrap}
-                                                                                                                                                                                                                                          .marks[hidden]{
-                                                                                                                                                                                                                                            display:none}
-                                                                                                                                                                                                                                            .visually-hidden{
-                                                                                                                                                                                                                                              position: absolute;
-                                                                                                                                                                                                                                              width: 1px;
-                                                                                                                                                                                                                                              height: 1px;
-                                                                                                                                                                                                                                              padding: 0;
-                                                                                                                                                                                                                                              margin: -1px;
-                                                                                                                                                                                                                                              overflow: hidden;
-                                                                                                                                                                                                                                              clip: rect(0,0,0,0);
-                                                                                                                                                                                                                                              white-space: nowrap;
-                                                                                                                                                                                                                                              border:0}
-                                                                                                                                                                                                                                              .marks{
-                                                                                                                                                                                                                                                position: absolute;
-                                                                                                                                                                                                                                                inset: 0;
-                                                                                                                                                                                                                                                pointer-events:none}
-                                                                                                                                                                                                                                                @keyframes loading{
-                                                                                                                                                                                                                                                  from{
-                                                                                                                                                                                                                                                    transform:translateX(-100%)}
-                                                                                                                                                                                                                                                    to{
-                                                                                                                                                                                                                                                      transform:translateX(390%)}
-                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                    @media(max-width:760px){
-                                                                                                                                                                                                                                                      .hero,.grid-two{
-                                                                                                                                                                                                                                                        grid-template-columns:1fr}
-                                                                                                                                                                                                                                                        .hero-art{
-                                                                                                                                                                                                                                                          border-left: 0;
-                                                                                                                                                                                                                                                          border-top: 2px solid var(--line);
-                                                                                                                                                                                                                                                          min-height:360px}
-                                                                                                                                                                                                                                                          .hero-art img{
-                                                                                                                                                                                                                                                            width:180px}
-                                                                                                                                                                                                                                                            .product-grid{
-                                                                                                                                                                                                                                                              grid-template-columns:1fr}
-                                                                                                                                                                                                                                                              .product-card{
-                                                                                                                                                                                                                                                                max-width: 520px;
-                                                                                                                                                                                                                                                                width: 100%;
-                                                                                                                                                                                                                                                                margin-inline:auto}
-                                                                                                                                                                                                                                                                .product-art{
-                                                                                                                                                                                                                                                                  min-height:220px}
-                                                                                                                                                                                                                                                                  .how-grid{
-                                                                                                                                                                                                                                                                    grid-template-columns:1fr}
-                                                                                                                                                                                                                                                                    .how-card+.how-card{
-                                                                                                                                                                                                                                                                      padding-left: 0;
-                                                                                                                                                                                                                                                                      border-left: 0;
-                                                                                                                                                                                                                                                                      border-top:1px solid var(--line)}
-                                                                                                                                                                                                                                                                      .how-card{
-                                                                                                                                                                                                                                                                        padding:24px 0}
-                                                                                                                                                                                                                                                                        .photo-frame{
-                                                                                                                                                                                                                                                                          margin-inline:auto}
-                                                                                                                                                                                                                                                                          .result-title{
-                                                                                                                                                                                                                                                                            align-items:start}
-                                                                                                                                                                                                                                                                            #flow{
-                                                                                                                                                                                                                                                                              order: 3;
-                                                                                                                                                                                                                                                                              width: 100%;
-                                                                                                                                                                                                                                                                              justify-content: center;
-                                                                                                                                                                                                                                                                              font-size:12px}
-                                                                                                                                                                                                                                                                              .header-inner{
-                                                                                                                                                                                                                                                                                gap:10px 14px}
-                                                                                                                                                                                                                                                                                #flow:empty{
-                                                                                                                                                                                                                                                                                  display:none}
-                                                                                                                                                                                                                                                                                  .tone-card{
-                                                                                                                                                                                                                                                                                    padding:20px}
-                                                                                                                                                                                                                                                                                    .hero-copy>p{
-                                                                                                                                                                                                                                                                                      font-size:16px}
-                                                                                                                                                                                                                                                                                      .site-footer .container{
-                                                                                                                                                                                                                                                                                        flex-direction:column}
-                                                                                                                                                                                                                                                                                        .condition-detail{
-                                                                                                                                                                                                                                                                                          grid-template-columns:1fr 1fr}
-                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                        @media(prefers-reduced-motion:reduce){
-                                                                                                                                                                                                                                                                                          *,*::before,*::after{
-                                                                                                                                                                                                                                                                                            animation: none!important;
-                                                                                                                                                                                                                                                                                            scroll-behavior:auto!important}
-                                                                                                                                                                                                                                                                                            .loading-bar::after{
-                                                                                                                                                                                                                                                                                              width: 100%;
-                                                                                                                                                                                                                                                                                              opacity:.6}
-                                                                                                                                                                                                                                                                                            }
+/* Bootstrap fornece a base. Este arquivo contém o tema visual do Meu tom. */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/assets/fonts/archivo-latin.woff2') format('woff2');
+}
+
+:root {
+  --bg: #f7f9f5;
+  --surface: #edf3eb;
+  --white: #fff;
+  --ink: #203a2b;
+  --muted: #657367;
+  --accent: #2f8050;
+  --dark: #1e5836;
+  --pale: #eaf4e9;
+  --soft: #dbeedc;
+  --line: #dce5da;
+  --radius: 18px;
+  --bs-body-font-family: 'Archivo', system-ui, sans-serif;
+  --bs-body-font-size: 0.9375rem;
+  --bs-body-color: var(--ink);
+  --bs-body-bg: var(--bg);
+  --bs-border-color: var(--line);
+  --bs-link-color: var(--dark);
+  --bs-link-hover-color: var(--accent);
+  --bs-border-radius: 12px;
+  --bs-border-radius-lg: var(--radius);
+  --bs-primary-rgb: 47, 128, 80;
+}
+
+body { min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+main { flex: 1; }
+button, input { font: inherit; }
+button, a { touch-action: manipulation; }
+img { display: block; max-width: 100%; }
+h1, h2, h3, h4, p { margin: 0; }
+h1, h2, h3, h4 { color: var(--ink); font-weight: 800; }
+h1 { font-size: clamp(2.1rem, 3.8vw, 3.15rem); line-height: 1.12; letter-spacing: -.045em; text-wrap: balance; }
+h2 { font-size: clamp(1.65rem, 2.7vw, 2.15rem); line-height: 1.18; letter-spacing: -.035em; }
+h3 { font-size: 1.12rem; letter-spacing: -.02em; line-height: 1.3; }
+p { line-height: 1.75; }
+a { text-underline-offset: 4px; }
+::selection { background: var(--soft); }
+:focus-visible { outline: 3px solid #a37728; outline-offset: 4px; }
+main:focus { outline: 0; }
+.container { width: 100%; max-width: 1160px; padding-inline: 28px; }
+.section { padding-block: 64px; }
+.stack { display: flex; flex-direction: column; gap: 24px; }
+.tight { gap: 8px; }
+.small, small { font-size: .8rem; line-height: 1.6; }
+.muted { color: var(--muted); }
+.eyebrow { color: var(--accent); font-size: .69rem; font-weight: 600; line-height: 1.5; letter-spacing: .13em; text-transform: uppercase; }
+.lead-copy { color: var(--muted); font-size: 1rem; line-height: 1.8; max-width: 39em; }
+.icon { width: 20px; height: 20px; flex: 0 0 auto; vertical-align: middle; }
+.card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); color: var(--ink); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 13px 21px;
+  font-size: .85rem;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: 9px;
+  transition: background-color .18s, border-color .18s, box-shadow .18s, transform .18s;
+}
+.btn-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--accent);
+  --bs-btn-border-color: var(--accent);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--dark);
+  --bs-btn-hover-border-color: var(--dark);
+  --bs-btn-active-bg: #17472a;
+  --bs-btn-active-border-color: #17472a;
+  --bs-btn-disabled-bg: var(--accent);
+  --bs-btn-disabled-border-color: var(--accent);
+  --bs-btn-focus-shadow-rgb: 47, 128, 80;
+  box-shadow: 0 4px 10px rgb(30 88 54 / 10%);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--dark);
+  --bs-btn-border-color: #c9d7c8;
+  --bs-btn-hover-color: var(--dark);
+  --bs-btn-hover-bg: var(--pale);
+  --bs-btn-hover-border-color: var(--accent);
+  --bs-btn-active-color: var(--dark);
+  --bs-btn-active-bg: var(--soft);
+  --bs-btn-active-border-color: var(--accent);
+  --bs-btn-focus-shadow-rgb: 47, 128, 80;
+  background: transparent;
+}
+.btn:focus-visible { outline: 3px solid #a37728; outline-offset: 3px; }
+.btn-sm { min-height: 42px; padding: 10px 19px; font-size: .78rem; }
+.btn:disabled { cursor: wait; }
+.tags { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.tag { display: inline-flex; align-items: center; align-self: flex-start; gap: 7px; padding: 7px 11px; border-radius: 6px; background: var(--soft); color: var(--dark); font-size: .69rem; font-weight: 600; line-height: 1.45; }
+.tag .icon { width: 15px; height: 15px; }
+.tag.neutral { background: #f0f3ee; color: #5f6c5d; }
+.tag.outline { background: var(--pale); color: var(--dark); border: 1px solid #c7dfc6; }
+.notice { display: flex; align-items: flex-start; gap: 12px; padding: 17px 20px; border: 1px solid #d5e6d1; border-radius: 12px; margin: 0; background: #edf5e9; color: #53674f; font-size: .79rem; line-height: 1.7; }
+.notice>.icon { margin-top: 2px; width: 18px; height: 18px; color: var(--accent); }
+.notice b { display: block; margin-bottom: 3px; color: var(--dark); font-weight: 600; }
+.notice.error { background: #fff4ef; border-color: #eecdbc; color: #85442e; }
+.notice.error>.icon { color: #a34c2d; }
+
+/* Cabeçalho, navegação e rodapé. */
+.site-header { background: rgb(247 249 245 / 97%); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
+.header-inner { display: flex; align-items: center; gap: 24px; min-height: 86px; }
+.brand { display: inline-flex; align-items: center; gap: 11px; padding: 0; border: 0; background: none; color: var(--ink); font-size: 1.35rem; font-weight: 800; letter-spacing: -.045em; text-align: left; margin-right: auto; }
+.brand-symbol { display: grid; place-items: center; width: 46px; height: 46px; background: #e4efdf; border-radius: 12px; }
+.brand-subtitle { display: block; margin-top: 2px; font-size: .58rem; font-weight: 400; color: var(--muted); letter-spacing: .015em; }
+#flow { display: flex; align-items: center; gap: 24px; margin-right: auto; }
+#flow:empty { display: none; }
+.flow-step { display: inline-flex; align-items: center; gap: 7px; color: #8a9487; font-size: .74rem; white-space: nowrap; }
+.flow-number { display: inline-grid; place-items: center; width: 25px; height: 25px; border: 1px solid var(--line); border-radius: 50%; font-size: .67rem; font-weight: 600; }
+.flow-step.active { color: var(--dark); font-weight: 600; }
+.flow-step.active .flow-number { background: var(--accent); border-color: var(--accent); color: #fff; }
+.flow-step.done { color: var(--accent); }
+.flow-step.done .flow-number { background: var(--soft); border-color: var(--soft); }
+.site-footer { margin-top: 20px; border-top: 1px solid var(--line); color: var(--muted); }
+.site-footer>.container { min-height: 90px; display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: .68rem; }
+.footer-brand { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.footer-brand b { font-size: .88rem; color: var(--ink); }
+.footer-brand span { margin-left: 15px; }
+.skip-link { position: fixed; top: -100px; left: 16px; padding: 12px; background: white; z-index: 100; }
+.skip-link:focus { top: 12px; }
+
+/* Início: a paleta verde e a Tonzinha vêm do mock original. */
+.hero-section { padding-top: 40px; }
+.hero { overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: #fff; box-shadow: 0 10px 40px rgb(31 64 37 / 3%); }
+.hero-copy { padding: 55px 45px; gap: 23px; justify-content: center; }
+.hero h1 { font-size: clamp(2.7rem, 4.3vw, 3.65rem); line-height: 1.08; letter-spacing: -.052em; max-width: 9.4em; }
+.hero h1>span { color: var(--accent); }
+.hero-meta { color: var(--muted); font-size: .68rem; }
+.hero-description { max-width: 31em; color: var(--muted); font-size: .94rem; line-height: 1.85; }
+.hero-actions { margin-top: 4px; }
+.hero-actions .btn:first-child .icon:last-child { width: 16px; margin-left: 4px; }
+.privacy-note { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-size: .7rem; line-height: 1.6; color: var(--muted); }
+.privacy-note .icon { width: 16px; height: 16px; color: var(--accent); }
+.hero-art { display: flex; flex-direction: column; justify-content: space-between; padding: 29px 29px 30px; position: relative; background: #e5f0df; border-left: 1px solid #d4e4cf; min-height: 490px; }
+.hero-art-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.hero-art-heading .eyebrow { font-size: .59rem; max-width: 17em; }
+.art-star { font-size: 29px; color: #75a36c; line-height: 1; }
+.mascot-stage { align-self: center; position: relative; width: 265px; height: 290px; display: grid; place-items: center; margin-block: 25px; }
+.mascot-stage::before { content: ''; position: absolute; width: 240px; height: 250px; border-radius: 120px 120px 90px 90px; background: #d0e5c6; transform: rotate(-8deg); }
+.mascot-stage::after { content: ''; position: absolute; width: 180px; height: 18px; bottom: 26px; border-radius: 50%; background: #9fbd92; opacity: .35; }
+.mascot-stage img { z-index: 1; width: 178px; transform: rotate(5deg); margin-top: -17px; }
+.mascot-caption { position: absolute; bottom: 3px; z-index: 2; padding: 9px 16px; border: 1px solid #cfdfc6; border-radius: 8px; background: #fbfdf9; color: var(--dark); font-size: .73rem; font-weight: 600; transform: rotate(-3deg); box-shadow: 0 4px 14px rgb(30 88 54 / 5%); }
+.hero-art-footer { display: flex; justify-content: space-between; align-items: center; gap: 20px; font-size: .75rem; color: #55734d; line-height: 1.5; }
+.mini-palette { display: flex; padding-left: 3px; }
+.mini-palette span { width: 29px; height: 29px; margin-left: -3px; border-radius: 50%; border: 2px solid #e5f0df; background: var(--swatch); }
+.demo-caption { display: flex; align-items: flex-start; gap: 8px; margin-top: 17px; color: #64715f; font-size: .68rem; line-height: 1.7; padding-inline: 3px; }
+.demo-caption .icon { width: 15px; height: 15px; margin-top: 1px; }
+.section-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; }
+.section-heading .eyebrow { display: block; margin-bottom: 10px; }
+.section-heading>p { font-size: .83rem; }
+.how-section { padding-top: 50px; padding-bottom: 50px; }
+.how-grid { margin-top: 8px; }
+.how-card { height: 100%; padding: 26px; gap: 13px; border-radius: 14px; }
+.how-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.how-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 11px; background: var(--pale); color: var(--accent); }
+.how-number { color: #d5ded0; font-size: 1.85rem; font-weight: 800; letter-spacing: -.06em; }
+.how-card p { font-size: .83rem; color: var(--muted); line-height: 1.8; }
+.how-caption { font-size: .67rem; color: #64715f; padding-top: 4px; margin-top: auto; }
+.palette-section { padding-bottom: 55px; }
+.palette-panel { background: #edf2e9; border: 1px solid #e0e8da; border-radius: 16px; padding: 34px; }
+.palette-panel h2 { font-size: 1.7rem; }
+.palette-panel p { color: var(--muted); font-size: .82rem; }
+.scale { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; align-items: end; }
+.scale-item { display: flex; flex-direction: column; gap: 9px; text-align: center; color: #64715f; font-size: .61rem; }
+.scale-color { height: 48px; background: var(--swatch); border-radius: 5px; }
+.scale-item.selected { color: var(--dark); font-weight: 800; }
+.scale-item.selected .scale-color { height: 62px; outline: 2px solid var(--accent); outline-offset: 3px; }
+.scale-legend { display: flex; justify-content: space-between; margin-top: 16px; color: #64715f; font-size: .59rem; }
+
+/* Captura e revisão. */
+.intro { max-width: 700px; margin-bottom: 34px; gap: 12px; }
+.intro>p { color: var(--muted); font-size: 1rem; }
+.upload-card { padding: 12px; overflow: hidden; }
+.drop-zone { padding: 48px 24px 36px; min-height: 375px; border: 1.5px dashed #b7cbb1; border-radius: 12px; background: #fafcf8; display: flex; flex-direction: column; gap: 19px; align-items: center; text-align: center; transition: background-color .15s, border-color .15s; }
+.drop-zone.dragover { background: #e5f1df; border-color: var(--accent); }
+.upload-icon { display: grid; place-items: center; height: 66px; width: 66px; background: var(--pale); color: var(--accent); border-radius: 18px; margin-bottom: 2px; }
+.upload-icon .icon { width: 29px; height: 29px; }
+.drop-zone h2 { font-size: 1.35rem; letter-spacing: -.025em; }
+.drop-zone>p { font-size: .85rem; color: var(--muted); }
+.drop-zone>.small { font-size: .68rem; }
+.upload-card-footer { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 17px 5px 5px; color: #64715f; font-size: .7rem; }
+.upload-card-footer .icon { width: 15px; height: 15px; }
+.capture-help { max-width: 38em; padding-inline: 5px; font-size: .74rem; }
+#file-status:empty { display: none; }
+.tips { padding: 30px; border: 1px solid #dce8d5; border-radius: var(--radius); background: #edf4e8; gap: 23px; }
+.tips-heading { display: flex; align-items: center; gap: 8px; color: var(--accent); }
+.tips-heading .eyebrow { font-size: .65rem; }
+.tips h3 { font-size: 1.5rem; line-height: 1.25; }
+.tip-list { display: flex; flex-direction: column; gap: 19px; list-style: none; margin: 0; padding: 0; }
+.tip-list li { display: flex; gap: 10px; font-size: .78rem; line-height: 1.8; color: #667660; }
+.tip-list li b { color: #3c5935; font-weight: 600; }
+.tip-list li::before { content: '✓'; display: inline-grid; place-items: center; flex: 0 0 21px; height: 21px; margin-top: 2px; background: #dcebd2; border-radius: 50%; color: var(--accent); font-size: .67rem; }
+.review-layout { padding-block: 12px; }
+.photo-frame { position: relative; aspect-ratio: 3 / 4; width: 100%; max-width: 440px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: #e8eee4; }
+.photo-frame>img { width: 100%; height: 100%; object-fit: contain; }
+.photo-label { position: absolute; bottom: 14px; left: 14px; max-width: calc(100% - 28px); background: rgb(255 255 255 / 94%); box-shadow: 0 2px 8px rgb(25 50 25 / 8%); font-size: .62rem; }
+.photo-filename { margin-top: 12px; font-size: .7rem; color: #64715f; text-align: center; overflow-wrap: anywhere; }
+.review-copy { padding-left: 15px; gap: 23px; }
+.review-checks { padding: 7px 21px; background: #f0f5ec; border-color: #e3eadc; }
+.check-list { list-style: none; margin: 0; padding: 0; }
+.check-list li { display: flex; align-items: center; gap: 13px; padding: 16px 0; font-size: .79rem; line-height: 1.7; color: #60705a; }
+.check-list li+li { border-top: 1px solid #dde6d5; }
+.check-list .icon { width: 20px; height: 20px; color: var(--accent); }
+
+/* Processamento com progresso indeterminado, ligado à chamada HTTP. */
+.processing { max-width: 760px; padding-block: 48px; }
+.processing-card { padding: 38px 42px; gap: 26px; text-align: center; box-shadow: 0 8px 30px rgb(29 60 34 / 3%); }
+.processing-mascot { display: grid; place-items: center; width: 110px; height: 110px; background: var(--pale); border-radius: 50%; margin: 0 auto; }
+.processing-mascot img { width: 75px; }
+.processing-heading { gap: 12px; }
+.processing-heading h1 { font-size: clamp(1.65rem, 4vw, 2.15rem); }
+.processing-heading p { font-size: .85rem; }
+.processing-heading .eyebrow { font-size: .6rem; }
+.loading-bar { height: 5px; border-radius: 5px; background: var(--soft); overflow: hidden; }
+.loading-bar::after { content: ''; display: block; width: 35%; height: 100%; border-radius: inherit; background: var(--accent); animation: loading 1.4s infinite ease-in-out; }
+.processing-steps { text-align: left; }
+.processing-step { display: flex; align-items: center; gap: 14px; padding: 20px 0; }
+.processing-step+.processing-step { border-top: 1px solid var(--line); }
+.processing-step .tight { gap: 5px; flex: 1; }
+.processing-step b { font-size: .82rem; font-weight: 600; }
+.processing-step .small { font-size: .72rem; }
+.processing-step .spinner-border { color: var(--accent); flex-shrink: 0; }
+.step-number { width: 34px; height: 34px; display: grid; place-items: center; flex-shrink: 0; background: var(--soft); border-radius: 9px; color: var(--accent); font-size: .7rem; font-weight: 600; }
+.processing-step.pending { opacity: .55; }
+.processing-card>.privacy-note { justify-content: center; }
+@keyframes loading { from { transform: translateX(-100%); } to { transform: translateX(390%); } }
+
+/* Resultado, catálogo e características da pele. */
+.result-summary { gap: 35px; padding-top: 34px; padding-bottom: 45px; }
+.result-title .tag { font-size: .65rem; }
+.result-title h1 { max-width: 12em; font-size: clamp(2rem, 3.5vw, 2.85rem); }
+.result-title .stack { gap: 17px; }
+.result-title .lead-copy { font-size: .88rem; }
+.tone-card { display: flex; flex-direction: row; align-items: center; gap: 21px; padding: 26px; background: #edf2e9; border-color: #dde7d5; }
+.tone-card .tight { gap: 6px; }
+.tone-swatch { width: 85px; height: 112px; flex-shrink: 0; background: var(--swatch); border-radius: 10px; }
+.tone-value { font-size: 1.85rem; line-height: 1.2; font-weight: 800; letter-spacing: -.04em; }
+.tone-card .eyebrow { font-size: .58rem; }
+.tone-card .small { font-size: .67rem; }
+.tone-metrics { padding-top: 5px; color: #64715f; font-size: .62rem; line-height: 1.7; }
+.result-scale { padding-top: 4px; }
+.result-scale .scale-color { height: 34px; }
+.result-scale .scale-item.selected .scale-color { height: 45px; }
+.recommendations-section { background: #f0f4ed; border-block: 1px solid #e5ebdf; }
+.recommendations-section .section { padding-block: 43px; gap: 25px; }
+.product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.product-card { overflow: hidden; border-radius: 14px; transition: box-shadow .2s, transform .2s; }
+.product-card.featured { border-color: #80ab77; box-shadow: 0 5px 18px rgb(31 64 37 / 4%); }
+.product-art { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 42px 20px 17px; background: #fafaf7; min-height: 207px; border-bottom: 1px solid #edf0e7; }
+.product-art>.tag { position: absolute; top: 15px; left: 15px; font-size: .59rem; padding: 6px 8px; }
+.pigment-sample { width: 167px; height: 123px; filter: drop-shadow(0 8px 6px rgb(58 36 15 / 6%)); }
+.product-art small { font-size: .58rem; color: #64715f; margin-top: 4px; }
+.product-info { display: flex; flex-direction: column; gap: 12px; padding: 23px; }
+.product-info .eyebrow { font-size: .59rem; }
+.product-info h3 { font-size: 1.15rem; line-height: 1.3; min-height: 2.6em; }
+.shade { display: flex; align-items: center; gap: 8px; font-size: .76rem; color: #6d7866; }
+.shade b { font-weight: 600; color: var(--ink); }
+.mini-swatch { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; background: var(--swatch); border: 1px solid rgb(35 50 20 / 8%); }
+.product-price { display: flex; flex-direction: column; gap: 1px; margin-top: auto; padding-top: 8px; }
+.price { color: var(--ink); font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
+.product-price .small { font-size: .62rem; color: #64715f; }
+.product-info>.btn { width: 100%; margin-top: 7px; font-size: .76rem; padding-inline: 12px; }
+.product-info>.btn .icon { width: 15px; height: 15px; margin-left: auto; }
+.catalog-note { display: flex; align-items: flex-start; gap: 8px; color: #64715f; font-size: .65rem; line-height: 1.8; }
+.catalog-note .icon { width: 15px; height: 15px; margin-top: 1px; }
+.skin-section { gap: 30px; padding-bottom: 35px; }
+.skin-section>.section-heading { max-width: 720px; }
+.skin-section>.section-heading p { font-size: .87rem; }
+.photo-column { gap: 14px; }
+.photo-column>.btn { align-self: flex-start; min-height: 42px; font-size: .73rem; }
+.condition-panel { padding: 3px 26px; }
+.condition { display: flex; flex-direction: column; gap: 11px; padding: 24px 0; }
+.condition+.condition { border-top: 1px solid var(--line); }
+.condition-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.condition-head h3 { font-size: 1rem; }
+.condition-head .tag { font-size: .59rem; }
+.condition>p { font-size: .75rem; }
+.condition-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.condition-detail>div { padding: 12px 14px; background: #f3f6ef; border-radius: 8px; display: flex; flex-direction: column; gap: 5px; }
+.condition-detail span { color: #64715f; font-size: .56rem; text-transform: uppercase; letter-spacing: .06em; }
+.condition-detail b { color: #576d4a; font-size: .7rem; font-weight: 600; }
+.medical-note { display: flex; align-items: flex-start; gap: 8px; color: #64715f; font-size: .65rem; line-height: 1.7; margin-top: 17px; }
+.medical-note .icon { width: 15px; height: 15px; flex-shrink: 0; }
+.new-analysis { display: flex; justify-content: space-between; align-items: center; gap: 25px; padding: 28px 30px; background: var(--pale); border: 1px solid #dce8d4; border-radius: 14px; margin-top: 12px; }
+.new-analysis h3 { font-size: 1.05rem; margin-bottom: 6px; }
+.new-analysis p { font-size: .77rem; }
+.new-analysis>.btn { flex-shrink: 0; }
+.example-face { position: absolute; left: 20%; top: 12%; width: 60%; height: 72%; border-radius: 50%; background: var(--swatch); }
+.marks { position: absolute; inset: 0; pointer-events: none; }
+.marks[hidden] { display: none; }
+.mark { position: absolute; padding: 0; background: transparent; border: 2px solid white; border-radius: 4px; box-shadow: 0 0 0 1px rgb(35 50 30 / 30%); }
+.mark span { position: absolute; left: -2px; bottom: calc(100% + 3px); padding: 3px 6px; background: var(--dark); color: white; border-radius: 4px; font-size: .58rem; white-space: nowrap; }
+@media (hover: hover) {
+  .btn-primary:hover { transform: translateY(-1px); }
+  .product-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgb(35 65 30 / 7%); }
+}
+
+/* Tablet e celular. */
+@media (max-width: 991.98px) {
+  .hero-copy { padding: 40px; }
+  .hero h1 { max-width: 12em; }
+  .hero-art { min-height: 360px; border-left: 0; border-top: 1px solid #d4e4cf; padding: 25px 30px; }
+  .mascot-stage { height: 225px; margin: 0; }
+  .mascot-stage::before { width: 205px; height: 205px; }
+  .mascot-stage::after { bottom: 20px; width: 150px; }
+  .mascot-stage img { width: 148px; }
+  .mascot-caption { bottom: -1px; }
+  .hero-art-footer { margin-top: 15px; }
+  .hero-art-heading .eyebrow { max-width: none; }
+  .review-copy { padding-left: 0; }
+  .review-photo { margin-inline: auto; max-width: 350px; }
+  .tone-card { max-width: 480px; }
+  .product-grid { gap: 16px; }
+  .product-info { padding: 18px; }
+  .condition-panel { padding-inline: 22px; }
+}
+@media (max-width: 767.98px) {
+  .container { padding-inline: 22px; }
+  .section { padding-block: 38px; }
+  .header-inner { min-height: 76px; gap: 14px; flex-wrap: wrap; padding-block: 14px; }
+  .brand { font-size: 1.2rem; }
+  .brand-symbol { width: 39px; height: 39px; border-radius: 10px; }
+  .brand-symbol img { width: 28px; }
+  .brand-subtitle { font-size: .53rem; }
+  #header-action { margin-left: auto; min-height: 40px; padding: 9px 14px; }
+  #flow { order: 3; justify-content: center; gap: 27px; width: 100%; padding-top: 12px; border-top: 1px solid var(--line); margin-top: 1px; }
+  .flow-step { font-size: .67rem; gap: 5px; }
+  .flow-number { width: 23px; height: 23px; }
+  .hero-section { padding-top: 23px; }
+  .hero-copy { padding: 30px 25px; gap: 20px; }
+  .hero h1 { font-size: clamp(2.1rem, 7vw, 2.8rem); line-height: 1.12; max-width: 11em; }
+  .hero-meta { display: none; }
+  .hero-description { font-size: .87rem; }
+  .hero-actions { flex-direction: column; }
+  .hero-actions .btn { width: 100%; }
+  .hero-art { min-height: 325px; padding: 23px; }
+  .hero-art-heading .eyebrow { font-size: .56rem; }
+  .hero-art-footer { font-size: .65rem; }
+  .mini-palette span { width: 25px; height: 25px; }
+  .privacy-note { font-size: .64rem; align-items: flex-start; }
+  .hero-copy .privacy-note .icon { margin-top: 2px; }
+  .demo-caption { font-size: .62rem; margin-top: 14px; gap: 7px; }
+  .section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .section-heading .eyebrow { margin-bottom: 8px; }
+  .section-heading>p { font-size: .77rem; }
+  .how-section { padding-top: 38px; }
+  .how-grid { margin-top: 0; --bs-gutter-y: 14px; }
+  .how-card { padding: 24px; gap: 11px; }
+  .how-card-top { margin-bottom: 1px; }
+  .how-caption { margin-top: 0; }
+  .palette-section { padding-bottom: 30px; }
+  .palette-panel { padding: 25px 21px; }
+  .palette-panel h2 { font-size: 1.55rem; }
+  .palette-panel p { font-size: .77rem; }
+  .scale { gap: 4px; }
+  .scale-color { height: 42px; border-radius: 4px; }
+  .scale-item { font-size: .52rem; }
+  .scale-legend { font-size: .52rem; }
+  .intro { margin-bottom: 25px; }
+  .intro>p { font-size: .87rem; }
+  .drop-zone { min-height: 360px; padding: 31px 17px 27px; }
+  .drop-zone .actions { width: 100%; flex-direction: column; }
+  .drop-zone h2 { font-size: 1.2rem; }
+  .drop-zone>p { font-size: .8rem; }
+  .upload-icon { width: 56px; height: 56px; }
+  .tips { padding: 26px; }
+  .tips h3 { font-size: 1.4rem; }
+  .review-copy { gap: 21px; }
+  .review-copy .actions { flex-direction: column; }
+  .review-photo { max-width: 320px; }
+  .review-checks { padding-inline: 17px; }
+  .check-list li { font-size: .75rem; }
+  .processing { padding-top: 28px; }
+  .processing-card { padding: 29px 21px; gap: 23px; }
+  .processing-card>.privacy-note { font-size: .61rem; }
+  .processing-step { gap: 10px; }
+  .processing-step b { font-size: .76rem; }
+  .processing-step .small { font-size: .68rem; }
+  .processing-card .btn { width: 100%; font-size: .73rem; }
+  .result-summary { gap: 27px; }
+  .notice { padding: 14px; font-size: .71rem; gap: 9px; }
+  .result-title h1 { font-size: 2rem; }
+  .result-title .tag { font-size: .59rem; }
+  .tone-card { padding: 23px; }
+  .tone-swatch { width: 80px; height: 104px; }
+  .result-scale .scale-color { height: 31px; }
+  .result-scale .scale-item.selected .scale-color { height: 42px; }
+  .product-grid { grid-template-columns: 1fr; gap: 20px; }
+  .product-card { max-width: 460px; width: 100%; margin-inline: auto; }
+  .product-art { min-height: 193px; }
+  .product-info { padding: 23px; gap: 12px; }
+  .product-info h3 { min-height: auto; font-size: 1.2rem; }
+  .product-price { padding-top: 5px; }
+  .recommendations-section .section { padding-block: 35px; }
+  .skin-section { gap: 25px; }
+  .skin-section>.section-heading p { font-size: .8rem; }
+  .photo-column { max-width: 380px; margin-inline: auto; }
+  .photo-column>.btn { align-self: stretch; }
+  .condition-panel { padding-inline: 20px; }
+  .condition-head { gap: 10px; }
+  .condition-head .tag { font-size: .55rem; }
+  .condition-detail { gap: 8px; }
+  .condition-detail>div { padding: 10px; }
+  .condition-detail b { font-size: .65rem; }
+  .condition-detail span { font-size: .51rem; }
+  .new-analysis { flex-direction: column; align-items: stretch; padding: 25px; gap: 18px; }
+  .new-analysis>.btn { width: 100%; }
+  .site-footer>.container { flex-direction: column; align-items: flex-start; padding-block: 25px; gap: 13px; }
+  .footer-brand span { width: 100%; margin-left: 0; margin-top: 4px; }
+}
+@media (max-width: 359.98px) {
+  .container { padding-inline: 16px; }
+  .hero-copy { padding: 27px 21px; }
+  .hero h1 { font-size: 2rem; }
+  .hero-art { padding-inline: 20px; }
+  .hero-art-heading { gap: 8px; }
+  .mascot-stage { width: 220px; }
+  .tone-card { padding: 18px; gap: 16px; }
+  .tone-swatch { width: 66px; }
+  #flow { gap: 19px; }
+  .condition-head { flex-direction: column; align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .loading-bar::after { width: 100%; opacity: .6; }
+}

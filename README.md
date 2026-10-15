@@ -2,7 +2,7 @@
 
 Aplicação acadêmica de análise de tons de pele e recomendação de bases.
 
-O frontend usa HTML, CSS e JavaScript em módulos nativos. O Flask serve a interface e a API no mesmo endereço: não há build, Node.js obrigatório, banco de dados ou configuração de CORS.
+O frontend usa HTML, Bootstrap 5.3.8, CSS do tema e JavaScript em módulos nativos. O Flask serve a interface e a API no mesmo endereço: não há build, Node.js obrigatório, banco de dados ou configuração de CORS. O Bootstrap e a fonte Archivo são servidos localmente, com suas licenças incluídas.
 
 ## Executar no Windows
 

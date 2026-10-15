@@ -47,6 +47,7 @@ class BrowserTests(unittest.TestCase):
         self.errors = []
         self.page.on("pageerror", lambda error: self.errors.append(str(error)))
         self.page.goto(self.url)
+        self.page.evaluate("document.fonts.ready")
 
     def tearDown(self):
         self.context.close()
@@ -54,10 +55,12 @@ class BrowserTests(unittest.TestCase):
 
     def select_sample(self):
         self.page.get_by_role("button", name="Começar", exact=True).click()
+        self.page.screenshot(path=str(ARTIFACTS / "capture-desktop.png"), full_page=True)
         self.page.locator("#gallery-input").set_input_files(str(ROOT / "samples/imagem_teste.jpeg"))
         expect(self.page.get_by_role("heading", name="Vamos analisar esta foto?")).to_be_visible()
 
     def test_real_upload_and_result(self):
+        self.assertTrue(self.page.evaluate("document.fonts.check('800 16px Archivo')"))
         self.page.screenshot(path=str(ARTIFACTS / "home-desktop.png"), full_page=True)
         self.select_sample()
         self.page.screenshot(path=str(ARTIFACTS / "review-desktop.png"), full_page=True)
@@ -86,6 +89,8 @@ class BrowserTests(unittest.TestCase):
         self.page.get_by_role("button", name="Ver um exemplo", exact=True).click()
         expect(self.page.get_by_text("Exemplo de resultado", exact=True)).to_be_visible()
         expect(self.page.locator(".notice").first).to_contain_text("não enviou uma foto")
+        # Bootstrap também define .mark; as marcações não podem cobrir a foto.
+        self.assertEqual(self.page.locator(".mark").first.evaluate("el => getComputedStyle(el).backgroundColor"), "rgba(0, 0, 0, 0)")
         self.page.get_by_role("button", name="Ocultar marcações").click()
         expect(self.page.locator("#marks")).to_be_hidden()
         self.page.get_by_role("button", name="Mostrar marcações").click()
@@ -112,6 +117,7 @@ class BrowserTests(unittest.TestCase):
         self.page.route("**/api/exemplo", lambda route: requests.append(route))
         self.page.get_by_role("button", name="Ver um exemplo", exact=True).click()
         expect(self.page.get_by_role("heading", name="Preparando o exemplo…")).to_be_visible()
+        self.page.screenshot(path=str(ARTIFACTS / "processing-desktop.png"), full_page=True)
         self.page.get_by_role("button", name="Cancelar e voltar ao início").click()
         expect(self.page.get_by_role("heading", name="Encontre a base certa para o seu tom de pele.")).to_be_visible()
         self.assertEqual(len(requests), 1)
@@ -126,6 +132,8 @@ class BrowserTests(unittest.TestCase):
             self.assertLessEqual(self.page.evaluate("document.documentElement.scrollWidth"), width)
             self.page.screenshot(path=str(ARTIFACTS / f"home-mobile-{width}.png"), full_page=True)
             self.page.get_by_role("button", name="Começar", exact=True).click()
+            self.assertLessEqual(self.page.evaluate("document.documentElement.scrollWidth"), width)
+            self.page.screenshot(path=str(ARTIFACTS / f"capture-mobile-{width}.png"), full_page=True)
             self.assertEqual(self.page.locator("#camera-input").get_attribute("capture"), "user")
             with self.page.expect_file_chooser() as chooser:
                 self.page.get_by_role("button", name="Tirar foto", exact=True).click()

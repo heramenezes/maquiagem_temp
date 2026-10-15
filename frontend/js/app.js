@@ -21,10 +21,12 @@ function releasePhoto() {
 function render(focus = true) {
   main.innerHTML = screens[state.screen](state);
   const stage = { capture: 0, review: 0, processing: 1, result: 2 }[state.screen];
-  document.querySelector('#flow').innerHTML = stage === undefined ? '' : ['Foto', 'Análise', 'Resultado'].map((label, i) => `<span class="flow-step ${i === stage ? 'active' : i < stage ? 'done' : ''}" ${i === stage ? 'aria-current="step"' : ''}>${i < stage ? '✓' : i + 1} ${label}</span>`).join('');
+  document.querySelector('#flow').innerHTML = stage === undefined ? '' : ['Foto', 'Análise', 'Resultado'].map((label, i) => `<span class="flow-step ${i === stage ? 'active' : i < stage ? 'done' : ''}" ${i === stage ? 'aria-current="step"' : ''}><span class="flow-number" aria-hidden="true">${i < stage ? '✓' : i + 1}</span>${label}</span>`).join('');
   const headerAction = document.querySelector('#header-action');
   headerAction.textContent = state.screen === 'home' ? 'Começar' : 'Recomeçar';
   headerAction.dataset.action = state.screen === 'home' ? 'capture' : 'home';
+  headerAction.classList.toggle('btn-primary', state.screen === 'home');
+  headerAction.classList.toggle('btn-outline-primary', state.screen !== 'home');
   document.title = `${{ home: 'Encontre sua base', capture: 'Sua foto', review: 'Revisar foto', processing: 'Verificando foto', result: 'Resultado demonstrativo' }[state.screen]} · Meu tom`;
   if (focus) { main.focus(); window.scrollTo(0, 0); }
 }
