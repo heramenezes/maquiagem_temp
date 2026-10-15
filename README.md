@@ -47,8 +47,10 @@ A pré-verificação conta as detecções válidas antes do recorte: zero rostos
 Tom Monk, ITA e a porcentagem do cartão de tom continuam fixtures de
 `backend/src/mock_analysis.py`. Condições e máscaras de fotos enviadas agora
 vêm da seleção real; marcações fictícias ficam apenas em `/api/exemplo`.
-Rosácea saiu do backend. O frontend permanece como estava e ainda precisa
-ser adaptado aos quatro motivos, disponibilidade e resultados inconclusivos.
+Rosácea saiu do backend. A interface preserva as três prévias anatômicas e
+mostra abaixo acne, vitiligo, barba e demais regiões com máscaras e métricas.
+A imagem final reúne somente a pele útil restante. Disponibilidade dos modelos
+e resultados inconclusivos são indicados sem apresentar medições nulas como zero.
 
 As três recomendações usam proximidade RGB a um **tom fixo de exemplo**, sem implementar o pipeline futuro de ITA/KNN. Os nomes, cores, preços e links são lidos do CSV real. O CSV não contém fotos ou acabamento; os cartões mostram uma amostra de cor e não inventam esses dados. Não há percentual fictício de compatibilidade.
 

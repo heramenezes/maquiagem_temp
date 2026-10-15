@@ -1,6 +1,7 @@
 import { escapeHTML as e, safeColor, safeLink, money, scale, icon } from './shared.js';
 
 import { preprocessing, png } from './preprocessing.js';
+import { finalSelection } from './selection.js';
 
 function productCard(product, index) {
   const color = safeColor(product.hex);
@@ -44,7 +45,7 @@ export function result(state) {
   const marks = data.marcacoes.map(mark => `<div class="mark" style="left:${Number(mark.x)}%;top:${Number(mark.y)}%;width:${Number(mark.largura)}%;height:${Number(mark.altura)}%"><span>${e(mark.nome)}</span></div>`).join('');
 
   return `<section class="container section result-summary stack">
-    <div class="alert notice demo-notice">${icon('info')}<div><b>Resultado demonstrativo</b>${data.precheck.executado ? 'O rosto foi verificado e a pele passou por um pré-processamento real, mostrado abaixo.' : 'Este exemplo não enviou uma foto nem executou a verificação facial.'} O tom, as condições e as recomendações são simulados e não descrevem sua pele.</div></div>
+    <div class="alert notice demo-notice">${icon('info')}<div><b>${hasSegmentation ? 'Segmentação real · tom e bases demonstrativos' : 'Resultado demonstrativo'}</b>${hasSegmentation ? 'As máscaras e métricas abaixo vêm da sua foto. O tom Monk, o ITA e as recomendações de bases ainda são simulados.' : 'Este exemplo não enviou uma foto nem executou a verificação facial. O tom, as condições e as recomendações são simulados.'}</div></div>
     <div class="row g-4 g-lg-5 align-items-center result-title">
       <div class="col-lg-7 stack"><span class="tag">${data.precheck.rosto_detectado ? '✓ Rosto detectado · verificação real' : 'Exemplo de resultado'}</span><h1>Uma prévia das bases para o seu tom.</h1><p class="lead-copy">Um universo de cores. Três opções para você conhecer.</p></div>
       <div class="col-lg-5"><div class="card tone-card"><div class="tone-swatch" style="--swatch:${safeColor(tone.hex)}"></div><div class="stack tight"><span class="eyebrow">Tom demonstrativo</span><span class="tone-value">Tom ${String(tone.monk).padStart(2, '0')}</span><span class="small muted">na Escala Monk, de 01 a 10</span><span class="tone-metrics">ITA ${e(tone.ita)}° · ${e(tone.pele_utilizada)}% da face<br>Valores simulados</span></div></div></div>
@@ -57,20 +58,19 @@ export function result(state) {
     <div class="product-grid">${products}</div>
     <p class="catalog-note">${icon('info')}<span>Produtos, cores e preços vêm do catálogo. Confirme os valores no site da marca. Esta seleção usa um tom fixo de exemplo.</span></p>
   </div></section>
-  <section class="container section skin-section stack">
+  ${hasSegmentation ? finalSelection(segmentation) : `<section class="container section skin-section stack">
     <div class="section-heading"><div class="stack tight"><span class="eyebrow">Um olhar mais de perto</span><h2>Características da pele</h2><p class="muted">Veja como serão exibidas as áreas desconsideradas no cálculo do tom. Neste exemplo, as condições e marcações são fictícias.</p></div></div>
     <div class="row g-4 g-lg-5">
       <div class="col-lg-5"><div class="stack photo-column">
-        <div class="photo-frame ${hasSegmentation ? 'segmentation-photo segmentation-visible' : ''}" ${hasSegmentation ? 'aria-describedby="segmentation-legend"' : ''}>
-          ${hasSegmentation ? `<img class="segmentation-source" src="${face}" alt="Recorte da foto enviada usado na segmentação real"><img class="segmentation-overlay" id="segmentation-overlay" src="${skin}" alt="Pele selecionada pela segmentação real">` : state.photoURL ? `<img src="${e(state.photoURL)}" alt="Foto enviada, com marcações fictícias de demonstração">` : `<div class="example-face" style="--swatch:${safeColor(tone.hex)}"></div>`}
+        <div class="photo-frame">
+          <div class="example-face" style="--swatch:${safeColor(tone.hex)}"></div>
           <div class="marks" id="marks" aria-hidden="true">${marks}</div>
           <span class="photo-label tag neutral">Marcações simuladas</span>
         </div>
-        ${hasSegmentation ? `<p class="small muted segmentation-legend" id="segmentation-legend">Segmentação real sobre o recorte analisado: pele selecionada em cor; áreas excluídas escurecidas. As marcações de problemas de pele continuam fictícias.</p><button class="btn btn-outline-primary" data-action="segmentation" aria-pressed="true" aria-controls="segmentation-overlay">Ocultar segmentação</button>` : ''}
         <button class="btn btn-outline-primary" data-action="marks" aria-pressed="true" aria-controls="marks">Ocultar marcações</button>
       </div></div>
       <div class="col-lg-7"><div class="card condition-panel">${conditions}</div><p class="medical-note">${icon('info')} Estas informações são ilustrativas e não constituem diagnóstico médico.</p></div>
     </div>
-    <div class="new-analysis"><div><h3>Quer tentar com outra foto?</h3><p class="muted">Um novo começo, com o mesmo cuidado.</p></div><button class="btn btn-primary" data-action="capture">${icon('refresh')} Fazer nova análise</button></div>
-  </section>`;
+  </section>`}
+  <section class="container section new-analysis-section"><div class="new-analysis"><div><h3>Quer tentar com outra foto?</h3><p class="muted">Um novo começo, com o mesmo cuidado.</p></div><button class="btn btn-primary" data-action="capture">${icon('refresh')} Fazer nova análise</button></div></section>`;
 }

@@ -4,12 +4,13 @@ import { capture } from './screens/capture.js';
 import { review } from './screens/review.js';
 import { processing, updateProcessing } from './screens/processing.js';
 import { result } from './screens/result.js';
+import { initializeMaskPreviews } from './screens/mask_previews.js';
 
 const state = { screen: 'home', file: null, photoURL: null, result: null, error: '', example: false };
 const screens = { home, capture, review, processing, result };
-// Pausas artificiais para visualizar as etapas durante a demonstração.
-const PROCESSING_STAGE_DELAY_MS = 4000;
-const COMPLETED_STAGE_DELAY_MS = 500;
+// Breve intervalo de apresentação para tornar as dez etapas legíveis.
+const PROCESSING_STAGE_DELAY_MS = 350;
+const COMPLETED_STAGE_DELAY_MS = 75;
 const main = document.querySelector('#main');
 let revision = 0;
 let pendingRequest = null;
@@ -23,6 +24,7 @@ function releasePhoto() {
 
 function render(focus = true) {
   main.innerHTML = screens[state.screen](state);
+  if (state.screen === 'result') initializeMaskPreviews(main, state.result?.preprocessamento);
   const stage = { capture: 0, review: 0, processing: 1, result: 2 }[state.screen];
   document.querySelector('#flow').innerHTML = stage === undefined ? '' : ['Foto', 'Análise', 'Resultado'].map((label, i) => `<span class="flow-step ${i === stage ? 'active' : i < stage ? 'done' : ''}" ${i === stage ? 'aria-current="step"' : ''}><span class="flow-number" aria-hidden="true">${i < stage ? '✓' : i + 1}</span>${label}</span>`).join('');
   const headerAction = document.querySelector('#header-action');
@@ -30,7 +32,7 @@ function render(focus = true) {
   headerAction.dataset.action = state.screen === 'home' ? 'capture' : 'home';
   headerAction.classList.toggle('btn-primary', state.screen === 'home');
   headerAction.classList.toggle('btn-outline-primary', state.screen !== 'home');
-  document.title = `${{ home: 'Encontre sua base', capture: 'Sua foto', review: 'Revisar foto', processing: 'Verificando foto', result: 'Resultado demonstrativo' }[state.screen]} · Meu tom`;
+  document.title = `${{ home: 'Encontre sua base', capture: 'Sua foto', review: 'Revisar foto', processing: 'Analisando sua foto', result: 'Resultado da análise' }[state.screen]} · Meu tom`;
   if (focus) { main.focus(); window.scrollTo(0, 0); }
 }
 
@@ -115,15 +117,6 @@ document.addEventListener('click', event => {
     case 'camera': document.querySelector('#camera-input')?.click(); break;
     case 'analyze': runAnalysis(); break;
     case 'example': runAnalysis(true); break;
-    case 'segmentation': {
-      const overlay = document.querySelector('#segmentation-overlay');
-      if (!overlay) break;
-      overlay.hidden = !overlay.hidden;
-      overlay.closest('.photo-frame').classList.toggle('segmentation-visible', !overlay.hidden);
-      button.textContent = overlay.hidden ? 'Mostrar segmentação' : 'Ocultar segmentação';
-      button.setAttribute('aria-pressed', String(!overlay.hidden));
-      break;
-    }
     case 'marks': {
       const marks = document.querySelector('#marks');
       marks.hidden = !marks.hidden;

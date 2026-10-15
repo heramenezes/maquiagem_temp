@@ -68,6 +68,9 @@ export async function analyzePhoto(file, signal, onProgress) {
   if (!result.preprocessamento?.previas?.rosto || !result.preprocessamento?.previas?.pele || result.preprocessamento.simulado) {
     throw new ApiError('O servidor não enviou a segmentação da foto. Reinicie o backend atualizado e tente novamente.', 'SEGMENTACAO_AUSENTE');
   }
+  if (!result.preprocessamento.selecao?.masks?.anatomical_mask || !result.preprocessamento.selecao?.masks?.valid_mask) {
+    throw new ApiError('O servidor não enviou as máscaras da seleção de pele. Reinicie o backend atualizado e tente novamente.', 'SELECAO_AUSENTE');
+  }
   return result;
 }
 

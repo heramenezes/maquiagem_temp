@@ -149,8 +149,10 @@ sem diagnóstico. Rosácea não integra o contrato.
 Os critérios estão em calibração provisória (`provisoria_sem_validacao_anotada`);
 `released_for_monk` permanece `false`. O backend não implementa Monk nesta fase.
 Veja [seleção de pele](../backend/src/skin_selection/README.md) e
-[instalação dos modelos](../backend/models/README.md). O frontend não foi
-adaptado nesta implementação e ainda não apresenta todos esses estados/campos.
+[instalação dos modelos](../backend/models/README.md). O frontend mostra as
+prévias anatômicas, quatro cartões de exclusão com incertezas e a seleção final
+RGBA. Cada cartão distingue ausência de exclusões de indisponibilidade/falha;
+a seleção inconclusiva apresenta as razões e não exibe médias nulas como zero.
 
 ### Progresso incremental usado pelo frontend
 

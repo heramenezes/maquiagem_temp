@@ -1,17 +1,20 @@
 import { escapeHTML as e } from './shared.js';
-
-export const png = value => typeof value === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value) ? value : '';
-const format = value => Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+import { png } from './mask_previews.js';
+import { categoryPreviews, format } from './selection.js';
+export { png } from './mask_previews.js';
 
 export function preprocessing(data) {
   if (!data || data.simulado) return '';
+  const anatomy = png(data.selecao?.masks?.anatomical_mask);
   return `<section class="container section stack real-preprocessing">
-    <div class="section-heading"><div class="stack tight"><span class="eyebrow">Processamento real da sua foto</span><h2>Pele separada para a próxima etapa</h2><p class="muted">O branco na máscara indica os pixels selecionados. As regiões transparentes foram excluídas.</p></div></div>
+    <div class="section-heading"><div class="stack tight"><span class="eyebrow">Processamento real da sua foto</span><h2>Segmentação básica do rosto</h2><p class="muted">Primeiro, o BiSeNet separa pele e nariz das demais partes do rosto. Estas três imagens mostram a seleção inicial, antes das exclusões abaixo.</p></div></div>
     <div class="preprocessing-previews">
-      ${[['rosto', 'Recorte do rosto'], ['mascara', 'Máscara de pele'], ['pele', 'Pele selecionada']].map(([key, label]) => `<figure class="card"><img src="${png(data.previas[key])}" alt="${e(label)}" width="${Number(data.dimensoes.largura)}" height="${Number(data.dimensoes.altura)}"><figcaption>${e(label)}</figcaption></figure>`).join('')}
+      <figure class="card"><img src="${png(data.previas?.rosto)}" alt="Recorte do rosto" width="${Number(data.dimensoes?.largura)}" height="${Number(data.dimensoes?.altura)}"><figcaption>Recorte do rosto</figcaption></figure>
+      <figure class="card"><img src="${anatomy}" alt="Máscara anatômica de pele e nariz antes das exclusões" width="${Number(data.dimensoes?.largura)}" height="${Number(data.dimensoes?.altura)}"><figcaption>Máscara de pele inicial</figcaption></figure>
+      <figure class="card"><div class="mask-render" data-render-state="loading"><img data-mask-preview="anatomy" alt="Pele e nariz selecionados pelo BiSeNet antes das exclusões" hidden><p class="preview-placeholder" role="status">Preparando a visualização…</p></div><figcaption>Pele selecionada inicialmente</figcaption></figure>
     </div>
-    <div class="card preprocessing-metrics"><div><span>Pele nas regiões faciais identificadas</span><b>${format(data.percentual_pele)}%</b></div><div><span>Média CIELAB · D65</span><b>L* ${format(data.media_lab[0])} · a* ${format(data.media_lab[1])} · b* ${format(data.media_lab[2])}</b></div><div><span>Grupos de cor encontrados</span><b>${Number(data.clusters)}</b></div></div>
-    <p class="small muted">A conversão de cor e esta máscara são reais. A máscara é uma estimativa inicial; luz, pose, pelos e acessórios podem afetar a seleção.</p>
-    <details class="preprocessing-details"><summary>Como esta máscara foi obtida</summary><p>BiSeNet pré-treinado identifica as regiões do rosto pixel a pixel. Selecionamos pele e nariz, sem ampliar as exclusões ao redor de olhos e boca. Os grupos de cor são apenas descritivos e não removem pixels da máscara. ${data.avisos.map(e).join(' ')}</p></details>
+    <div class="card preprocessing-metrics"><div><span>Pixels de pele na seleção inicial</span><b>${format(data.selecao?.anatomical_pixels)}</b></div><div><span>Pixels nas regiões faciais</span><b>${format(data.pixels_contorno)}</b></div><div><span>Grupos de cor na seleção inicial</span><b>${format(data.clusters)}</b></div></div>
+    <details class="preprocessing-details"><summary>Como esta máscara foi obtida</summary><p>O BiSeNet identifica as regiões do rosto pixel a pixel. Pele e nariz formam o limite inicial; os grupos de cor apenas descrevem essa área. ${(data.avisos || []).map(e).join(' ')}</p></details>
+    ${categoryPreviews(data)}
   </section>`;
 }
