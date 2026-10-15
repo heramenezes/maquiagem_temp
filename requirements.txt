@@ -1,12 +1,1 @@
-# =============================================================================
-# Dependências do módulo de detecção facial — Pipeline TI6
-# =============================================================================
-
-# OpenCV — Processamento de imagem e Haar Cascades (fallback)
-opencv-python>=4.8.0
-
-# MediaPipe — Detecção facial primária (modelo pré-treinado do Google)
-mediapipe>=0.10.0
-
-# NumPy — Manipulação de matrizes (dependência transitiva, explicitada)
-numpy>=1.24.0
+﻿-r backend/requirements.txt

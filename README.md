@@ -1,79 +1,115 @@
-# Sistema de Análise de Tons de Pele e Recomendação de Base (Escala Monk)
+# Meu tom
 
-Projeto backend para análise automatizada de tons de pele através de visão computacional e recomendação de bases cosméticas compatíveis com a **Monk Skin Tone Scale**, preparado para arquitetura distribuída (P2P) e aceleração paralela (CUDA/OpenMP).
+Aplicação acadêmica de análise de tons de pele e recomendação de bases.
 
----
+O frontend usa HTML, CSS e JavaScript em módulos nativos. O Flask serve a interface e a API no mesmo endereço: não há build, Node.js obrigatório, banco de dados ou configuração de CORS.
 
-## Estrutura do Repositório
+## Executar no Windows
 
-O projeto foi estruturado em módulos independentes para facilitar a integração das próximas etapas do pipeline e da interface gráfica:
+Na raiz do projeto, com Python 3.10 ou superior:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m backend.app
+```
+
+Abra http://127.0.0.1:5000. Não abra `frontend/index.html` diretamente pelo explorador de arquivos, pois as chamadas HTTP dependem do servidor.
+
+Em Linux/macOS, substitua `.venv\Scripts\python` por `.venv/bin/python`.
+
+## O que funciona
+
+- Escolher uma foto, arrastar e soltar, revisar, trocar e reenviar.
+- Botão de câmera nativa (`capture="user"`): no celular, depende do navegador; no computador, abre o seletor de arquivos. Não há webcam ao vivo.
+- Upload de JPG, PNG ou WebP, com até 10 MiB e 24 megapixels. HEIC precisa ser convertido para JPG.
+- Correção de orientação EXIF e redimensionamento proporcional até 1600 pixels antes da detecção.
+- Detecção facial real com o módulo existente: MediaPipe quando disponível, com fallback Haar/OpenCV.
+- Sem rosto detectado, a API retorna 422 e a interface pede outra foto. A análise simulada não é executada.
+- Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
+- Exemplo acessível sem enviar foto, erros de conexão, nova tentativa e cancelamento de solicitações na interface.
+
+A detecção confirma somente que o detector encontrou um rosto. Não certifica iluminação, nitidez, ausência de maquiagem ou presença de apenas uma pessoa; o módulo atual seleciona um rosto.
+
+## O que continua simulado
+
+Tom Monk, ITA, porcentagem de pele utilizada, acne, rosácea, vitiligo e marcações são fixtures de `backend/src/mock_analysis.py`, independentes da foto. A tela identifica esses resultados como demonstrativos.
+
+As três recomendações usam proximidade RGB a um **tom fixo de exemplo**, sem implementar o pipeline futuro de ITA/KNN. Os nomes, cores, preços e links são lidos do CSV real. O CSV não contém fotos ou acabamento; os cartões mostram uma amostra de cor e não inventam esses dados. Não há percentual fictício de compatibilidade.
+
+## Estrutura
 
 ```text
-maquiagem_temp/
-├── backend/
-│   ├── src/
-│   │   ├── preprocessing/       # Módulo atual: detecção facial e isolamento anatômico
-│   │   │   ├── face_detector.py # Bounding box rápida (MediaPipe + Haar fallback)
-│   │   │   └── face_segmenter.py# Isolamento do contorno do rosto (Face Mesh)
-│   │   ├── segmentation/        # Próxima etapa: CIELAB + K-Means dinâmico
-│   │   ├── tone_matching/       # Próxima etapa: ITA, Escala Monk e KNN de bases
-│   │   └── distributed/         # Próxima etapa: nós P2P e aceleração CUDA/OpenMP
-│   ├── tests/                   # Bateria de testes automatizados do backend
-│   │   └── test_preprocessing.py
-│   └── requirements.txt         # Dependências do backend (OpenCV, MediaPipe, NumPy)
-├── frontend/                    # Reservado para a interface do usuário (UI)
-├── docs/                        # Documentação técnica e guias de funcionamento
-│   └── COMO_FUNCIONA.md
-├── samples/                     # Imagens de exemplo para testes locais
-└── README.md
+backend/
+  app.py                        Servidor HTTP e pré-verificação
+  data/bases.csv                Fonte oficial do catálogo do projeto
+  src/catalog.py                Leitura e normalização do CSV
+  src/mock_analysis.py          Respostas demonstrativas
+  src/preprocessing/            Detectores e isolamento existentes
+  src/segmentation/             Etapa futura
+  src/tone_matching/             Etapa futura
+  src/distributed/               Etapa futura
+  tests/test_api.py              Testes HTTP e integração com o detector
+frontend/
+  index.html                    Estrutura da página
+  css/styles.css                Visual e responsividade
+  js/app.js                     Estado, navegação e eventos
+  js/api.js                     fetch, cancelamento, timeout e erros
+  js/screens/                   Cinco telas e funções de apresentação
+  assets/tonzinha.svg            Mascote original
+  reference/                    Exportação original preservada
+  tests/test_browser.py         Testes da interface
+samples/                        Amostras originais
+docs/API.md                    Contratos e ponto de integração futura
 ```
 
----
+A cópia do CSV dentro de `frontend/reference/` é apenas parte do mock arquivado. **Atualize `backend/data/bases.csv`** para alterar o catálogo usado pela aplicação. Ele é relido a cada solicitação.
 
-## Instalação das Dependências
+## MediaPipe opcional
 
-Recomenda-se criar um ambiente virtual Python (3.10 ou 3.11):
+A instalação padrão funciona com Haar/OpenCV, inclusive no Python 3.13. O import do segmentador anatômico é adiado para não impedir esse uso.
 
-```bash
-# Instalação dos requisitos
-pip install -r backend/requirements.txt
+O código existente de MediaPipe usa a API legada `mp.solutions`. Para executar também o isolamento anatômico, use Python 3.10–3.12 e instale `backend/requirements-mediapipe.txt` **em outro ambiente virtual**, em lugar dos requisitos padrão:
+
+```powershell
+py -3.12 -m venv .venv-mediapipe
+.venv-mediapipe\Scripts\python -m pip install -r backend/requirements-mediapipe.txt
+.venv-mediapipe\Scripts\python -m backend.app
+.venv-mediapipe\Scripts\python backend/tests/test_preprocessing.py
 ```
 
----
+Esse arquivo fixa MediaPipe 0.10.21 e usa `opencv-contrib-python`, evitando instalar duas distribuições que fornecem `cv2`. A opção requer a versão de Python indicada instalada. A pré-verificação web utiliza o detector de rosto; não utiliza o segmentador anatômico.
 
-## Como Usar o Módulo Atual (Detecção e Isolamento Facial)
+## Testar
 
-### 1. Bounding Box Rápida (Recorte Retangular)
-```bash
-python backend/src/preprocessing/face_detector.py samples/imagem_teste.jpeg
+API, catálogo, detector real, rejeição de imagem sem rosto, limites, orientação EXIF e recuperação entre tentativas:
+
+```powershell
+.venv\Scripts\python -m unittest backend.tests.test_api -v
 ```
 
-### 2. Silhueta Anatômica (Remove 100% do fundo e roupas)
-```bash
-python backend/src/preprocessing/face_segmenter.py samples/imagem_teste.jpeg samples/silhueta.png
+Interface automatizada (dependências opcionais para desenvolvimento):
+
+```powershell
+.venv\Scripts\python -m pip install -r backend/requirements-dev.txt
+.venv\Scripts\python -m playwright install chromium
+.venv\Scripts\python -m unittest discover -s frontend/tests -p test_browser.py -v
 ```
 
-### 3. Rodar os Testes Automatizados
-```bash
-python backend/tests/test_preprocessing.py
+Para usar o Edge já instalado, pode omitir a instalação do Chromium e definir `$env:BROWSER_CHANNEL='msedge'` antes do comando de testes. O teste abre um navegador isolado sem janela e inicia seu próprio servidor local em uma porta livre. As capturas ficam em `.test-artifacts/`, ignorado pelo Git.
+
+São verificados envio real, rejeição sem rosto e nova tentativa, demonstração, alternância de marcações, erro de conexão, arquivo inválido, cancelamento e larguras de 390/320 pixels. O acionamento físico da câmera deve ser conferido em um celular real.
+
+## Fotos e execução local
+
+As fotos ficam em memória durante a solicitação; não são gravadas em disco ou em banco. A prévia usa uma URL temporária no navegador, liberada ao trocar a foto ou recomeçar. Cancelar interrompe a espera no navegador; uma detecção já iniciada no servidor pode terminar antes de liberar sua memória.
+
+Para demonstrar em um celular na mesma rede, execute manualmente:
+
+```powershell
+.venv\Scripts\python -m flask --app backend.app:create_app run --host 0.0.0.0 --port 5000
 ```
 
-### 4. Uso via Código Python
-```python
-from backend.src.preprocessing import detectar_e_isolar_rosto, isolar_rosto_anatomico
+Acesse `http://IP-DO-COMPUTADOR:5000` no celular. O Windows pode solicitar liberação de rede; use uma rede de confiança. A execução padrão fica restrita ao próprio computador. Esta é uma aplicação de demonstração com o servidor de desenvolvimento do Flask.
 
-# Bounding box pronta em RGB para o CIELAB
-rosto_box = detectar_e_isolar_rosto("samples/imagem_teste.jpeg", retornar_rgb=True)
-
-# Ou silhueta do contorno anatômico
-rosto_silhueta = isolar_rosto_anatomico("samples/imagem_teste.jpeg", retornar_rgb=True)
-```
-
----
-
-## Próximos Módulos Planejados
-
-1. **`backend/src/segmentation/`**: Conversão RGB $\rightarrow$ CIELAB, K-Means dinâmico e exclusão de áreas com condições pigmentares (acne, rosácea, vitiligo).
-2. **`backend/src/tone_matching/`**: Cálculo do ITA (*Individual Typology Angle*), mapeamento para os 10 tons da Escala Monk e KNN para recomendar produtos da base de dados.
-3. **`backend/src/distributed/`**: Troca de mensagens entre nós descentralizados P2P e kernels paralelos (OpenMP / CUDA).
-4. **`frontend/`**: Integração com a interface visual de captura e recomendação.
+Detalhes dos contratos e da integração futura: [docs/API.md](docs/API.md). Documentação do processamento original: [docs/COMO_FUNCIONA.md](docs/COMO_FUNCIONA.md).

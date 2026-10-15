@@ -1,0 +1,8 @@
+# Opcional: API legada usada pelos módulos existentes. Python 3.10–3.12.
+# Use em um ambiente separado, em lugar de requirements.txt, para evitar
+# instalar duas distribuições que fornecem o mesmo módulo cv2.
+Flask>=3.1,<4
+Pillow>=11,<13
+numpy>=1.24,<2
+opencv-contrib-python>=4.8,<4.12
+mediapipe==0.10.21

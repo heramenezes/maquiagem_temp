@@ -4,7 +4,6 @@ from typing import Optional, Tuple, Union
 
 import cv2
 import numpy as np
-import mediapipe as mp
 
 # Indices ordenados do perimetro oval da face no MediaPipe Face Mesh
 INDICES_OVAL_FACIAL = [
@@ -30,6 +29,17 @@ def carregar_imagem(origem: Union[str, np.ndarray]) -> np.ndarray:
 
 
 def extrair_poligono_facial(imagem_bgr: np.ndarray) -> Optional[np.ndarray]:
+    # O segmentador é opcional para a pré-verificação HTTP.
+    try:
+        import mediapipe as mp
+    except ImportError as exc:
+        raise RuntimeError(
+            "O isolamento anatômico requer backend/requirements-mediapipe.txt "
+            "em Python 3.10–3.12."
+        ) from exc
+    if not hasattr(mp, "solutions"):
+        raise RuntimeError("Esta versão do MediaPipe não oferece a API solutions. Use 0.10.21.")
+
     altura, largura, _ = imagem_bgr.shape
     imagem_rgb = cv2.cvtColor(imagem_bgr, cv2.COLOR_BGR2RGB)
 

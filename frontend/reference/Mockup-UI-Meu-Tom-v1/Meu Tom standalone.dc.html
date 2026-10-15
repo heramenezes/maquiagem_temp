@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#2f8f52"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect x="14" y="2" width="12" height="9" fill="#1b5532"/><rect x="7" y="14" width="26" height="24" rx="6" fill="#b5e1c0"/><circle cx="15" cy="25" r="1.9" fill="#143a24"/><circle cx="25" cy="25" r="1.9" fill="#143a24"/><path d="M14.5 30 Q20 34.5 25.5 30" stroke="#143a24" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_ds/modernist-c0222dbc-805c-4683-8166-703458aa1665/styles.css">
+<script src="_ds/modernist-c0222dbc-805c-4683-8166-703458aa1665/_ds_bundle.js"></script>
+<style>
+:root{--color-bg:#f5f7f2;--color-surface:#e9efe6;--color-text:#1b2a20;--color-accent:#2f8f52;--color-divider:color-mix(in srgb,#1b2a20 40%,transparent);
+--color-accent-100:#eef8f0;--color-accent-200:#d7efdc;--color-accent-300:#b5e1c0;--color-accent-400:#82cb97;--color-accent-500:#45ab69;--color-accent-600:#277d46;--color-accent-700:#1f6a3b;--color-accent-800:#1b5532;--color-accent-900:#143a24;
+--color-accent-2-100:#eef8f0;--color-accent-2-800:#1b5532}
+body{margin:0;background:var(--color-bg)}
+a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-900)}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)">
+
+<header style="border-bottom:2px solid var(--color-divider);background:var(--color-bg);position:sticky;top:0;z-index:10">
+  <div style="max-width:1160px;margin:0 auto;padding:12px clamp(16px,4vw,32px);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <button onClick="{{ goHome }}" style="display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer;margin-right:auto;color:var(--color-text)">
+      <svg width="36" height="36" viewBox="0 0 40 40" aria-hidden="true"><rect x="14" y="2" width="12" height="9" fill="#1b5532"></rect><rect x="16.5" y="11" width="7" height="3" fill="#1f6a3b"></rect><rect x="7" y="14" width="26" height="24" rx="6" fill="#45ab69"></rect><rect x="7" y="14" width="26" height="6" rx="3" fill="#82cb97"></rect><circle cx="15" cy="25" r="1.9" fill="#143a24"></circle><circle cx="25" cy="25" r="1.9" fill="#143a24"></circle><path d="M14.5 30 Q20 34.5 25.5 30" stroke="#143a24" stroke-width="2.2" fill="none" stroke-linecap="round"></path></svg>
+      <span style="font-family:var(--font-heading);font-weight:800;font-size:21px;letter-spacing:-0.02em">Meu tom</span>
+    </button>
+    <sc-if value="{{ showFlow }}" hint-placeholder-val="{{ false }}">
+      <nav style="display:flex;gap:18px;font-size:13px;order:3;width:auto">
+        <sc-for list="{{ flow }}" as="f" hint-placeholder-count="3">
+          <span style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:2px solid {{ f.line }};opacity:{{ f.op }};font-weight:600">{{ f.n }} {{ f.label }}</span>
+        </sc-for>
+      </nav>
+    </sc-if>
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <button class="btn btn-primary" onClick="{{ goCapture }}">Começar</button>
+    </sc-if>
+    <sc-if value="{{ notHome }}" hint-placeholder-val="{{ false }}">
+      <button class="btn btn-secondary" onClick="{{ goHome }}">Recomeçar</button>
+    </sc-if>
+  </div>
+</header>
+
+<main style="flex:1">
+
+<!-- HOME -->
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <section data-screen-label="01 Início" style="border-bottom:2px solid var(--color-divider)">
+    <div style="max-width:1160px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))">
+      <div style="padding:clamp(32px,7vw,80px) clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:20px;justify-content:center">
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="tag tag-accent">Sem cadastro</span><span class="tag tag-accent">Leva menos de 1 minuto</span></div>
+        <h1 style="font-size:clamp(34px,5.6vw,60px);line-height:1.02;letter-spacing:-0.03em;margin:0;text-wrap:balance">Encontre a base certa para o seu tom de pele.</h1>
+        <p style="font-size:clamp(16px,1.6vw,19px);line-height:1.5;margin:0;max-width:34em;text-wrap:pretty">Tire uma selfie ou envie uma foto. A gente analisa sua pele e indica 3 bases que combinam com você, com preço e link para comprar.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+          <button class="btn btn-primary" onClick="{{ goCapture }}" style="flex:1 1 200px;max-width:260px;justify-content:flex-start;padding:14px 18px;font-size:16px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+            Tirar ou enviar foto
+          </button>
+          <button class="btn btn-secondary" onClick="{{ useSample }}" style="flex:1 1 200px;max-width:260px;justify-content:flex-start;padding:14px 18px;font-size:16px">Ver um exemplo</button>
+        </div>
+      </div>
+      <div style="background:var(--color-accent-100);border-left:2px solid var(--color-divider);min-height:320px;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(24px,4vw,40px);gap:24px">
+        <span style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-800);font-weight:600">Oi! Eu sou a Tonzinha</span>
+        <svg viewBox="0 0 40 40" style="width:min(62%,280px);align-self:center" aria-label="Mascote Meu tom: frasco de base sorrindo"><rect x="14" y="2" width="12" height="9" fill="#1b5532"></rect><rect x="16.5" y="11" width="7" height="3" fill="#1f6a3b"></rect><rect x="7" y="14" width="26" height="24" rx="6" fill="#45ab69"></rect><rect x="7" y="14" width="26" height="6" rx="3" fill="#82cb97"></rect><circle cx="15" cy="25" r="1.9" fill="#143a24"></circle><circle cx="25" cy="25" r="1.9" fill="#143a24"></circle><circle cx="11.5" cy="29" r="1.6" fill="#b5e1c0"></circle><circle cx="28.5" cy="29" r="1.6" fill="#b5e1c0"></circle><path d="M14.5 30 Q20 34.5 25.5 30" stroke="#143a24" stroke-width="2.2" fill="none" stroke-linecap="round"></path></svg>
+        <p style="margin:0;font-size:15px;color:var(--color-accent-900);max-width:26em">Sua foto é usada só para esta análise e não fica salva.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-bottom:2px solid var(--color-divider)">
+    <div style="max-width:1160px;margin:0 auto;padding:clamp(32px,5vw,56px) clamp(16px,4vw,32px) 0">
+      <h2 style="font-size:clamp(24px,3vw,32px);margin:0 0 24px">Como funciona</h2>
+    </div>
+    <div style="max-width:1160px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:2px;background:var(--color-divider);border-top:2px solid var(--color-divider)">
+      <div style="background:var(--color-bg);padding:28px clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:10px">
+        <span style="font-family:var(--font-heading);font-weight:800;font-size:40px;color:var(--color-accent);line-height:1">01</span>
+        <h4 style="margin:0">Envie sua foto</h4>
+        <p style="margin:0;font-size:14px;opacity:0.8">Tire uma selfie na hora ou escolha uma foto da galeria. De frente, com boa luz e sem maquiagem.</p>
+      </div>
+      <div style="background:var(--color-bg);padding:28px clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:10px">
+        <span style="font-family:var(--font-heading);font-weight:800;font-size:40px;color:var(--color-accent);line-height:1">02</span>
+        <h4 style="margin:0">A gente analisa</h4>
+        <p style="margin:0;font-size:14px;opacity:0.8">Separamos a pele do resto da foto e deixamos de fora áreas com acne, rosácea ou vitiligo para não distorcer o seu tom.</p>
+      </div>
+      <div style="background:var(--color-bg);padding:28px clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:10px">
+        <span style="font-family:var(--font-heading);font-weight:800;font-size:40px;color:var(--color-accent);line-height:1">03</span>
+        <h4 style="margin:0">Receba 3 bases</h4>
+        <p style="margin:0;font-size:14px;opacity:0.8">Mostramos as bases mais próximas do seu tom, com foto, preço e link para o site oficial da marca.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div style="max-width:1160px;margin:0 auto;padding:clamp(32px,5vw,56px) clamp(16px,4vw,32px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:32px;align-items:end">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <h2 style="font-size:clamp(24px,3vw,32px);margin:0">Feito para todos os tons</h2>
+        <p style="margin:0;font-size:15px;max-width:30em;opacity:0.85">Usamos a Escala Monk, com 10 tons que vão do mais claro ao mais escuro. Cada base do nosso catálogo também foi classificada nela.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px">
+        <sc-for list="{{ monk }}" as="m" hint-placeholder-count="10">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="height:56px;background:{{ m.color }}"></div>
+            <span style="font-size:11px;font-weight:600;opacity:0.7">{{ m.n }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+</sc-if>
+
+<!-- CAPTURE -->
+<sc-if value="{{ isCapture }}" hint-placeholder-val="{{ false }}">
+  <section data-screen-label="02 Enviar foto" style="max-width:1160px;margin:0 auto;padding:clamp(28px,5vw,56px) clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <h1 style="font-size:clamp(28px,4vw,42px);margin:0">Como você quer enviar sua foto?</h1>
+      <p style="margin:0;font-size:16px;opacity:0.85">Escolha uma opção. No celular, “Tirar foto” abre a câmera frontal.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:24px;align-items:start">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:2px;background:var(--color-divider);border:2px solid var(--color-divider)">
+        <label style="background:var(--color-bg);padding:28px 24px;display:flex;flex-direction:column;gap:14px;cursor:pointer;min-height:220px" style-hover="background:var(--color-accent-100)">
+          <input type="file" accept="image/*" capture="user" style="display:none" onChange="{{ onFile }}">
+          <span style="width:56px;height:56px;background:var(--color-accent);color:var(--color-bg);display:grid;place-items:center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+          </span>
+          <span style="font-family:var(--font-heading);font-weight:800;font-size:22px">Tirar foto</span>
+          <span style="font-size:14px;opacity:0.8">Use a câmera do seu aparelho agora.</span>
+        </label>
+        <label onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="background:{{ dropBg }};padding:28px 24px;display:flex;flex-direction:column;gap:14px;cursor:pointer;min-height:220px;outline:{{ dropOutline }};outline-offset:-10px" style-hover="background:var(--color-accent-100)">
+          <input type="file" accept="image/*" style="display:none" onChange="{{ onFile }}">
+          <span style="width:56px;height:56px;border:2px solid var(--color-accent);color:var(--color-accent);display:grid;place-items:center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></svg>
+          </span>
+          <span style="font-family:var(--font-heading);font-weight:800;font-size:22px">Anexar foto</span>
+          <span style="font-size:14px;opacity:0.8">Escolha da galeria ou arraste a imagem para cá. JPG ou PNG, até 10 MB.</span>
+        </label>
+        <div style="background:var(--color-bg);padding:16px 24px;grid-column:1 / -1;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:14px;opacity:0.8;margin-right:auto">Só quer ver como funciona?</span>
+          <button class="btn btn-ghost" onClick="{{ useSample }}">Usar foto de exemplo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+          </button>
+        </div>
+      </div>
+      <aside style="background:var(--color-surface);padding:24px;display:flex;flex-direction:column;gap:14px">
+        <h4 style="margin:0">Dicas para um resultado melhor</h4>
+        <sc-for list="{{ tips }}" as="t" hint-placeholder-count="5">
+          <div style="display:flex;gap:12px;align-items:flex-start;padding-top:12px;border-top:1px solid var(--color-divider)">
+            <span style="width:22px;height:22px;flex:none;background:var(--color-accent-200);color:var(--color-accent-800);display:grid;place-items:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </span>
+            <span style="font-size:14px;line-height:1.45"><b>{{ t.title }}</b> {{ t.body }}</span>
+          </div>
+        </sc-for>
+      </aside>
+    </div>
+  </section>
+</sc-if>
+
+<!-- REVIEW -->
+<sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+  <section data-screen-label="03 Revisar foto" style="max-width:1160px;margin:0 auto;padding:clamp(28px,5vw,56px) clamp(16px,4vw,32px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:clamp(24px,4vw,48px);align-items:start">
+    <div style="position:relative;aspect-ratio:3 / 4;max-width:440px;width:100%;background:var(--color-surface);overflow:hidden;border:2px solid var(--color-divider)">
+      <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}">
+        <img src="{{ photo }}" alt="Sua foto" style="width:100%;height:100%;object-fit:cover;display:block">
+      </sc-if>
+      <sc-if value="{{ isSample }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;left:20%;top:12%;width:60%;height:72%;border-radius:50%;background:{{ toneColor }}"></div>
+        <span class="tag tag-neutral" style="position:absolute;left:12px;bottom:12px">Foto de exemplo</span>
+      </sc-if>
+      <div style="position:absolute;left:17%;top:9%;width:66%;height:78%;border-radius:50%;border:2px dashed var(--color-bg);pointer-events:none"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h1 style="font-size:clamp(28px,4vw,42px);margin:0">Ficou boa! Vamos analisar?</h1>
+        <p style="margin:0;font-size:16px;opacity:0.85">Conferimos sua foto antes de enviar.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;border-top:2px solid var(--color-divider)">
+        <sc-for list="{{ checks }}" as="c" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--color-divider)">
+            <span style="width:28px;height:28px;flex:none;background:var(--color-accent);color:var(--color-bg);display:grid;place-items:center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </span>
+            <span style="font-size:15px;font-weight:600">{{ c }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onClick="{{ goProcessing }}" style="flex:1 1 220px;justify-content:flex-start;padding:14px 18px;font-size:16px">Enviar para análise
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+        </button>
+        <button class="btn btn-secondary" onClick="{{ goCapture }}" style="flex:1 1 160px;justify-content:flex-start;padding:14px 18px;font-size:16px">Trocar foto</button>
+      </div>
+      <p style="margin:0;font-size:13px;opacity:0.7">Sua foto é usada só para esta análise e não fica salva.</p>
+    </div>
+  </section>
+</sc-if>
+
+<!-- PROCESSING -->
+<sc-if value="{{ isProcessing }}" hint-placeholder-val="{{ false }}">
+  <section data-screen-label="04 Processando" style="max-width:720px;margin:0 auto;padding:clamp(32px,6vw,72px) clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;gap:20px;align-items:center">
+      <svg viewBox="0 0 40 40" style="width:72px;height:72px;flex:none" aria-hidden="true"><rect x="14" y="2" width="12" height="9" fill="#1b5532"></rect><rect x="16.5" y="11" width="7" height="3" fill="#1f6a3b"></rect><rect x="7" y="14" width="26" height="24" rx="6" fill="#45ab69"></rect><rect x="7" y="14" width="26" height="6" rx="3" fill="#82cb97"></rect><circle cx="15" cy="25" r="1.9" fill="#143a24"></circle><circle cx="25" cy="25" r="1.9" fill="#143a24"></circle><path d="M14.5 30 Q20 34.5 25.5 30" stroke="#143a24" stroke-width="2.2" fill="none" stroke-linecap="round"></path></svg>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h1 style="font-size:clamp(26px,4vw,38px);margin:0">Analisando sua pele…</h1>
+        <p style="margin:0;font-size:15px;opacity:0.8">Isso leva só alguns segundos.</p>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600"><span>{{ stepLabel }}</span><span>{{ pctLabel }}</span></div>
+      <div style="height:10px;background:var(--color-accent-200)"><div style="height:100%;width:{{ pct }};background:var(--color-accent);transition:width .6s ease"></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;border-top:2px solid var(--color-divider)">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:16px 0;border-bottom:1px solid var(--color-divider);opacity:{{ s.op }}">
+          <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;background:{{ s.bg }};color:{{ s.fg }};font-weight:800;font-size:14px">
+            <sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+            <sc-if value="{{ s.notDone }}" hint-placeholder-val="{{ true }}">{{ s.n }}</sc-if>
+          </span>
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+            <span style="font-size:16px;font-weight:600">{{ s.label }}</span>
+            <sc-if value="{{ showTech }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;opacity:0.7;font-family:ui-monospace,Menlo,monospace">{{ s.tech }}</span></sc-if>
+          </div>
+          <sc-if value="{{ s.active }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent">Agora</span></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</sc-if>
+
+<!-- RESULT -->
+<sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+  <section data-screen-label="05 Resultado" style="border-bottom:2px solid var(--color-divider)">
+    <div style="max-width:1160px;margin:0 auto;padding:clamp(28px,5vw,56px) clamp(16px,4vw,32px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:clamp(24px,4vw,48px);align-items:end">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span class="tag tag-accent" style="align-self:flex-start">Análise concluída</span>
+        <h1 style="font-size:clamp(30px,4.6vw,50px);line-height:1.04;margin:0;text-wrap:balance">Pronto! Estas são as bases para o seu tom.</h1>
+      </div>
+      <div style="display:flex;gap:20px;align-items:stretch;background:var(--color-surface);padding:20px">
+        <div style="width:88px;flex:none;background:{{ toneColor }};min-height:88px"></div>
+        <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;min-width:0">
+          <span style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;color:var(--color-accent-700)">Seu tom de pele</span>
+          <span style="font-family:var(--font-heading);font-weight:800;font-size:30px;line-height:1.05">Tom {{ toneN }}</span>
+          <span style="font-size:14px;opacity:0.8">na Escala Monk, de 01 a 10</span>
+          <sc-if value="{{ showTech }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;opacity:0.7;font-family:ui-monospace,Menlo,monospace">ITA {{ itaLabel }} · {{ skinPct }} da face usada no cálculo</span></sc-if>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:1160px;margin:0 auto;padding:0 clamp(16px,4vw,32px) clamp(28px,4vw,40px)">
+      <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px;align-items:end">
+        <sc-for list="{{ monk }}" as="m" hint-placeholder-count="10">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="height:{{ m.h }};background:{{ m.color }};outline:{{ m.outline }};outline-offset:2px"></div>
+            <span style="font-size:11px;font-weight:{{ m.w }};opacity:{{ m.op }}">{{ m.n }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-bottom:2px solid var(--color-divider)">
+    <div style="max-width:1160px;margin:0 auto;padding:clamp(28px,5vw,48px) clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+        <h2 style="font-size:clamp(24px,3vw,32px);margin:0;margin-right:auto">Suas 3 bases</h2>
+        <span style="font-size:13px;opacity:0.7">Ordenadas pela proximidade com o seu tom</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:20px">
+        <sc-for list="{{ products }}" as="p" hint-placeholder-count="3">
+          <article class="card" style="padding:0;gap:0;background:var(--color-bg);border:2px solid {{ p.border }}">
+            <div style="position:relative;aspect-ratio:4 / 3;background:#ffffff;overflow:hidden">
+              <img src="{{ p.img }}" alt="{{ p.name }}" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;display:block">
+              <span class="tag {{ p.rankTag }}" style="position:absolute;left:12px;top:12px">{{ p.rank }}</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:10px;border-top:2px solid var(--color-divider);flex:1">
+              <span class="card-kicker" style="color:var(--color-accent-700);font-weight:600">{{ p.brand }}</span>
+              <span class="card-title">{{ p.name }}</span>
+              <div style="display:flex;align-items:center;gap:8px;font-size:14px">
+                <span style="width:18px;height:18px;background:{{ p.shade }};border:1px solid var(--color-divider)"></span>
+                <span style="font-weight:600">{{ p.code }}</span>
+                <span style="opacity:0.6">· {{ p.finish }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="flex:1;height:6px;background:var(--color-accent-200)"><div style="height:100%;width:{{ p.matchW }};background:var(--color-accent)"></div></div>
+                <span style="font-size:12px;font-weight:600;color:var(--color-accent-800)">{{ p.match }} compatível</span>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:auto;padding-top:8px">
+                <span style="font-family:var(--font-heading);font-weight:800;font-size:24px">{{ p.price }}</span>
+
+              </div>
+              <a class="btn btn-primary btn-block" href="{{ p.url }}" target="_blank" rel="noopener" style="padding:12px 16px;color:var(--color-bg)">Ver no site oficial
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+              </a>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+      <p style="margin:0;font-size:12px;opacity:0.65">Preços consultados nos sites oficiais e sujeitos a alteração.</p>
+    </div>
+  </section>
+
+  <section>
+    <div style="max-width:1160px;margin:0 auto;padding:clamp(28px,5vw,48px) clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h2 style="font-size:clamp(24px,3vw,32px);margin:0">Características da pele</h2>
+        <p style="margin:0;font-size:15px;opacity:0.85;max-width:44em">{{ condSummary }}</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:clamp(20px,3vw,32px);align-items:start">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="position:relative;aspect-ratio:3 / 4;max-width:440px;width:100%;background:var(--color-surface);overflow:hidden;border:2px solid var(--color-divider)">
+            <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}">
+              <img src="{{ photo }}" alt="Sua foto analisada" style="width:100%;height:100%;object-fit:cover;display:block">
+            </sc-if>
+            <sc-if value="{{ isSample }}" hint-placeholder-val="{{ true }}">
+              <div style="position:absolute;left:20%;top:12%;width:60%;height:72%;border-radius:50%;background:{{ toneColor }}"></div>
+            </sc-if>
+            <sc-if value="{{ showMarks }}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{ boxes }}" as="b" hint-placeholder-count="0">
+                <div style="position:absolute;left:{{ b.left }};top:{{ b.top }};width:{{ b.width }};height:{{ b.height }};border:2px solid #ffffff;box-shadow:0 0 0 1px rgba(0,0,0,0.35)">
+                  <span style="position:absolute;left:-2px;bottom:100%;background:#1b2a20;color:#ffffff;font-size:10px;font-weight:600;padding:1px 5px;white-space:nowrap">{{ b.label }}</span>
+                </div>
+              </sc-for>
+            </sc-if>
+          </div>
+          <sc-if value="{{ hasBoxes }}" hint-placeholder-val="{{ true }}">
+            <button class="btn btn-secondary" onClick="{{ toggleMarks }}" style="align-self:flex-start">{{ marksLabel }}</button>
+          </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;border-top:2px solid var(--color-divider)">
+          <sc-for list="{{ conditions }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:8px;padding:20px 0;border-bottom:1px solid var(--color-divider)">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <h4 style="margin:0;margin-right:auto">{{ c.name }}</h4>
+                <span class="tag {{ c.tagClass }}">{{ c.status }}</span>
+              </div>
+              <p style="margin:0;font-size:14px;opacity:0.8">{{ c.desc }}</p>
+              <sc-if value="{{ c.detected }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:2px;background:var(--color-divider);margin-top:4px">
+                  <div style="background:var(--color-surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65">Intensidade</span><span style="font-weight:600">{{ c.level }}</span></div>
+                  <div style="background:var(--color-surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.65">Onde</span><span style="font-weight:600">{{ c.where }}</span></div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="display:flex;gap:12px;align-items:flex-start;padding:16px;background:var(--color-accent-100);margin-top:20px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-800)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+            <p style="margin:0;font-size:13px;color:var(--color-accent-900)">Essas informações servem apenas para melhorar a escolha da base e não são um diagnóstico médico. Em caso de dúvida sobre sua pele, procure um dermatologista.</p>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:8px">
+        <button class="btn btn-primary" onClick="{{ goCapture }}" style="flex:0 1 240px;justify-content:flex-start;padding:14px 18px;font-size:16px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
+          Fazer nova análise
+        </button>
+      </div>
+    </div>
+  </section>
+</sc-if>
+</main>
+
+<footer style="border-top:2px solid var(--color-divider)">
+  <div style="max-width:1160px;margin:0 auto;padding:20px clamp(16px,4vw,32px);display:flex;gap:8px 24px;flex-wrap:wrap;font-size:12px;opacity:0.75">
+    <span style="font-weight:800;font-family:var(--font-heading)">Meu tom</span>
+    <span style="margin-right:auto">Projeto acadêmico · ICEI, PUC Minas</span>
+    <span>As análises de pele não constituem diagnóstico médico.</span>
+  </div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;capture&quot;,&quot;review&quot;,&quot;processing&quot;,&quot;result&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Fluxo&quot;},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Acne + vitiligo&quot;,&quot;Rosácea&quot;,&quot;Nenhuma&quot;],&quot;default&quot;:&quot;Acne + vitiligo&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Dados mockados&quot;},&quot;monkTone&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:1,&quot;max&quot;:10,&quot;step&quot;:1,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Dados mockados&quot;},&quot;showTech&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Exibição&quot;}}">
+const MONK = ['#f6ede4','#f3e7db','#f7ead0','#eadaba','#d7bd96','#a07e56','#825c43','#604134','#3a312a','#292420'];
+const ITA = [62,55,47,40,31,22,9,-8,-31,-52];
+const shift = (hex, d) => { const n = parseInt(hex.slice(1),16); const c = v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0'); return '#' + c((n>>16)+d[0]) + c(((n>>8)&255)+d[1]) + c((n&255)+d[2]); };
+const PRODUCTS = [
+  { brand:'Vizzela', name:'Base Líquida SATIN', code:'Cor 4', hex:'#FACAA1', price:'R$ 69,90', finish:'Acetinado', img:'https://www.vizzela.com.br/cdn/shop/files/772-1.jpg?v=1762795378&width=600', url:'https://www.vizzela.com.br/products/base-liquida-satin-vizzela?variant=46307193684221' },
+  { brand:'TIRTIR', name:'Mask Fit Red Cushion', code:'24n latte', hex:'#E4B58E', price:'R$ 130,00', finish:'Semi-matte', img:'https://tirtir.global/cdn/shop/files/thumnail_mask-fit-red-cushion_1.png?v=1785922203&width=600', url:'https://tirtir.global/products/mask-fit-red-cushion?variant=45774728429787' },
+  { brand:'Natura', name:'Base Sérum Nude Me Una', code:'20n', hex:'#C89265', price:'R$ 159,90', finish:'Natural', img:'https://production.na01.natura.com/dw/image/v2/BFKR_PRD/on/demandware.static/-/Sites-natura-br-storefront-catalog/default/dwa0d1ef40/NATBRA-110201_1.jpg?sw=600&q=80', url:'https://www.natura.com.br/p/base-serum-nude-me-una-30-ml/NATBRA-PAI110201' },
+  { brand:'Mari Maria', name:'Base Matte Mari Maria Velvet Skin', code:'Caramelo', hex:'#A26C48', price:'R$ 89,90', finish:'Aveludado', img:'https://marimaria.vtexassets.com/arquivos/ids/173407/CARAMELO.png?v=639214667285430000', url:'https://www.marimariamakeup.com/base-e-corretivo-matte-velvet-skin/p?skuId=766' },
+  { brand:'Karen Bachini', name:'Base Facial Cosmos', code:'E26NQ', hex:'#8A583C', price:'R$ 69,90', finish:'Semi-matte', img:'https://karenbachinibeauty.com.br/cdn/shop/files/karen-base-26.png?v=1787231569&width=600', url:'https://karenbachinibeauty.com.br/products/base-facial-cosmos-by-karen-bachini-e26nq' },
+  { brand:'Mascavo', name:'Soft Radiance', code:'65N', hex:'#421C0B', price:'R$ 129,90', finish:'Radiante', img:'https://mascavo.vtexassets.com/arquivos/ids/161833-600-auto?v=639183362810870000&width=600&height=auto&aspect=true', url:'https://www.mascavo.com/mascavo-soft-radiance-base-liquida-65n-30ml-20808/p' },
+];
+const rgb = h => { const n = parseInt(h.slice(1),16); return [n>>16,(n>>8)&255,n&255]; };
+const dist = (a,b) => { const x=rgb(a), y=rgb(b); return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2]); };
+const RANKS = ['Melhor combinação','2ª opção','3ª opção'];
+const COND = [
+  { key:'acne', name:'Acne', desc:'Pequenas inflamações que mudam a cor da pele em pontos isolados.' },
+  { key:'rosacea', name:'Rosácea', desc:'Vermelhidão concentrada, geralmente nas bochechas e no nariz.' },
+  { key:'vitiligo', name:'Vitiligo', desc:'Áreas com perda de pigmentação, mais claras que o restante da pele.' },
+];
+const SCEN = {
+  'Acne + vitiligo': { skin:74, acne:{ level:'Leve', where:'Testa e bochechas', boxes:[[50,20,14,9],[27,50,12,10],[61,52,12,10]] }, vitiligo:{ level:'1 área pequena', where:'Queixo', boxes:[[42,74,16,9]] } },
+  'Rosácea': { skin:81, rosacea:{ level:'Moderada', where:'Bochechas e nariz', boxes:[[23,46,18,14],[59,46,18,14],[44,44,12,13]] } },
+  'Nenhuma': { skin:93 },
+};
+const STEPS = [
+  { label:'Preparando sua foto', tech:'Pré-processamento · RGB → CIELAB' },
+  { label:'Encontrando as áreas de pele', tech:'Segmentação K-means (nº dinâmico de clusters) + region growing' },
+  { label:'Verificando acne, rosácea e vitiligo', tech:'Detecção paralela · OpenMP / CUDA' },
+  { label:'Calculando o seu tom', tech:'ITA da cor média → Escala Monk' },
+  { label:'Escolhendo suas bases', tech:'KNN sobre o catálogo de bases' },
+];
+
+class Component extends DCLogic {
+  state = { screen: this.props.startScreen ?? 'home', photo: null, step: 0, showMarks: true, drag: false };
+
+  componentDidMount() { if (this.state.screen === 'processing') this.startProcessing(); }
+  componentDidUpdate(prev) {
+    if (prev.startScreen !== this.props.startScreen && this.props.startScreen) this.go(this.props.startScreen);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  go(screen, extra = {}) {
+    clearInterval(this.timer);
+    this.setState({ screen, ...extra });
+    try { window.scrollTo(0, 0); } catch (e) {}
+    if (screen === 'processing') this.startProcessing();
+  }
+  startProcessing() {
+    clearInterval(this.timer);
+    this.setState({ step: 0 });
+    this.timer = setInterval(() => {
+      const next = this.state.step + 1;
+      if (next > STEPS.length) { clearInterval(this.timer); this.setState({ screen: 'result', showMarks: true }); try { window.scrollTo(0,0); } catch(e){} }
+      else this.setState({ step: next });
+    }, 950);
+  }
+  readFile(f) {
+    if (!f || !f.type.startsWith('image/')) return;
+    const r = new FileReader();
+    r.onload = () => this.go('review', { photo: r.result });
+    r.readAsDataURL(f);
+  }
+
+  renderVals() {
+    const s = this.state;
+    const t = Math.max(1, Math.min(10, Math.round(this.props.monkTone ?? 6)));
+    const tone = MONK[t - 1];
+    const showTech = this.props.showTech ?? true;
+    const scen = SCEN[this.props.scenario] || SCEN['Acne + vitiligo'];
+    const pad = n => String(n).padStart(2, '0');
+    const stage = { capture:0, review:0, processing:1, result:2 }[s.screen];
+
+    const conditions = COND.map(c => {
+      const hit = scen[c.key];
+      return { name:c.name, desc:c.desc, detected:!!hit, status: hit ? 'Identificada' : 'Não identificada', tagClass: hit ? 'tag-outline' : 'tag-neutral', level: hit ? hit.level : '', where: hit ? hit.where : '' };
+    });
+    const found = conditions.filter(c => c.detected);
+    const boxes = [];
+    COND.forEach(c => { const hit = scen[c.key]; if (hit) hit.boxes.forEach(b => boxes.push({ label:c.name, left:b[0]+'%', top:b[1]+'%', width:b[2]+'%', height:b[3]+'%' })); });
+    const condSummary = found.length
+      ? `Identificamos ${found.map(c => c.name.toLowerCase()).join(' e ')} na sua foto. Essas áreas ficaram de fora do cálculo do seu tom, para que a cor da base não seja puxada por elas.`
+      : 'Não identificamos acne, rosácea ou vitiligo na sua foto. Usamos toda a área de pele visível para calcular o seu tom.';
+
+    return {
+      isHome: s.screen === 'home', notHome: s.screen !== 'home',
+      isCapture: s.screen === 'capture', isReview: s.screen === 'review',
+      isProcessing: s.screen === 'processing', isResult: s.screen === 'result',
+      showFlow: stage !== undefined,
+      flow: ['Foto','Análise','Resultado'].map((label, i) => ({ n: i < stage ? '✓' : String(i + 1), label, line: i === stage ? 'var(--color-accent)' : 'transparent', op: i <= stage ? 1 : 0.45 })),
+      goHome: () => this.go('home', { photo: null }),
+      goCapture: () => this.go('capture'),
+      goProcessing: () => this.go('processing'),
+      useSample: () => this.go('review', { photo: null }),
+      onFile: e => { this.readFile(e.target.files && e.target.files[0]); e.target.value = ''; },
+      onDragOver: e => { e.preventDefault(); if (!s.drag) this.setState({ drag: true }); },
+      onDragLeave: () => this.setState({ drag: false }),
+      onDrop: e => { e.preventDefault(); this.setState({ drag: false }); this.readFile(e.dataTransfer.files && e.dataTransfer.files[0]); },
+      dropBg: s.drag ? 'var(--color-accent-100)' : 'var(--color-bg)',
+      dropOutline: s.drag ? '2px dashed var(--color-accent)' : 'none',
+      tips: [
+        { title:'Luz natural de frente.', body:'Perto de uma janela é o ideal. Evite luz amarelada ou sombra no rosto.' },
+        { title:'Rosto sem maquiagem.', body:'Base ou pó mudam a cor que a gente enxerga.' },
+        { title:'Sem óculos e com o cabelo preso.', body:'Assim sobra mais pele para analisar.' },
+        { title:'Olhe direto para a câmera.', body:'Rosto centralizado, na altura dos olhos.' },
+        { title:'Sem filtros.', body:'Envie a foto original, sem edição.' },
+      ],
+      photo: s.photo, hasPhoto: !!s.photo, isSample: !s.photo,
+      toneColor: tone, toneN: pad(t),
+      checks: ['Rosto encontrado','Iluminação adequada','Foto nítida'],
+      showTech,
+      steps: STEPS.map((st, i) => {
+        const done = i < s.step, active = i === s.step;
+        return { ...st, n: String(i + 1), done, notDone: !done, active, op: done || active ? 1 : 0.45,
+          bg: done ? 'var(--color-accent)' : active ? 'var(--color-accent-200)' : 'var(--color-surface)',
+          fg: done ? 'var(--color-bg)' : 'var(--color-accent-900)' };
+      }),
+      pct: Math.round(s.step / STEPS.length * 100) + '%',
+      pctLabel: Math.round(s.step / STEPS.length * 100) + '%',
+      stepLabel: s.step < STEPS.length ? `Etapa ${s.step + 1} de ${STEPS.length}` : 'Concluído',
+      monk: MONK.map((c, i) => {
+        const sel = i + 1 === t && s.screen === 'result';
+        return { color:c, n:pad(i + 1), h: sel ? '64px' : '44px', outline: sel ? '2px solid var(--color-text)' : 'none', w: sel ? 800 : 600, op: sel ? 1 : 0.6 };
+      }),
+      itaLabel: ITA[t - 1].toFixed(1).replace('.', ',') + '°',
+      skinPct: scen.skin + '%',
+      products: PRODUCTS.map(p => ({ ...p, d: dist(p.hex, tone) })).sort((a, b) => a.d - b.d).slice(0, 3).map((p, i) => ({
+        ...p, shade: p.hex,
+        match: Math.max(60, Math.round(100 - p.d / 3)) + '%', matchW: Math.max(60, Math.round(100 - p.d / 3)) + '%',
+        rank: RANKS[i], rankTag: i === 0 ? 'tag-accent' : 'tag-neutral',
+        border: i === 0 ? 'var(--color-accent)' : 'var(--color-divider)',
+      })),
+      conditions, condSummary, boxes, hasBoxes: boxes.length > 0,
+      showMarks: s.showMarks,
+      toggleMarks: () => this.setState({ showMarks: !s.showMarks }),
+      marksLabel: s.showMarks ? 'Ocultar marcações' : 'Mostrar marcações',
+    };
+  }
+}
+</script>
+</body>
+</html>

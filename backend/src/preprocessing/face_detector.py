@@ -210,7 +210,7 @@ def detectar_rosto_mediapipe(
     except ImportError:
         logger.warning(
             "MediaPipe não instalado. Pulando detector MediaPipe. "
-            "Instale com: pip install mediapipe"
+            "Opcional: backend/requirements-mediapipe.txt em Python 3.10–3.12."
         )
         return None
 
