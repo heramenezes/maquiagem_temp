@@ -13,6 +13,8 @@ from PIL import Image, ImageCms
 from backend.app import MAX_FILE_BYTES, create_app, decode_photo
 from backend.src.catalog import load_catalog
 from backend.tests.images import face_photo
+from backend.src.preprocessing import detectar_e_isolar_rosto
+from backend.src.segmentation.semantic import ModelUnavailableError
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -118,7 +120,8 @@ class ApiTests(unittest.TestCase):
                                 generate.assert_not_called()
 
     def test_repeated_attempts_do_not_reuse_approved_photo(self):
-        with patch("backend.app.detectar_e_isolar_rosto", side_effect=[np.full((100, 100, 3), (200, 150, 100), dtype=np.uint8), None]):
+        face = detectar_e_isolar_rosto(str(ROOT / 'samples/imagem_teste.jpeg'))
+        with patch("backend.app.detectar_e_isolar_rosto", side_effect=[face, None]):
             first = self.client.post("/api/analises", data={"foto": (image_file(), "one.png")})
             second = self.client.post("/api/analises", data={"foto": (image_file(), "two.png")})
         self.assertEqual(first.status_code, 200)
@@ -190,7 +193,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(len(response.json["etapas"]), 6)
 
     def test_stream_announces_stage_before_work_and_finishes_in_order(self):
-        face = np.full((100, 100, 3), (200, 150, 100), np.uint8)
+        face = detectar_e_isolar_rosto(str(ROOT / 'samples/imagem_teste.jpeg'))
         with patch("backend.app.detectar_e_isolar_rosto", return_value=face) as detector:
             response = self.client.post("/api/analises", data={"foto": (image_file(), "face.png")},
                                         headers={"Accept": "application/x-ndjson"}, buffered=False)
@@ -241,6 +244,19 @@ class ApiTests(unittest.TestCase):
                 events = [json.loads(line) for line in response.data.splitlines()]
         self.assertEqual(events[-1]["codigo"], "ERRO_INTERNO")
         self.assertFalse(any(e["tipo"] == "resultado" for e in events))
+
+    def test_missing_model_never_falls_back_to_geometric_segmentation(self):
+        for stream in (False, True):
+            with self.subTest(stream=stream):
+                with patch('backend.src.segmentation.semantic.get_session', side_effect=ModelUnavailableError('Modelo ausente.')):
+                    with patch('backend.app.generate_analysis') as generate:
+                        with (ROOT / 'samples/imagem_teste.jpeg').open('rb') as photo:
+                            response = self.client.post('/api/analises', data={'foto': (photo, 'face.jpg')},
+                                headers={'Accept': 'application/x-ndjson' if stream else 'application/json'})
+                        body = [json.loads(line) for line in response.data.splitlines()][-1] if stream else response.json
+                        self.assertEqual(body['codigo'], 'MODELO_INDISPONIVEL')
+                        self.assertEqual(body['status'] if stream else response.status_code, 503)
+                        generate.assert_not_called()
 
 
 if __name__ == "__main__":

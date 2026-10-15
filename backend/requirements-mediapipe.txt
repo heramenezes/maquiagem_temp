@@ -6,3 +6,4 @@ Pillow>=11,<13
 numpy>=1.24,<2
 opencv-contrib-python>=4.8,<4.12
 mediapipe==0.10.21
+onnxruntime>=1.21,<2

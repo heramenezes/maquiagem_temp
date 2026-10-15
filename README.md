@@ -6,11 +6,12 @@ O frontend usa HTML, Bootstrap 5.3.8, CSS do tema e JavaScript em módulos nativ
 
 ## Executar no Windows
 
-Na raiz do projeto, com Python 3.10 ou superior:
+Na raiz do projeto, com Python 3.11 ou superior (validado com Python 3.13):
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m backend.download_model
 .venv\Scripts\python -m backend.app
 ```
 
@@ -27,7 +28,8 @@ Em Linux/macOS, substitua `.venv\Scripts\python` por `.venv/bin/python`.
 - Pré-verificação de um único rosto: MediaPipe quando disponível; Haar/OpenCV como fallback quando o MediaPipe não retorna uma detecção. Um rosto é aceito sem uma segunda conferência; múltiplos rostos abortam imediatamente.
 - Sem rosto ou com múltiplos rostos detectados, a API retorna 422 e a interface pede outra foto. Conversão CIELAB, segmentação e resultado não são executados. No stream, o evento de erro informa o status 422.
 - Conversão real sRGB → RGB linear → XYZ → CIELAB (D65), normalizando perfis ICC para sRGB quando presentes.
-- Máscara facial, exclusão de olhos/sobrancelhas/boca, K-means adaptativo e crescimento de regiões. Cor e contraste reduzem cabelo e barba; não é uma segmentação semântica perfeita.
+- Segmentação semântica com BiSeNet ResNet18 pré-treinado, executada localmente em CPU via ONNX Runtime. Pele e nariz são selecionados pixel a pixel, sem exclusões geométricas grandes. O modelo não tem classe específica de barba.
+- K-means descreve as cores selecionadas, sem remover pixels. A média CIELAB usa toda a máscara semântica.
 - Progresso real em seis etapas, prévias do recorte, máscara e pele selecionada, com média CIELAB e área calculadas da imagem.
 - Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
 - Exemplo acessível sem enviar foto, erros de conexão, nova tentativa e cancelamento de solicitações na interface.
@@ -36,7 +38,7 @@ A pré-verificação conta as detecções válidas antes do recorte: zero rostos
 
 ## O que continua simulado
 
-Tom Monk, ITA, porcentagem exibida no cartão de tom demonstrativo, acne, rosácea, vitiligo e marcações de condições são fixtures de `backend/src/mock_analysis.py`, independentes da foto. A seção separada de pré-processamento mostra a máscara, a média CIELAB e a porcentagem reais de pixels selecionados no contorno estimado.
+Tom Monk, ITA, porcentagem exibida no cartão de tom demonstrativo, acne, rosácea, vitiligo e marcações de condições são fixtures de `backend/src/mock_analysis.py`, independentes da foto. A seção separada de pré-processamento mostra a máscara, a média CIELAB e a porcentagem reais de pele nas regiões faciais identificadas pelo modelo.
 
 As três recomendações usam proximidade RGB a um **tom fixo de exemplo**, sem implementar o pipeline futuro de ITA/KNN. Os nomes, cores, preços e links são lidos do CSV real. O CSV não contém fotos ou acabamento; os cartões mostram uma amostra de cor e não inventam esses dados. Não há percentual fictício de compatibilidade.
 
@@ -45,11 +47,13 @@ As três recomendações usam proximidade RGB a um **tom fixo de exemplo**, sem 
 ```text
 backend/
   app.py                        Servidor HTTP e pré-verificação
+  download_model.py             Download explícito e verificação SHA-256 do BiSeNet
+  models/                       Peso ONNX local (ignorado pelo Git) e procedência
   data/bases.csv                Fonte oficial do catálogo do projeto
   src/catalog.py                Leitura e normalização do CSV
   src/mock_analysis.py          Respostas demonstrativas
   src/preprocessing/            Detectores e isolamento existentes
-  src/segmentation/             Conversão, máscaras, K-means, refinamento e eventos
+  src/segmentation/             Conversão, BiSeNet, estatísticas de cor e eventos
   src/tone_matching/             Etapa futura
   src/distributed/               Etapa futura
   tests/test_api.py              Testes HTTP e integração com o detector
@@ -77,18 +81,19 @@ O código existente de MediaPipe usa a API legada `mp.solutions`. Para executar 
 ```powershell
 py -3.12 -m venv .venv-mediapipe
 .venv-mediapipe\Scripts\python -m pip install -r backend/requirements-mediapipe.txt
+.venv-mediapipe\Scripts\python -m backend.download_model
 .venv-mediapipe\Scripts\python -m backend.app
 .venv-mediapipe\Scripts\python backend/tests/test_preprocessing.py
 ```
 
-Esse arquivo fixa MediaPipe 0.10.21 e usa `opencv-contrib-python`, evitando instalar duas distribuições que fornecem `cv2`. A opção requer a versão de Python indicada instalada. Na segmentação web, Face Mesh fornece contorno e exclusões quando disponível. Na instalação padrão, usa-se uma máscara geométrica conservadora para fotos frontais, com detecção auxiliar de olhos Haar. A resposta informa o método utilizado.
+Esse arquivo fixa MediaPipe 0.10.21 e usa `opencv-contrib-python`, evitando instalar duas distribuições que fornecem `cv2`. A opção requer a versão de Python indicada instalada. MediaPipe é opcional para a pré-verificação e os utilitários antigos; a segmentação web usa BiSeNet nos dois ambientes.
 
 ## Testar
 
 API, catálogo, detector real, rejeição de imagens sem rosto ou com múltiplos rostos, limites, orientação EXIF e recuperação entre tentativas:
 
 ```powershell
-.venv\Scripts\python -m unittest backend.tests.test_face_detector backend.tests.test_api backend.tests.test_segmentation -v
+.venv\Scripts\python -m unittest backend.tests.test_semantic backend.tests.test_face_detector backend.tests.test_api backend.tests.test_segmentation -v
 ```
 
 Interface automatizada (dependências opcionais para desenvolvimento):

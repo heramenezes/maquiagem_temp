@@ -1,13 +1,16 @@
-# Conversão CIELAB e segmentação básica de pele
+# Conversão CIELAB e segmentação semântica de pele
 
-Implementa o fluxo das seções 4.1 e 4.2 do artigo do projeto: conversão de cor,
-agrupamento e crescimento de regiões. Não implementa ITA, Monk, KNN,
+O fluxo atual usa conversão CIELAB, BiSeNet pré-treinado e agrupamento descritivo
+de cores. A segmentação semântica substitui a adaptação anterior por geometria
+e crescimento de regiões das seções 4.1–4.2 do artigo. Não implementa ITA, Monk, KNN,
 acne, rosácea ou vitiligo. Esses resultados permanecem demonstrativos na interface.
 
 ## Arquivos
 
 - `color.py`: conversão numérica explícita sRGB → RGB linear → XYZ → CIELAB.
-- `skin.py`: contorno, exclusões, sementes, K-means adaptativo e refinamento.
+- `semantic.py`: inferência ONNX em CPU, máscara de pele/nariz e medições.
+- `model_asset.py`: versão, caminho, URL e SHA-256 do peso fixado.
+- `skin.py`: K-means compartilhado e método geométrico anterior, preservado para comparação acadêmica.
 - `pipeline.py`: execução sequencial, eventos de início/conclusão e prévias PNG.
 
 O detector existente entrega um recorte RGB, não BGR. O pipeline limita esse
@@ -60,7 +63,42 @@ sRGB usando Pillow/ImageCms. Arquivos sem perfil são presumidos sRGB.
 CIELAB separa luminância e cromaticidade, mas não remove sombras nem corrige
 balanço de branco/iluminação automaticamente.
 
-## Máscaras e sementes
+## Segmentação atual: BiSeNet ResNet18
+
+Execute `python -m backend.download_model` após instalar os requisitos.
+O peso público [yakhyo/face-parsing](https://github.com/yakhyo/face-parsing)
+é carregado uma vez por processo, com verificação SHA-256. A inferência é local,
+em CPU, sem treinar nem enviar fotos a terceiros. A procedência está em
+[models/README.md](../../models/README.md). Peso ausente/inválido gera
+`MODELO_INDISPONIVEL`, sem trocar silenciosamente por outro algoritmo.
+
+A rede recebe RGB 512 × 512 normalizado conforme o modelo e prevê 19 classes.
+A máscara de classes é restaurada ao tamanho do recorte com vizinho mais próximo.
+Os pixels de `skin` (1) e `nose` (10) formam a máscara final, sem dilatação,
+erosão, geometria fixa, filtro de brilho ou exigência de conectividade.
+O RGB original é preservado para conversão CIELAB e prévias; o tensor
+normalizado da rede nunca é usado para medir a cor da pele.
+
+K-means continua descrevendo os canais a*/b* com até seis grupos, mas todos
+os pixels da máscara semântica participam das médias, mesmo com cores distintas
+ou em regiões desconectadas. As sementes usadas para a estatística de grupos
+são a própria máscara; não há seleção geométrica de bochechas ou testa.
+
+`pixels_pele` conta pele + nariz; `pixels_contorno` conta as regiões faciais
+previstas (classes 1–6 e 10–13), sem orelhas, pescoço, cabelo e fundo.
+O percentual representa a proporção entre essas duas contagens, não acurácia.
+O campo antigo de pixels recuperados foi removido. As prévias continuam sendo
+recorte RGB, máscara binária e pele RGBA, alinhadas para a sobreposição no frontend.
+
+Na amostra de 133 × 133 pixels, a máscara passou de 1.723 para 5.538 pixels.
+Isso é uma comparação local de área, não uma avaliação anotada de acurácia.
+A rede não possui classe específica de barba, pode errar nas bordas e não
+recupera detalhes ausentes em fotos pequenas. O modelo não detecta doenças.
+
+## Histórico: máscaras e sementes geométricas
+
+As seções históricas a seguir descrevem apenas `skin.py`. A API não usa mais
+essas exclusões nem o crescimento; o K-means é reaproveitado como descritor.
 
 Com MediaPipe legado disponível, Face Mesh fornece o contorno facial e os
 polígonos de olhos, sobrancelhas e lábios. Estes são dilatados antes da exclusão,
@@ -76,7 +114,7 @@ Essas sementes são uma hipótese geométrica, não uma anotação semântica. P
 oclusão e maquiagem podem invalidá-las. Fotos inclinadas podem perder muita
 pele ou incluir regiões incorretas; a prévia permite inspecionar o resultado.
 
-## Agrupamento e crescimento
+### Agrupamento e crescimento anteriores
 
 O [trabalho de Islam et al. (2024)](https://www.sciencedirect.com/science/article/pii/S1047320324000014)
 usa cromaticidade a*/b*, número de clusters definido pelas propriedades da
@@ -104,7 +142,7 @@ Os limiares são escolhas desta implementação, não parâmetros extraídos de
 Islam et al. Exige-se no mínimo 64 pixels e 4% do contorno selecionados;
 caso contrário, a API responde `PELE_INSUFICIENTE` e pede outra foto.
 
-## Saídas e limites
+### Saídas e limites do método anterior
 
 `grow_skin` entrega máscara booleana, média CIELAB dos pixels efetivamente
 selecionados e quantidade de pixels recuperados fora do grupo inicial.
@@ -123,10 +161,12 @@ fase, a máscara pode ser avaliada em um conjunto de fotos anotadas.
 ## Testes
 
 ```powershell
-.venv\Scripts\python -m unittest backend.tests.test_segmentation backend.tests.test_api -v
+.venv\Scripts\python -m unittest backend.tests.test_semantic backend.tests.test_segmentation backend.tests.test_api -v
 ```
 
-Verificam valores de referência D65, conversão independente OpenCV float,
+Verificam o modelo real, IDs de pele/nariz, alinhamento da máscara, preservação
+do RGB, integridade do peso, erros de instalação e estatísticas sem eliminar
+regiões de outra cor. Também verificam valores de referência D65, conversão independente OpenCV float,
 validação dos arrays, exclusões em faces sintéticas claras/escuras,
 conectividade, K adaptativo, PNGs/área e eventos de progresso. Os testes com
 foto real usam a amostra do repositório; não constituem avaliação de acurácia

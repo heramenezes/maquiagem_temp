@@ -24,9 +24,10 @@ Regras:
    A extensão e o MIME declarados pelo cliente não substituem a validação do conteúdo.
 3. Corrigir EXIF, normalizar ICC para sRGB quando presente e reduzir proporcionalmente para até 1600 × 1600 pixels.
 4. Executar `detectar_e_isolar_rosto` com a matriz BGR em memória.
-5. Se o retorno for `None` ou vazio, responder 422 imediatamente.
+5. Se não houver rosto ou forem detectados múltiplos rostos, responder 422 antes da segmentação.
 6. Reduzir o recorte proporcionalmente até 512 pixels, converter RGB para CIELAB/D65,
-   construir exclusões faciais, executar K-means adaptativo e crescimento de regiões.
+   executar BiSeNet ONNX, selecionar pele/nariz e descrever suas cores com K-means.
+   Os grupos de cor não alteram a máscara; as médias usam todos os pixels selecionados.
 7. Se houver pele insuficiente, interromper com `PELE_INSUFICIENTE`.
 8. Retornar medições/máscaras reais e, separadamente, os dados demonstrativos de tom e bases.
 
@@ -78,14 +79,14 @@ Além dos campos anteriores, uploads bem-sucedidos incluem:
     "espaco_cor": "CIELAB",
     "branco_referencia": "D65",
     "entrada": "sRGB",
-    "metodo_contorno": "geometria_frontal",
-    "clusters": 5,
-    "pixels_pele": 1723,
-    "pixels_contorno": 7825,
-    "percentual_pele": 22.02,
-    "pixels_recuperados": 31,
-    "media_lab": [76.2696, 13.022, 19.6245],
-    "media_rgb": [224.34, 178.8, 152.9],
+    "metodo_contorno": "bisenet_resnet18_onnx",
+    "modelo": "yakhyo/face-parsing:resnet18:v0.0.1",
+    "clusters": 6,
+    "pixels_pele": 5538,
+    "pixels_contorno": 5937,
+    "percentual_pele": 93.28,
+    "media_lab": [71.1756, 12.8755, 18.1303],
+    "media_rgb": [209.17, 165.86, 142.72],
     "dimensoes": {"largura": 133, "altura": 133},
     "avisos": [],
     "previas": {"rosto": "data:image/png;base64,...", "mascara": "data:image/png;base64,...", "pele": "data:image/png;base64,..."}
@@ -96,8 +97,13 @@ Além dos campos anteriores, uploads bem-sucedidos incluem:
 
 Os números ilustram uma execução com a amostra do repositório; variam conforme
 a foto e o método. `media_lab` usa L*/a*/b* físicos, não Lab uint8 do OpenCV.
-`percentual_pele` é relativo ao contorno estimado, e as prévias se referem ao
-recorte processado. `pele` tem alfa zero nos pixels excluídos. Os arrays
+`pixels_contorno` agora conta as regiões faciais previstas (pele, nariz,
+olhos, sobrancelhas, óculos, boca e lábios), excluindo orelhas e pescoço.
+`percentual_pele` divide pele + nariz por essas regiões, não pela antiga elipse.
+Não é uma medida de acurácia e não é diretamente comparável ao percentual
+do método geométrico. `clusters` é descritivo: não remove pixels. O campo
+antigo `pixels_recuperados` foi removido, pois não há crescimento de regiões.
+As prévias se referem ao recorte processado. `pele` tem alfa zero nos pixels excluídos. Os arrays
 `avisos` e `etapas` foram abreviados; a execução informa limites e seis etapas.
 
 ### Progresso incremental usado pelo frontend
@@ -113,7 +119,7 @@ Não é SSE, não exige uma segunda requisição nem armazena jobs em memória g
 
 Neste exemplo, `etapas` e `dados` foram abreviados. Cada evento de etapa contém
 os seis itens, nos estados `aguardando`, `processando` ou `concluida`. IDs:
-`rosto`, `cielab`, `mascara`, `clusters`, `refinamento`, `resultado`.
+`rosto`, `cielab`, `mascara`, `clusters`, `medidas`, `resultado`.
 A última etapa inclui a preparação dos resultados ainda simulados. A fração
 de etapas concluídas não é uma estimativa de tempo restante.
 
@@ -150,6 +156,7 @@ Todos usam a estrutura:
 | 422 | `MULTIPLOS_ROSTOS` | Descartar a foto e solicitar outra com somente uma pessoa; interrompe antes de converter cores ou segmentar |
 | 422 | `PELE_INSUFICIENTE` | Solicitar foto frontal mais nítida/com iluminação uniforme |
 | 500 | `ERRO_INTERNO` | Manter a prévia e permitir tentar novamente |
+| 503 | `MODELO_INDISPONIVEL` | Manter a foto e informar a instalação/reparo do modelo; não usa segmentação geométrica como substituição |
 | outros | `REQUISICAO_INVALIDA` | Exibir mensagem de erro |
 
 Falhas de conexão e timeout de 90 segundos (incluindo as pausas de apresentação) são tratados pelo cliente,

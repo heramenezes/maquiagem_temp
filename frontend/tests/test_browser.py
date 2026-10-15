@@ -78,7 +78,7 @@ class BrowserTests(unittest.TestCase):
         self.page.screenshot(path=str(ARTIFACTS / "pipeline-progress-desktop.png"), full_page=True)
         expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
         states = self.page.evaluate("window.pipelineStates")
-        for stage in ("rosto", "cielab", "mascara", "clusters", "refinamento", "resultado"):
+        for stage in ("rosto", "cielab", "mascara", "clusters", "medidas", "resultado"):
             self.assertIn(stage, states)
         expect(self.page.get_by_role("heading", name="Pele separada para a próxima etapa")).to_be_visible()
         overlay = self.page.locator('#segmentation-overlay')

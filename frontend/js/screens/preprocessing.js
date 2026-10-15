@@ -10,8 +10,8 @@ export function preprocessing(data) {
     <div class="preprocessing-previews">
       ${[['rosto', 'Recorte do rosto'], ['mascara', 'Máscara de pele'], ['pele', 'Pele selecionada']].map(([key, label]) => `<figure class="card"><img src="${png(data.previas[key])}" alt="${e(label)}" width="${Number(data.dimensoes.largura)}" height="${Number(data.dimensoes.altura)}"><figcaption>${e(label)}</figcaption></figure>`).join('')}
     </div>
-    <div class="card preprocessing-metrics"><div><span>Pele selecionada no contorno estimado</span><b>${format(data.percentual_pele)}%</b></div><div><span>Média CIELAB · D65</span><b>L* ${format(data.media_lab[0])} · a* ${format(data.media_lab[1])} · b* ${format(data.media_lab[2])}</b></div><div><span>Grupos de cor encontrados</span><b>${Number(data.clusters)}</b></div></div>
+    <div class="card preprocessing-metrics"><div><span>Pele nas regiões faciais identificadas</span><b>${format(data.percentual_pele)}%</b></div><div><span>Média CIELAB · D65</span><b>L* ${format(data.media_lab[0])} · a* ${format(data.media_lab[1])} · b* ${format(data.media_lab[2])}</b></div><div><span>Grupos de cor encontrados</span><b>${Number(data.clusters)}</b></div></div>
     <p class="small muted">A conversão de cor e esta máscara são reais. A máscara é uma estimativa inicial; luz, pose, pelos e acessórios podem afetar a seleção.</p>
-    <details class="preprocessing-details"><summary>Como esta máscara foi obtida</summary><p>${data.metodo_contorno === 'mediapipe_face_mesh' ? 'Contorno e exclusões a partir de pontos faciais do MediaPipe.' : 'Contorno e exclusões aproximados para uma foto frontal.'} K-means adaptativo em a*/b* e crescimento de regiões. ${data.avisos.map(e).join(' ')}</p></details>
+    <details class="preprocessing-details"><summary>Como esta máscara foi obtida</summary><p>BiSeNet pré-treinado identifica as regiões do rosto pixel a pixel. Selecionamos pele e nariz, sem ampliar as exclusões ao redor de olhos e boca. Os grupos de cor são apenas descritivos e não removem pixels da máscara. ${data.avisos.map(e).join(' ')}</p></details>
   </section>`;
 }

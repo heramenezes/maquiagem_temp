@@ -8,7 +8,8 @@ import numpy as np
 from PIL import Image
 
 from .color import rgb_to_lab
-from .skin import InsufficientSkinError, adaptive_clusters, facial_masks, grow_skin
+from .skin import InsufficientSkinError, adaptive_clusters
+from .semantic import ModelUnavailableError, facial_masks, measure_skin
 from ..preprocessing.face_detector import MultipleFacesError
 
 
@@ -21,9 +22,9 @@ class PipelineError(Exception):
 STAGES = [
     ("rosto", "Verificando o rosto", "Confirmação de um único rosto e recorte facial", False),
     ("cielab", "Convertendo as cores para CIELAB", "sRGB → RGB linear → XYZ → L*a*b* (D65)", False),
-    ("mascara", "Separando as regiões do rosto", "Contorno, olhos, sobrancelhas e boca", False),
-    ("clusters", "Agrupando as cores da pele", "K-means adaptativo nos canais a* e b*", False),
-    ("refinamento", "Refinando a máscara de pele", "Crescimento de regiões e redução de cabelo/barba", False),
+    ("mascara", "Segmentando o rosto com BiSeNet", "Modelo pré-treinado: pele, nariz, olhos, lábios e cabelo", False),
+    ("clusters", "Descrevendo as cores da pele", "Agrupamento em a*/b* sem remover pixels da máscara", False),
+    ("medidas", "Medindo a pele selecionada", "Área e média CIELAB dos pixels de pele e nariz", False),
     ("resultado", "Preparando o resultado", "Pré-processamento real; tom e recomendações demonstrativos", True),
 ]
 
@@ -41,16 +42,13 @@ def summarize(rgb, masks, clusters, skin):
     return {
         "simulado": False,
         "espaco_cor": "CIELAB", "branco_referencia": "D65", "entrada": "sRGB",
-        "metodo_contorno": masks["method"], "clusters": clusters["k"],
+        "metodo_contorno": masks["method"], "modelo": masks["model"], "clusters": clusters["k"],
         "pixels_pele": int(mask.sum()), "pixels_contorno": area,
         "percentual_pele": round(100 * mask.sum() / area, 2),
-        "pixels_recuperados": skin["recovered_pixels"],
         "media_lab": [round(float(v), 4) for v in skin["mean_lab"]],
         "media_rgb": [round(float(v), 2) for v in rgb[mask].mean(axis=0)],
         "dimensoes": {"largura": rgb.shape[1], "altura": rgb.shape[0]},
-        "avisos": masks["warnings"] + [
-            "Segmentação básica por cor, contraste e posição; pode manter fios, barba ou acessórios e remover parte da pele. Não detecta acne, rosácea ou vitiligo."
-        ],
+        "avisos": masks["warnings"],
         "previas": {"rosto": _png_data(rgb), "pele": _png_data(rgba),
                     "mascara": _png_data(mask.astype(np.uint8) * 255)},
     }
@@ -85,13 +83,15 @@ def analysis_events(image_bgr, detect_face, mock_result):
                 masks = facial_masks(rgb)
             elif step["id"] == "clusters":
                 clusters = adaptive_clusters(lab, masks)
-            elif step["id"] == "refinamento":
-                skin = grow_skin(lab, masks, clusters)
+            elif step["id"] == "medidas":
+                skin = measure_skin(lab, masks)
             else:
                 result = mock_result()
                 result["preprocessamento"] = summarize(rgb, masks, clusters, skin)
         except MultipleFacesError as exc:
             raise PipelineError("MULTIPLOS_ROSTOS", str(exc)) from exc
+        except ModelUnavailableError as exc:
+            raise PipelineError("MODELO_INDISPONIVEL", str(exc), status=503) from exc
         except InsufficientSkinError as exc:
             raise PipelineError("PELE_INSUFICIENTE", str(exc)) from exc
         step["estado"] = "concluida"

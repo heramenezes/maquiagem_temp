@@ -47,3 +47,5 @@ Thumbs.db
 
 # Evidências locais dos testes de interface
 .test-artifacts/
+backend/models/*.onnx
+backend/models/*.part
