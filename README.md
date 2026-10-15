@@ -127,3 +127,5 @@ Detalhes dos contratos e da integração futura: [docs/API.md](docs/API.md). Doc
 A implementação segue o fluxo das seções 4.1–4.2 do artigo do projeto. O K adaptativo é uma adaptação por variância cromática residual, não uma reprodução exata do método de Islam et al. (2024). Não há garantia de remover todos os pelos, óculos ou fundo com cor semelhante; fotos frontais, nítidas e sem maquiagem são recomendadas. A conversão CIELAB não corrige iluminação por si só.
 
 Leia [backend/src/segmentation/README.md](backend/src/segmentation/README.md) para fórmulas, parâmetros, referências e limites. Não foram acrescentadas dependências de execução.
+
+Próxima etapa, ainda não implementada: [pesquisa de acne, vitiligo, barba e outras regiões de contraste intenso](docs/PESQUISA_CONDICOES_PELE.md) e [plano de seleção de pele antes da medição de cor](docs/PLANO_SELECAO_PELE.md). Mantém BiSeNet e combina máscaras especializadas com filtros residuais; rosácea está fora do escopo planejado.
