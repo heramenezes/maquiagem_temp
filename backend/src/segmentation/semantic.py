@@ -66,17 +66,23 @@ def masks_from_labels(labels):
     face = np.isin(labels, FACE_CLASSES)
     if skin.sum() < 64:
         raise InsufficientSkinError('Não conseguimos separar pele suficiente. Tire outra foto de frente e com luz uniforme.')
-    return {'face': face, 'allowed': skin, 'seeds': skin,
+    return {'face': face, 'allowed': skin, 'seeds': skin, 'labels': labels,
             'method': 'bisenet_resnet18_onnx', 'model': MODEL_ID,
-            'warnings': ['O modelo não possui uma classe específica de barba; pelos faciais podem permanecer na máscara. Não detecta acne, rosácea ou vitiligo.']}
+            'warnings': ['BiSeNet define apenas a anatomia candidata. Exclusões e qualidade são avaliadas separadamente.']}
 
 
 def facial_masks(rgb):
     return masks_from_labels(predict_labels(rgb))
 
 
-def measure_skin(lab, masks):
-    # Todas as regiões classificadas como pele participam, mesmo desconectadas
-    # ou com cores diferentes. Não há crescimento, erosão ou corte por brilho.
-    mask = masks['allowed']
-    return {'mask': mask, 'mean_lab': lab[mask].mean(axis=0)}
+def measure_skin(lab, valid_mask):
+    """Mede exclusivamente a seleção explícita nos pixels Lab preservados."""
+    if valid_mask.dtype != bool or valid_mask.shape != lab.shape[:2]:
+        raise ValueError('A medição requer uma máscara bool alinhada ao Lab.')
+    if not valid_mask.any():
+        raise InsufficientSkinError('A seleção não contém pixels utilizáveis.')
+    pixels = lab[valid_mask]
+    median = np.median(pixels, axis=0)
+    return {'mask': valid_mask, 'mean_lab': pixels.mean(axis=0), 'median_lab': median,
+            'std_lab': pixels.std(axis=0),
+            'dispersion_delta_e76_p90': float(np.percentile(np.linalg.norm(pixels - median, axis=1), 90))}

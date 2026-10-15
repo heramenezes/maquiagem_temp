@@ -5,8 +5,8 @@ import unittest
 import cv2
 import numpy as np
 
-from backend.src.segmentation import rgb_to_lab, facial_masks, adaptive_clusters, grow_skin
-from backend.src.segmentation.skin import ellipse, InsufficientSkinError
+from backend.src.segmentation import rgb_to_lab, adaptive_clusters, grow_skin
+from backend.src.segmentation.skin import ellipse, InsufficientSkinError, facial_masks
 
 
 class ColorTests(unittest.TestCase):

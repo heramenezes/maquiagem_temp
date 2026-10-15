@@ -61,13 +61,18 @@ Se aparecer `[TODOS OS TESTES PASSARAM COM SUCESSO!]`, tá tudo 100%.
 
 O recorte RGB agora é convertido explicitamente para **CIELAB/D65 em ponto
 flutuante**, seguido de **BiSeNet ResNet18 pré-treinado** via ONNX Runtime em CPU.
-O modelo seleciona pele e nariz pixel a pixel. **K-means adaptativo** em a*/b*
-descreve essas cores sem remover pixels da máscara. A API transmite o progresso de cada etapa.
-O frontend mostra o recorte, a máscara, a pele selecionada e sua média CIELAB.
+O modelo seleciona pele e nariz como anatomia candidata. **K-means adaptativo**
+em a*/b* descreve essas cores sem remover pixels. O backend preserva o recorte
+e acrescenta seleção independente antes de medir a cor. A API transmite o progresso.
 
 Olhos, boca, sobrancelhas e cabelo são separados pelo modelo, sem grandes
-exclusões geométricas. Não existe uma classe específica de barba. Acne, rosácea
-e vitiligo ainda não são detectados. ITA, Monk e KNN continuam para a fase seguinte.
+exclusões geométricas. Acne usa U-Net, vitiligo usa YOLO e barba/bigode usam
+EasyPortrait com textura/localização; discordância isolada fica incerta.
+Contraste residual trata outras regiões. Qualidade insuficiente ou especialista
+indisponível impede a medição e retorna os motivos. Rosácea saiu do escopo.
+ITA, Monk e KNN continuam para a fase seguinte. O frontend não foi adaptado
+às novas categorias/estados nesta implementação. A validação anotada e a
+calibração ainda estão pendentes; veja [seleção de pele](../backend/src/skin_selection/README.md).
 
 Veja o [método e os limites](../backend/src/segmentation/README.md), os
 [contratos HTTP](API.md) e os [comandos atuais de execução](../README.md).

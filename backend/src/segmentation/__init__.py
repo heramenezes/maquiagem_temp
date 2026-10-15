@@ -1,4 +1,4 @@
-"""Conversão CIELAB e segmentação semântica; condições dermatológicas ainda não implementadas."""
+"""Conversão CIELAB e anatomia facial; exclusões em skin_selection."""
 
 from .color import rgb_to_lab
 from .semantic import facial_masks, measure_skin

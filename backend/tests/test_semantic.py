@@ -33,7 +33,7 @@ class SemanticTests(unittest.TestCase):
         masks = semantic.masks_from_labels(labels)
         before = masks['allowed'].copy()
         adaptive_clusters(lab, masks)
-        result = semantic.measure_skin(lab, masks)
+        result = semantic.measure_skin(lab, masks['allowed'])
         np.testing.assert_array_equal(result['mask'], before)
         np.testing.assert_allclose(result['mean_lab'], lab[before].mean(axis=0))
 

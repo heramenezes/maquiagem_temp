@@ -2,6 +2,14 @@
 
 Atualizado em **15/10/2026**. Planejamento; nenhuma etapa abaixo foi implementada nesta revisão. Candidatos, fontes, disponibilidade e tradeoffs estão em [PESQUISA_CONDICOES_PELE.md](PESQUISA_CONDICOES_PELE.md).
 
+**Implementação posterior em 15/10/2026:** o backend foi integrado conforme
+[skin_selection/README.md](../backend/src/skin_selection/README.md), usando
+**EasyPortrait para barba/bigode por decisão do usuário**, em lugar de SAM.
+Frontend permanece pendente. Há inferência, máscaras, qualidade, API, testes
+e ferramenta de avaliação offline; anotação do piloto, calibração e validação
+das quatro capacidades ainda são necessárias para cumprir a condição de
+conclusão deste plano. A proposta original abaixo permanece como referência.
+
 ## Objetivo e escopo fechado
 
 Preservar o BiSeNet atual e entregar uma máscara confiável para medir a cor, excluindo:

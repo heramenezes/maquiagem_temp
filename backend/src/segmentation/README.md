@@ -2,8 +2,10 @@
 
 O fluxo atual usa conversão CIELAB, BiSeNet pré-treinado e agrupamento descritivo
 de cores. A segmentação semântica substitui a adaptação anterior por geometria
-e crescimento de regiões das seções 4.1–4.2 do artigo. Não implementa ITA, Monk, KNN,
-acne, rosácea ou vitiligo. Esses resultados permanecem demonstrativos na interface.
+e crescimento de regiões das seções 4.1–4.2 do artigo. A seleção independente
+em [skin_selection](../skin_selection/README.md) acrescenta acne, vitiligo,
+EasyPortrait para candidatos a barba/bigode, contraste residual e qualidade.
+ITA, Monk e recomendações continuam demonstrativos. Rosácea saiu do escopo.
 
 ## Arquivos
 
@@ -13,9 +15,9 @@ acne, rosácea ou vitiligo. Esses resultados permanecem demonstrativos na interf
 - `skin.py`: K-means compartilhado e método geométrico anterior, preservado para comparação acadêmica.
 - `pipeline.py`: execução sequencial, eventos de início/conclusão e prévias PNG.
 
-O detector existente entrega um recorte RGB, não BGR. O pipeline limita esse
-recorte proporcionalmente a 512 pixels por lado para controlar o custo; a
-conversão e as estatísticas seguintes se referem a essa imagem processada.
+O detector existente entrega um recorte RGB, não BGR. O pipeline preserva esse
+recorte após o limite global de 1600 pixels do upload. Somente as vistas das
+redes e o descritor K-means são reduzidos; a medição usa os pixels preservados.
 
 ## Conversão de cor
 
@@ -74,24 +76,25 @@ em CPU, sem treinar nem enviar fotos a terceiros. A procedência está em
 
 A rede recebe RGB 512 × 512 normalizado conforme o modelo e prevê 19 classes.
 A máscara de classes é restaurada ao tamanho do recorte com vizinho mais próximo.
-Os pixels de `skin` (1) e `nose` (10) formam a máscara final, sem dilatação,
+Os pixels de `skin` (1) e `nose` (10) formam a máscara anatômica inicial, sem dilatação,
 erosão, geometria fixa, filtro de brilho ou exigência de conectividade.
 O RGB original é preservado para conversão CIELAB e prévias; o tensor
 normalizado da rede nunca é usado para medir a cor da pele.
 
-K-means continua descrevendo os canais a*/b* com até seis grupos, mas todos
-os pixels da máscara semântica participam das médias, mesmo com cores distintas
-ou em regiões desconectadas. As sementes usadas para a estatística de grupos
-são a própria máscara; não há seleção geométrica de bochechas ou testa.
+K-means continua descrevendo a anatomia antes das exclusões, em uma vista de
+até 512 pixels. Não escolhe a cor válida nem altera máscaras. Somente a
+`valid_mask` da seleção aprovada entra em `measure_skin(lab, valid_mask)`.
+Resultados inconclusivos mantêm máscaras e razões, com médias nulas.
 
-`pixels_pele` conta pele + nariz; `pixels_contorno` conta as regiões faciais
+`pixels_pele` conta a seleção restante; `pixels_contorno` conta as regiões faciais
 previstas (classes 1–6 e 10–13), sem orelhas, pescoço, cabelo e fundo.
 O percentual representa a proporção entre essas duas contagens, não acurácia.
 O campo antigo de pixels recuperados foi removido. As prévias continuam sendo
 recorte RGB, máscara binária e pele RGBA, alinhadas para a sobreposição no frontend.
 
-Na amostra de 133 × 133 pixels, a máscara passou de 1.723 para 5.538 pixels.
-Isso é uma comparação local de área, não uma avaliação anotada de acurácia.
+Na comparação histórica anterior à seleção independente, a amostra de
+133 × 133 pixels passou de 1.723 para 5.538 pixels anatômicos. Isso não é
+uma avaliação anotada de acurácia nem a área da nova máscara válida.
 A rede não possui classe específica de barba, pode errar nas bordas e não
 recupera detalhes ausentes em fotos pequenas. O modelo não detecta doenças.
 

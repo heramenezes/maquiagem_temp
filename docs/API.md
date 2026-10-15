@@ -25,10 +25,12 @@ Regras:
 3. Corrigir EXIF, normalizar ICC para sRGB quando presente e reduzir proporcionalmente para até 1600 × 1600 pixels.
 4. Executar `detectar_e_isolar_rosto` com a matriz BGR em memória.
 5. Se não houver rosto ou forem detectados múltiplos rostos, responder 422 antes da segmentação.
-6. Reduzir o recorte proporcionalmente até 512 pixels, converter RGB para CIELAB/D65,
-   executar BiSeNet ONNX, selecionar pele/nariz e descrever suas cores com K-means.
-   Os grupos de cor não alteram a máscara; as médias usam todos os pixels selecionados.
-7. Se houver pele insuficiente, interromper com `PELE_INSUFICIENTE`.
+6. Preservar o recorte RGB, converter para CIELAB/D65 e executar BiSeNet ONNX.
+   Executar acne, vitiligo e EasyPortrait em vistas do mesmo RGB, restaurar as
+   máscaras e aplicar contraste residual. K-means continua apenas descritivo.
+7. Anatomia insuficiente interrompe com `PELE_INSUFICIENTE`. Seleção insuficiente,
+   incerta ou com especialista indisponível retorna análise inconclusiva com
+   máscaras, razões e médias nulas; não chama a medição.
 8. Retornar medições/máscaras reais e, separadamente, os dados demonstrativos de tom e bases.
 
 O servidor não aceita um parâmetro que desative a pré-verificação. Cada envio
@@ -50,21 +52,22 @@ verifica a própria imagem; nenhuma aprovação anterior é reutilizada.
 }
 ```
 
-Os arrays acima estão abreviados; a resposta atual inclui três produtos, três
-condições e quatro marcações. Esquemas de seus itens:
+Os arrays acima estão abreviados. Fotos enviadas incluem três produtos
+demonstrativos, quatro condições com estados reais e `marcacoes: []`.
+As regiões reais ficam em `preprocessamento.selecao.regions`. Esquemas:
 
 | Campo | Estrutura de cada item |
 |---|---|
 | `recomendacoes` | `id: number`, `marca: string`, `nome: string`, `cor: string`, `hex: string`, `preco: number`, `link: string` |
-| `condicoes` | `id: string`, `nome: string`, `detectada: boolean`, `descricao: string`, `intensidade: string ou null`, `local: string ou null` |
+| `condicoes` | `id: string`, `nome: string`, `detectada: boolean ou null`, `estado: string`, `simulado: false`, `origem: string`, `pixels_excluidos: integer`, `pixels_incertos: integer`; `intensidade`/`local` são null |
 | `marcacoes` | `nome: string`, `x: number`, `y: number`, `largura: number`, `altura: number` |
 
 `preco` é um número decimal em reais, formatado no frontend com `Intl.NumberFormat`.
-As coordenadas das marcações são percentuais do quadro visual, de 0 a 100,
-puramente ilustrativos: não representam coordenadas detectadas na foto.
+Somente `/api/exemplo` mantém marcações ilustrativas em percentuais do quadro
+visual. Fotos analisadas nunca recebem essas marcações fictícias.
 
-`simulado: true` continua indicando que tom, ITA, condições e recomendações
-são fictícios. `precheck` e o novo objeto `preprocessamento` são reais para
+`simulado: true` continua indicando que tom, ITA e recomendações
+são fictícios. Condições, `precheck` e `preprocessamento` são reais para
 fotos enviadas. A média CIELAB calculada da foto fica nesse novo objeto;
 o cartão de tom e a proximidade RGB de produtos ainda usam o exemplo fixo.
 
@@ -99,12 +102,55 @@ Os números ilustram uma execução com a amostra do repositório; variam confor
 a foto e o método. `media_lab` usa L*/a*/b* físicos, não Lab uint8 do OpenCV.
 `pixels_contorno` agora conta as regiões faciais previstas (pele, nariz,
 olhos, sobrancelhas, óculos, boca e lábios), excluindo orelhas e pescoço.
-`percentual_pele` divide pele + nariz por essas regiões, não pela antiga elipse.
+`percentual_pele` divide os pixels restantes de `valid_mask` por essas regiões.
 Não é uma medida de acurácia e não é diretamente comparável ao percentual
 do método geométrico. `clusters` é descritivo: não remove pixels. O campo
 antigo `pixels_recuperados` foi removido, pois não há crescimento de regiões.
 As prévias se referem ao recorte processado. `pele` tem alfa zero nos pixels excluídos. Os arrays
-`avisos` e `etapas` foram abreviados; a execução informa limites e seis etapas.
+`avisos` e `etapas` foram abreviados; a execução informa limites e dez etapas.
+
+### Seleção independente e resultados inconclusivos
+
+`status_analise` é `concluida` ou `inconclusiva`. Em `preprocessamento`:
+
+- `medicao_utilizavel`: aprovação pelos critérios técnicos de qualidade.
+- `media_lab`, `media_rgb`, `mediana_lab`, `desvio_lab` e
+  `dispersao_delta_e76_p90`: estatísticas da seleção aprovada, ou `null`.
+- `clusters_referencia: anatomia_antes_das_exclusoes`: o K-means não é o tom final.
+- `selecao.schema_version: 1` e `coordinate_space: recorte_rgb`.
+- `selecao.masks`: PNGs 0/255 de `anatomical_mask`, `excluded_mask`,
+  `uncertain_mask`, `valid_mask` e `accepted_masks` por motivo.
+- `selecao.module_status`: `acne`, `vitiligo`, `barba`, `outras_regioes`, com
+  `state`, `reason`, `source`, `elapsed_ms`, `evidence`, `detected` e contagens.
+- `selecao.regions`: `reason`, `source`, `state`, `bbox: [x,y,largura,altura]`,
+  `area_pixels`, `evidence_ref`; coordenadas em pixels do recorte, não da foto completa.
+- `selecao.quality`: `decision`, `usable`, `reasons`, `metrics`, `thresholds`,
+  `calibration` e `released_for_monk`.
+- `selecao.model_versions`: fontes, versões, hashes e contratos de processamento.
+- `selecao.debug_masks`: previsões brutas e discordâncias preservadas.
+
+Estados de módulo: `executado`, `indisponivel`, `nao_executado`, `falha`.
+Somente um módulo executado pode devolver `detected: false`; indisponibilidade
+ou falha devolve `null`. `estado_modulo` no progresso expõe a execução real,
+mesmo quando a etapa de avaliação termina. `medidas` informa `nao_executado`
+e `motivo: qualidade_inconclusiva` quando se abstém.
+
+`excluded_percent` e `percent_by_reason` usam `area_denominator:
+pele_anatomica_inicial`. Os motivos podem sobrepor (`reasons_may_overlap: true`);
+seus percentuais não devem ser somados. `valid_mask` é anatomia menos união
+de exclusões e incerteza. A prévia permanece disponível mesmo quando a
+qualidade reprova a medição; `pixels_pele` não implica amostra aprovada.
+
+EasyPortrait não possui classe nominal de barba. `barba` representa candidatos
+por discordância corroborada por textura/localização; discordância isolada
+permanece incerta. As quatro categorias são evidências para seleção cosmética,
+sem diagnóstico. Rosácea não integra o contrato.
+
+Os critérios estão em calibração provisória (`provisoria_sem_validacao_anotada`);
+`released_for_monk` permanece `false`. O backend não implementa Monk nesta fase.
+Veja [seleção de pele](../backend/src/skin_selection/README.md) e
+[instalação dos modelos](../backend/models/README.md). O frontend não foi
+adaptado nesta implementação e ainda não apresenta todos esses estados/campos.
 
 ### Progresso incremental usado pelo frontend
 
@@ -113,13 +159,14 @@ de objetos JSON, separados por `\n`, transmitidos antes/depois de cada operaçã
 Não é SSE, não exige uma segunda requisição nem armazena jobs em memória global.
 
 ```json
-{"tipo":"etapa","concluidas":0,"total":6,"etapas":[{"id":"rosto","nome":"Verificando o rosto","descricao":"Detecção e recorte facial","simulado":false,"estado":"processando"}]}
+{"tipo":"etapa","concluidas":0,"total":10,"etapas":[{"id":"rosto","nome":"Verificando o rosto","descricao":"Detecção e recorte facial","simulado":false,"estado":"processando"}]}
 {"tipo":"resultado","dados":{"precheck":{"executado":true,"rosto_detectado":true}}}
 ```
 
 Neste exemplo, `etapas` e `dados` foram abreviados. Cada evento de etapa contém
-os seis itens, nos estados `aguardando`, `processando` ou `concluida`. IDs:
-`rosto`, `cielab`, `mascara`, `clusters`, `medidas`, `resultado`.
+os dez itens, nos estados `aguardando`, `processando` ou `concluida`. IDs:
+`rosto`, `cielab`, `mascara`, `acne`, `vitiligo`, `barba`, `selecao`,
+`clusters`, `medidas`, `resultado`.
 A última etapa inclui a preparação dos resultados ainda simulados. A fração
 de etapas concluídas não é uma estimativa de tempo restante.
 
@@ -185,6 +232,6 @@ validando os links HTTP/HTTPS. A cópia arquivada no mock não é lida pela apli
 Para integrar ITA/Monk/KNN, substituir a etapa `resultado` em
 `backend/src/segmentation/pipeline.py`, usando `skin['mean_lab']` e a máscara
 de pixels válidos, e atualizar os textos/indicadores de simulação no frontend.
-O fluxo real de segmentação já ocorre antes dessa etapa. Condições da pele e
-processamento distribuído permanecem futuros. Detalhes dos limiares e das
+O fluxo real de seleção já ocorre antes dessa etapa e bloqueia a medição se
+inconclusivo. Processamento distribuído permanece futuro. Detalhes dos limiares e das
 limitações estão no [README da segmentação](../backend/src/segmentation/README.md).

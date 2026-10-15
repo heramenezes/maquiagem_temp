@@ -1,0 +1,9 @@
+# Ambiente separado; não é necessário para servir a API.
+torch==2.7.1
+torchvision==0.22.1
+segmentation-models-pytorch==0.5.0
+ultralytics==8.3.167
+onnx==1.18.0
+onnxruntime==1.31.0
+opencv-python==4.12.0.88
+numpy==2.2.6

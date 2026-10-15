@@ -49,3 +49,8 @@ Thumbs.db
 .test-artifacts/
 backend/models/*.onnx
 backend/models/*.part
+backend/models/*.pth
+backend/models/*.pt
+backend/models/acne_unet.json
+backend/models/vitiligo_yolo.json
+backend/models/.export-config/

@@ -190,7 +190,7 @@ class ApiTests(unittest.TestCase):
         self.assertAlmostEqual(data["percentual_pele"], 100 * data["pixels_pele"] / data["pixels_contorno"], places=2)
         rgba = np.array(Image.open(BytesIO(base64.b64decode(data["previas"]["pele"].split(",")[1]))))
         np.testing.assert_array_equal(rgba[..., 3], mask)
-        self.assertEqual(len(response.json["etapas"]), 6)
+        self.assertEqual(len(response.json["etapas"]), 10)
 
     def test_stream_announces_stage_before_work_and_finishes_in_order(self):
         face = detectar_e_isolar_rosto(str(ROOT / 'samples/imagem_teste.jpeg'))
@@ -205,7 +205,7 @@ class ApiTests(unittest.TestCase):
             remaining = [json.loads(chunk) for chunk in events]
             self.assertEqual(remaining[-1]["tipo"], "resultado")
             stages = [first] + [e for e in remaining if e["tipo"] == "etapa"]
-            self.assertEqual([e["concluidas"] for e in stages], [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6])
+            self.assertEqual([e["concluidas"] for e in stages], [n for i in range(10) for n in (i, i + 1)])
             self.assertTrue(all(s["estado"] == "concluida" for s in remaining[-1]["dados"]["etapas"]))
             response.close()
 
