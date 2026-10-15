@@ -4,7 +4,8 @@ Atualizado em **15/10/2026**. Planejamento; nenhuma etapa abaixo foi implementad
 
 **Implementação posterior em 15/10/2026:** o backend foi integrado conforme
 [skin_selection/README.md](../backend/src/skin_selection/README.md), usando
-**EasyPortrait para barba/bigode por decisão do usuário**, em lugar de SAM.
+**YOLOv8l-seg de prashants975 para barba/bigode por decisão do usuário**, substituindo
+o EasyPortrait. Veja [a implementação adotada](DETECCAO_BARBA.md).
 Frontend integrado com máscaras e estados por categoria. Há inferência, máscaras, qualidade, API, testes
 e ferramenta de avaliação offline; anotação do piloto, calibração e validação
 das três capacidades ainda são necessárias para cumprir a condição de
@@ -80,7 +81,7 @@ Regras:
 - Máscaras de motivos podem se sobrepor. Contar a união uma vez; percentuais por motivo não são somáveis. Se a UI exigir uma cor única por pixel, uma prioridade visual não apaga os motivos originais.
 - Resultado vazio de um modelo executado é diferente de modelo indisponível, não executado ou falha de inferência. Não converter esses estados em “não detectado”.
 - `confidence` de rede não equivale a certeza clínica. Preservar origem da evidência: modelo específico ou discordância entre parsers.
-- EasyPortrait pode sugerir exclusões/áreas incertas, mas sua diferença com BiSeNet não recebe automaticamente o rótulo `barba`.
+- Barba usa a classe explícita `beard` do YOLOv8l-seg; cabelo (`hair`) é ignorado. Não há mais exclusão por discordância entre parsers.
 
 ## Etapas de desenvolvimento e critérios de saída
 
@@ -90,7 +91,7 @@ Regras:
 | 1. Infraestrutura de máscaras | Preservar resolução, transformações, contrato, composição e prévias. Usar máscaras controladas em testes. | Alinhamento e união corretos, sem alterar RGB de medição; falhas explícitas. | Baixo a médio. |
 | 2. Acne | Executar U-Net no ambiente original; comparar máscaras, calibrar e exportar se viável. | Ganho sobre BiSeNet e baseline; falsos positivos e custo aceitáveis. | Médio. |
 | 3. Vitiligo | Avaliar `vitiligon-seg.pt` em faces, negativos e iluminação desigual; auditar classes e máscaras. | Localização facial útil, referência restante adequada e identidade do peso esclarecida. | Médio a alto/incerto. |
-| 4. Barba | Avaliar SAM com prompts automáticos e EasyPortrait como comparação de exclusão. | Barba/bigode identificados sem remover mandíbula inteira; CPU/RAM aceitáveis. | Médio a alto/incerto. |
+| 4. Barba | YOLOv8l-seg de prashants975, classe `beard`, exportado para ONNX. | Barba/bigode identificados sem remover mandíbula inteira; medir qualidade anotada e CPU/RAM. | Integração concluída; validação anotada pendente. |
 | 5. Combinação | Calibrar união, áreas ambíguas, margens e qualidade com especialistas juntos. | Ganho mantido na combinação, sem excesso cumulativo de exclusões. | Médio. |
 | 6. API e interface | Retirar rosácea do produto, exibir três categorias, disponibilidade e máscaras reais. | Sem marcação fictícia em foto analisada; contratos JSON/NDJSON consistentes. | Médio. |
 | 7. Liberação para medição | Congelar versões e validar teste separado, cor e tempo no Windows/CPU. | Só emitir medição utilizável quando a qualidade passar. | Médio. |
@@ -103,7 +104,7 @@ Os esforços são estimativas de engenharia, não prazos medidos. As etapas 2–
 |---|---|
 | U-Net perde acne ou gera muitas exclusões falsas | Comparar SegFormer-B1 nas mesmas fotos. Usar SA-RPN somente se o ganho justificar stack e custo maiores. |
 | YOLO de vitiligo não generaliza para rosto | Buscar esclarecimento técnico do peso/dados; avaliar ajuste supervisionado com máscaras faciais. GloW-VSNet só entra após resolver seu contrato de saída. |
-| SAM de barba lento ou dependente de prompts frágeis | Avaliar treinamento de modelo binário leve. EasyPortrait pode melhorar exclusão, mas não fecha sozinho a detecção nominal. |
+| YOLOv8l de barba lento em CPU ou insuficiente em pelos finos/claros | Medir casos reais e avaliar treinamento de variante menor com anotações locais. |
 | Bordas locais deixam contaminação | Testar GrabCut/margem local nos candidatos; não aumentar erosão de todo o rosto. |
 | Modelo obrigatório indisponível | Informar análise parcial/indisponível e impedir que seja apresentada como seleção completa para Monk. |
 

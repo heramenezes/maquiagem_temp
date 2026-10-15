@@ -1,6 +1,6 @@
 """Converte fontes verificadas para ONNX e exige paridade antes de instalar.
 
-Uso no ambiente separado: python -m backend.export_models acne vitiligo.
+Uso no ambiente separado: python -m backend.export_models acne vitiligo barba.
 Não baixa dependências, pesos ou imagens. A equivalência numérica não valida
 qualidade de segmentação: o piloto anotado continua necessário.
 """
@@ -53,17 +53,18 @@ def prepare_model(key):
     from ultralytics import YOLO
     wrapper = YOLO(str(source), task='segment')
     names = {str(k): v for k, v in wrapper.names.items()}
-    if len(names) != 1 or names['0'].strip().lower() != 'vitiligo':
-        raise ValueError(f'Classes de vitiligo não auditadas: {names}')
+    expected_names = {'0': 'beard', '1': 'hair'} if key == 'barba' else {'0': 'vitiligo'}
+    if names != expected_names:
+        raise ValueError(f'Classes de {key} não auditadas: {names}')
     model = copy.deepcopy(wrapper.model).cpu().float().eval().fuse(verbose=False)
     head = model.model[-1]
-    if head.nc != 1 or head.nm != 32:
+    if head.nc != len(expected_names) or head.nm != 32:
         raise ValueError('Cabeça YOLO incompatível.')
     head.export, head.format, head.dynamic = True, 'onnx', False
-    return model, 416, names
+    return model, 640 if key == 'barba' else 416, names
 
 
-def input_views(key, size):
+def input_views(key, size, validation_images=()):
     rng = np.random.default_rng(204)
     images = [rng.integers(0, 256, (71, 113, 3), dtype=np.uint8),
               np.full((113, 71, 3), [90, 58, 42], np.uint8)]
@@ -72,18 +73,23 @@ def input_views(key, size):
         image = cv2.imread(str(path))
         if image is not None:
             images.append(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    for path in validation_images:
+        image = cv2.imread(str(path))
+        if image is None:
+            raise ValueError(f'Imagem de verificação ilegível: {path}')
+        images.append(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     for rgb in images:
-        view, transform = Transform.prepare(rgb, size, letterbox=key == 'vitiligo')
+        view, transform = Transform.prepare(rgb, size, letterbox=key != 'acne')
         tensor = imagenet_tensor(view) if key == 'acne' else (view.astype(np.float32) / 255).transpose(2, 0, 1)[None]
         yield np.ascontiguousarray(tensor), transform
 
 
-def export(key):
+def export(key, validation_images=()):
     import torch
     import onnxruntime as ort
     asset = ASSETS[key]
     model, size, names = prepare_model(key)
-    views = list(input_views(key, size))
+    views = list(input_views(key, size, validation_images))
     with tempfile.TemporaryDirectory(dir=asset.path.parent) as directory:
         target = Path(directory) / asset.filename
         sample = torch.from_numpy(views[0][0])
@@ -95,7 +101,7 @@ def export(key):
         options = ort.SessionOptions()
         options.intra_op_num_threads = 2
         session = ort.InferenceSession(str(target), sess_options=options, providers=['CPUExecutionProvider'])
-        max_errors, agreements = [], []
+        max_errors, agreements, positive_inputs = [], [], 0
         for tensor, transform in views:
             with torch.inference_mode():
                 expected = model(torch.from_numpy(tensor))
@@ -114,15 +120,24 @@ def export(key):
                     agreement = float((first & second).sum() / union) if union else 1.
                     agreements.append(agreement)
             else:
-                from .src.skin_selection.vitiligo import decode
-                for first, second in zip(decode(expected, transform), decode(actual, transform), strict=True):
+                if key == 'barba':
+                    from .src.skin_selection.beard import decode
+                else:
+                    from .src.skin_selection.vitiligo import decode
+                first_masks, second_masks = decode(expected, transform), decode(actual, transform)
+                positive_inputs += int(any(mask.any() for mask in first_masks))
+                for first, second in zip(first_masks, second_masks, strict=True):
                     union = (first | second).sum()
                     agreements.append(float((first & second).sum() / union) if union else 1.)
         if min(agreements) < .99:
             raise ValueError(f'Máscaras divergentes na exportação: {agreements}')
+        if key == 'barba' and not positive_inputs:
+            raise ValueError('Paridade de barba exige ao menos uma máscara não vazia. '
+                             'Forneça --validation-images com fotos contendo barba/bigode.')
         manifest = {'version': asset.version, 'source_sha256': asset.source_sha256,
                     'sha256': file_sha256(target), 'classes': names, 'opset': 17,
                     'parity_passed': True, 'parity_inputs': len(views),
+                    'positive_mask_inputs': positive_inputs,
                     'max_absolute_error': max(max_errors), 'min_mask_iou': min(agreements),
                     'versions': {package: importlib.metadata.version(package) for package in
                                  ('torch', 'onnx', 'onnxruntime', 'segmentation-models-pytorch', 'ultralytics')},
@@ -137,6 +152,9 @@ def export(key):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('models', nargs='+', choices=['acne', 'vitiligo'])
-    for model_key in parser.parse_args().models:
-        export(model_key)
+    parser.add_argument('models', nargs='+', choices=['acne', 'vitiligo', 'barba'])
+    parser.add_argument('--validation-images', nargs='+', type=Path, default=[],
+                        help='Fotos adicionais para verificar paridade com máscaras não vazias.')
+    args = parser.parse_args()
+    for model_key in args.models:
+        export(model_key, args.validation_images)

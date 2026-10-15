@@ -8,7 +8,7 @@ const fraction = value => typeof value === 'number' ? percent(value * 100) : '�
 const categories = [
   ['acne', 'Acne', 'Áreas apontadas pelo modelo de acne.'],
   ['vitiligo', 'Vitiligo', 'Áreas apontadas pelo modelo de vitiligo.'],
-  ['barba', 'Barba e bigode', 'Candidatos a pelos por EasyPortrait, textura e localização.'],
+  ['barba', 'Barba e bigode', 'Áreas de pelos faciais apontadas pelo modelo de barba.'],
 ];
 const statusNames = { indisponivel: 'Modelo indisponível', falha: 'Falha na análise', nao_executado: 'Não executado' };
 const reasons = {
@@ -54,7 +54,7 @@ export function categoryPreviews(data) {
           ${metric('Regiões de exclusão', executed ? format(regions) : '—')}
           ${metric('Tempo de análise', typeof status?.elapsed_ms === 'number' ? `${format(status.elapsed_ms)} ms` : '—')}
         </dl>
-        ${key === 'barba' ? '<p class="small muted category-note">EasyPortrait não tem uma classe própria de barba. As regiões destacadas são candidatas; discordâncias sem apoio suficiente ficam incertas.</p>' : ''}
+        ${key === 'barba' ? '<p class="small muted category-note">Pelos claros ou muito finos podem gerar regiões incertas. Confira as áreas destacadas na imagem.</p>' : ''}
       </article>`;
     }).join('')}</div>
     <p class="small muted">Os percentuais usam a pele anatômica inicial (${format(selection.anatomical_pixels)} pixels). Uma região pode aparecer em mais de um cartão; a seleção final conta cada pixel uma única vez.</p>

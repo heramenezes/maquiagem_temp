@@ -28,7 +28,7 @@ def serialize_selection(selection, encode):
 def conditions(selection):
     return [{"id": key, "nome": NAMES[key], "simulado": False,
              "detectada": status["detected"], "estado": status["state"],
-             "descricao": ("Candidatos a pelos por EasyPortrait, localização e textura; sem classe específica de barba."
+             "descricao": ("Regiões de barba e bigode apontadas pelo modelo específico de pelos faciais."
                            if key == "barba" else "Regiões candidatas à exclusão da medição de cor; não é diagnóstico."),
              "origem": status["source"], "intensidade": None, "local": None,
              "pixels_excluidos": status["accepted_pixels"], "pixels_incertos": status["uncertain_pixels"]}

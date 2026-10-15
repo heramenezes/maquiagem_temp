@@ -38,15 +38,14 @@ class Asset:
         return data
 
 
-EASY_REVISION = "19e22b9d1bfd87e67b82e4b2749405686aeecba2"
+BEARD_REVISION = "510f0ca6c66d42a1c52add09669fd36ee1e65af0"
 ACNE_REVISION = "f036e69c3a2e87ddbe4dfd4543c9d0ecc9b5ba8c"
 VITILIGO_REVISION = "409da766d3deef87e41545928acac3ab815384ea"
 ASSETS = {
     "bisenet": Asset("bisenet", "resnet18.onnx", MODEL_URL, MODEL_SHA256, MODEL_ID),
-    "barba": Asset("barba", "segformer_b0_fp_512.onnx",
-                   f"https://huggingface.co/sadzip/EasyPortrait-ONNX/resolve/{EASY_REVISION}/segformer_b0_fp_512.onnx",
-                   "6be671f5cd146ecaebc982d6f2598889e804bb3cb90a619fb95842afb7d22d0b",
-                   f"easyportrait-segformer-b0-fp:{EASY_REVISION}"),
+    "barba": Asset("barba", "beard_yolov8l.onnx", "", None, "beard-yolov8l-seg-export-v1",
+                   "6cc66194fe2ab067cced94f9831ea4ac93961d8323ce541193d4eb0aaf9e2e6a",
+                   f"https://raw.githubusercontent.com/prashants975/Beard-Hair-Image-Segmentation/{BEARD_REVISION}/models/best_hair_117_epoch_v4.pt"),
     "acne": Asset("acne", "acne_unet.onnx", "", None, "acne-unet-resnet34-export-v1",
                   "c58a6af6fb622d916e4aa788d9f620d59df4a42209f655ce4a9db49686c05697",
                   f"https://huggingface.co/spaces/RihemXX/Acnes/resolve/{ACNE_REVISION}/Acnes_model.pth"),

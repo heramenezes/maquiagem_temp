@@ -60,6 +60,10 @@ class AssetTests(unittest.TestCase):
                 self.assertEqual(get_session(key).get_providers(), ['CPUExecutionProvider'])
                 self.assertIs(get_session(key), get_session(key))
                 self.assertTrue(result.version['sha256'])
+                if key == 'barba':
+                    self.assertEqual(result.source, 'prashants975_yolov8l_seg')
+                    self.assertTrue(result.evidence['nominal_beard_class'])
+                    self.assertEqual(result.evidence['selected_class'], 0)
         np.testing.assert_array_equal(rgb, original)
 
 

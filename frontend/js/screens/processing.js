@@ -6,7 +6,7 @@ const descriptions = {
   mascara: ['Separando a pele do rosto', 'Identificamos pele e nariz com o BiSeNet.'],
   acne: ['Analisando regiões de acne', 'Separamos as áreas apontadas pelo modelo e suas incertezas.'],
   vitiligo: ['Analisando regiões de vitiligo', 'Localizamos áreas candidatas à exclusão da medição.'],
-  barba: ['Analisando barba e bigode', 'Comparamos o EasyPortrait com a anatomia, a textura e a localização.'],
+  barba: ['Analisando barba e bigode', 'Identificamos os pelos faciais para separar a pele disponível.'],
   selecao: ['Unindo as máscaras', 'Reunimos as exclusões e verificamos a qualidade.'],
   clusters: ['Descrevendo as cores da pele', 'Contamos os grupos de cor sem alterar a seleção.'],
   medidas: ['Avaliando a medição de cor', 'Medimos somente se os pixels restantes passarem pelos critérios de qualidade.'],

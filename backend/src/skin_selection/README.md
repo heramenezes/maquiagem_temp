@@ -1,7 +1,7 @@
 # Seleção independente antes da medição
 
-Backend implementado em 15/10/2026, usando EasyPortrait para candidatos a
-barba e bigode. O frontend exibe máscaras e estados das três categorias. O piloto de 100–200 fotos anotadas por
+Backend atualizado em 15/10/2026, usando YOLOv8l-seg específico para
+barba e bigode (prashants975). O frontend exibe máscaras e estados das três categorias. O piloto de 100–200 fotos anotadas por
 pessoa ainda não existe no repositório: esta implementação é experimental,
 com limiares provisórios, sem declaração de acurácia ou liberação para Monk.
 
@@ -9,7 +9,7 @@ com limiares provisórios, sem declaração de acurácia ou liberação para Mon
 
 1. Preservar o RGB do recorte, após a limitação de upload a 1600 pixels.
 2. BiSeNet define anatomia candidata (pele/nariz); pele perdida não é recuperada.
-3. Acne (U-Net), vitiligo (YOLO) e EasyPortrait recebem vistas do mesmo RGB.
+3. Acne (U-Net), vitiligo (YOLO11n) e barba (YOLOv8l) recebem vistas do mesmo RGB.
 4. Restaurar probabilidades ao recorte antes dos limiares. YOLO registra e
    desfaz letterbox. Rótulos BiSeNet usam vizinho mais próximo.
 5. Compor união, avaliar qualidade e medir somente a `valid_mask` aprovada.
@@ -33,10 +33,11 @@ intra-op e uma inter-op. A orquestração é sequencial.
 Acne: probabilidades ≥0,50 aceitas; [0,20, 0,50) incertas. Vitiligo: confiança
 de instância ≥0,60 aceita; [0,25, 0,60) incerta; máscara usa 0,65/0,35.
 Esses valores são hipóteses iniciais, não calibração no conjunto do projeto.
-Não são probabilidades diagnósticas. EasyPortrait não tem classe nominal
-de barba: a origem da evidência é `discordancia_parsers_com_textura_e_localizacao`.
+Não são probabilidades diagnósticas. Barba usa a classe nominal `beard` (0),
+ignorando `hair` (1), com os mesmos limiares provisórios de confiança/máscara
+do vitiligo. Evidência: `modelo_especifico`, `nominal_beard_class: true`.
 Barba branca/rala, bigode isolado, inclinação, sombras e pigmentação exigem
-validação; sem âncora nasal ou referência de textura, discordâncias ficam incertas.
+validação. O módulo não depende de textura, âncora nasal ou discordância de parsers.
 
 ## Qualidade e cor
 

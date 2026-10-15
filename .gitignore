@@ -53,4 +53,5 @@ backend/models/*.pth
 backend/models/*.pt
 backend/models/acne_unet.json
 backend/models/vitiligo_yolo.json
+backend/models/beard_yolov8l.json
 backend/models/.export-config/

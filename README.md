@@ -19,7 +19,7 @@ Abra http://127.0.0.1:5000. Não abra `frontend/index.html` diretamente pelo exp
 
 Em Linux/macOS, substitua `.venv\Scripts\python` por `.venv/bin/python`.
 
-Para a seleção completa de pele, instale também acne, vitiligo e EasyPortrait
+Para a seleção completa de pele, instale também acne, vitiligo e YOLOv8l-seg de barba
 seguindo [backend/models/README.md](backend/models/README.md). A instalação
 acima inclui somente BiSeNet; sem os especialistas a API informa análise
 inconclusiva e não emite medição. A conversão dos pesos ocorre em ambiente separado.
@@ -34,7 +34,7 @@ inconclusiva e não emite medição. A conversão dos pesos ocorre em ambiente s
 - Sem rosto ou com múltiplos rostos detectados, a API retorna 422 e a interface pede outra foto. Conversão CIELAB, segmentação e resultado não são executados. No stream, o evento de erro informa o status 422.
 - Conversão real sRGB → RGB linear → XYZ → CIELAB (D65), normalizando perfis ICC para sRGB quando presentes.
 - Segmentação semântica com BiSeNet ResNet18 pré-treinado, executada localmente em CPU via ONNX Runtime. Pele e nariz são selecionados pixel a pixel, sem exclusões geométricas grandes. O modelo não tem classe específica de barba.
-- Seleção independente com U-Net para acne, YOLO para vitiligo, EasyPortrait para candidatos a barba/bigode; estados e máscaras reais por módulo.
+- Seleção independente com U-Net para acne, YOLO11n para vitiligo e YOLOv8l-seg específico para barba/bigode; estados e máscaras reais por módulo.
 - K-means descreve a anatomia sem remover pixels. A medição recebe somente a máscara válida aprovada pelos critérios técnicos de qualidade.
 - Progresso real em dez etapas, recorte RGB preservado, prévias e estatísticas; análise inconclusiva mantém máscaras/razões e retorna médias nulas.
 - Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
@@ -144,6 +144,6 @@ A implementação segue o fluxo das seções 4.1–4.2 do artigo do projeto. O K
 Leia [backend/src/segmentation/README.md](backend/src/segmentation/README.md) para fórmulas, parâmetros, referências e limites. Não foram acrescentadas dependências de execução.
 
 O backend do [plano de seleção](docs/PLANO_SELECAO_PELE.md) está implementado
-com EasyPortrait para barba/bigode. Veja o [contrato e os limites](backend/src/skin_selection/README.md).
+com YOLOv8l-seg de prashants975 para barba/bigode. Veja o [contrato e os limites](backend/src/skin_selection/README.md) e a [instalação do especialista](docs/DETECCAO_BARBA.md).
 Os limiares permanecem provisórios: faltam fotos anotadas, calibração e teste
 separado por pessoa para concluir a validação e liberar a medição para Monk.

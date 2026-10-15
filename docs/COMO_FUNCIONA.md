@@ -67,7 +67,9 @@ e acrescenta seleção independente antes de medir a cor. A API transmite o prog
 
 Olhos, boca, sobrancelhas e cabelo são separados pelo modelo, sem grandes
 exclusões geométricas. Acne usa U-Net, vitiligo usa YOLO e barba/bigode usam
-EasyPortrait com textura/localização; discordância isolada fica incerta.
+YOLOv8l-seg de prashants975, selecionando a classe `beard` e ignorando `hair`.
+As máscaras incluem bigode quando previsto como `beard`; confiança intermediária
+permanece incerta. Não há dependência de textura ou âncora nasal.
 Qualidade insuficiente ou especialista
 indisponível impede a medição e retorna os motivos. Rosácea saiu do escopo.
 ITA, Monk e KNN continuam para a fase seguinte. O frontend exibe as três categorias, suas máscaras e seus estados. A validação anotada e a

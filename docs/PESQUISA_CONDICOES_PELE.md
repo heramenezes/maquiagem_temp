@@ -1,5 +1,10 @@
 # Pesquisa: acne, vitiligo e barba antes do tom Monk
 
+> Atualização de implementação em 15/10/2026: foi adotado o YOLOv8l-seg de
+> prashants975, com classes explícitas `beard`/`hair`, substituindo EasyPortrait.
+> A pesquisa abaixo registra as alternativas anteriores. Consulte
+> [a implementação atual e sua verificação](DETECCAO_BARBA.md).
+
 Revisão de **15/10/2026**. Escopo acordado: manter BiSeNet e acrescentar seleção independente de pele para excluir acne, vitiligo, barba e bigode. **Rosácea saiu do escopo.** Não haverá análise específica de maquiagem.
 
 Esta revisão substitui a recomendação anterior. Inclui novas buscas, inspeção de scripts, árvores de arquivos, ponteiros Git LFS e cabeçalhos HTTP. **Não houve execução dos novos modelos, download integral dos pesos ou benchmark local.** Arquivo disponível, qualidade da máscara e adequação ao rosto são evidências diferentes. O planejamento está em [PLANO_SELECAO_PELE.md](PLANO_SELECAO_PELE.md).

@@ -1,5 +1,25 @@
 # Verificação de engenharia — 15/10/2026
 
+## Atualização: especialista de barba adotado
+
+YOLOv8l-seg de prashants975 substitui EasyPortrait. O relatório abaixo desta
+atualização descreve o estado anterior. A exportação atual passou em seis
+entradas (duas com máscaras de pelos não vazias), com menor IoU de máscaras
+PyTorch/ONNX de 1,0 e maior erro absoluto de 0,00164794921875. O runtime da API
+continua ONNX/CPU. Veja [detecção de barba](../docs/DETECCAO_BARBA.md).
+
+Suíte do backend: 79 testes executados, 77 aprovados e dois testes opcionais
+de avaliação ignorados por dependências ausentes. A inferência real dos três
+especialistas e a reutilização das sessões foram verificadas. Isso não valida
+acurácia contra anotações humanas.
+
+Interface: 17 testes Playwright passaram no Edge isolado, incluindo upload real,
+prévias alinhadas, seleção de barba, estados de falha/indisponibilidade e celular.
+`git diff --check` passou. O módulo ONNX gerou máscaras não vazias nos dois
+exemplos adicionais da origem e preservou suas regiões brutas para inspeção.
+
+## Registro anterior (EasyPortrait)
+
 Implementação apenas do backend, sem alterações em `frontend/`.
 
 - 76 testes do backend passaram, incluindo inferência real de BiSeNet,

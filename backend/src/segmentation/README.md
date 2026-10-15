@@ -4,7 +4,7 @@ O fluxo atual usa conversão CIELAB, BiSeNet pré-treinado e agrupamento descrit
 de cores. A segmentação semântica substitui a adaptação anterior por geometria
 e crescimento de regiões das seções 4.1–4.2 do artigo. A seleção independente
 em [skin_selection](../skin_selection/README.md) acrescenta acne, vitiligo,
-EasyPortrait para candidatos a barba/bigode e qualidade.
+YOLOv8l-seg específico para barba/bigode e qualidade.
 ITA, Monk e recomendações continuam demonstrativos. Rosácea saiu do escopo.
 
 ## Arquivos

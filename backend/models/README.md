@@ -13,11 +13,15 @@ Na raiz, com o Python do backend:
 python -m venv .test-artifacts/model-export-env
 .test-artifacts\model-export-env\Scripts\python -m pip install -r backend/requirements-export.txt
 .test-artifacts\model-export-env\Scripts\python -m backend.export_models acne vitiligo
+.test-artifacts\model-export-env\Scripts\python -m backend.export_models barba --validation-images caminho/foto_com_barba.jpg caminho/foto_com_bigode.jpg
 ```
 
 `python -m backend.download_model` continua instalando apenas BiSeNet;
-`python -m backend.download_model barba` instala EasyPortrait. A opção
-`--sources` é necessária para baixar os pesos PyTorch dos dois especialistas.
+`python -m backend.download_model barba --sources` baixa o YOLOv8l-seg de
+barba. Depois exporte-o com `python -m backend.export_models barba
+--validation-images caminho/foto_com_barba.jpg caminho/foto_com_bigode.jpg`.
+A exportação de barba exige ao menos uma previsão não vazia na verificação.
+A opção `--sources` é necessária para baixar os pesos PyTorch dos especialistas.
 Pare o servidor antes de substituir modelos: sessões são reutilizadas até
 reiniciar o processo. A exportação confere SHA-256 das fontes, compara saídas
 PyTorch/ONNX e máscaras em inputs determinísticos e amostras locais, e instala
@@ -30,26 +34,29 @@ ausente/incompatível ou hash incorreto torna o especialista indisponível.
 |---|---|---|---|
 | Acne | [RihemXX/Acnes](https://huggingface.co/spaces/RihemXX/Acnes/tree/f036e69c3a2e87ddbe4dfd4543c9d0ecc9b5ba8c) | RGB/ImageNet, 256², resize | U-Net/ResNet34, logits binários |
 | Vitiligo | [rayronvictor](https://github.com/rayronvictor/vitiligo-segmentation/tree/409da766d3deef87e41545928acac3ab815384ea) | RGB/255, letterbox 416², padding 114 | YOLO11n-seg; classe 0 `vitiligo`, 32 protótipos |
-| Barba/bigode | [EasyPortrait ONNX](https://huggingface.co/sadzip/EasyPortrait-ONNX/tree/19e22b9d1bfd87e67b82e4b2749405686aeecba2) | BGR, resize 512², normalização própria | SegFormer-B0 **fp**, oito classes; não possui classe barba |
+| Barba/bigode | [prashants975/Beard-Hair-Image-Segmentation](https://github.com/prashants975/Beard-Hair-Image-Segmentation/tree/510f0ca6c66d42a1c52add09669fd36ee1e65af0) | RGB/255, letterbox 640², padding 114 | YOLOv8l-seg; classe 0 `beard`, classe 1 `hair` ignorada; 32 protótipos |
 
 SHA-256 das fontes:
 
 - Acne `.pth`: `c58a6af6fb622d916e4aa788d9f620d59df4a42209f655ce4a9db49686c05697`.
 - Vitiligo `.pt`: `9558d5be11e1657f6e6c9d27bc4839f5fa5b2aaeea10868837b45509608e0f09`.
-- EasyPortrait `.onnx`: `6be671f5cd146ecaebc982d6f2598889e804bb3cb90a619fb95842afb7d22d0b`.
+- Barba `.pt`: `6cc66194fe2ab067cced94f9831ea4ac93961d8323ce541193d4eb0aaf9e2e6a`.
 
 O checkpoint de vitiligo foi inspecionado: contém `yolo11n-seg.yaml` e
 somente a classe `vitiligo`. Sua descrição de treino usa uma divisão de
 cross-validation; isso não comprova desempenho facial no projeto.
 
-EasyPortrait usa média BGR `[143.55267075,132.96705975,126.94924335]` e desvio
-`[60.2625333,60.32740275,59.30988645]`. Classes 0/1 são fundo/pele; as demais
-são sobrancelhas, olhos, lábios e dentes. A integração não transforma toda
-discordância com BiSeNet em barba: requer posição inferior ancorada no nariz,
-textura e alta probabilidade de fundo. O restante permanece incerto.
+Barba usa o arquivo `best_hair_117_epoch_v4.pt` (92.276.690 bytes), instalado
+como `beard_yolov8l.pt`; ONNX e manifesto são `beard_yolov8l.onnx/.json`.
+Saídas: detecções `(1,38,8400)` e protótipos `(1,32,160,160)`. Somente propostas
+cuja classe vencedora é `beard` entram no NMS (IoU 0,7; até 100 propostas).
+Confiança ≥0,60 aceita; [0,25,0,60) incerta. Probabilidade de máscara usa
+0,65/0,35. São limiares provisórios. Máscaras são restauradas antes de aplicar
+limiares e a união inclui bigode quando previsto como `beard`. Não há regra
+de textura ou dependência de nariz. Veja [detalhes](../../docs/DETECCAO_BARBA.md).
 
-Procedência/licenças: o código Acnes declara Apache-2.0; a conversão EasyPortrait
-declara Apache-2.0, mas a origem/dados possuem termos próprios. O checkpoint
+Procedência/licenças: o código Acnes declara Apache-2.0; o repositório de barba
+declara MIT, enquanto dados e Ultralytics possuem termos próprios. O checkpoint
 de vitiligo não apresenta licença clara na origem; Ultralytics tem termos
 próprios. Integridade e equivalência numérica não validam qualidade ou
 permissão de distribuição dos pesos. Consulte a pesquisa do projeto antes

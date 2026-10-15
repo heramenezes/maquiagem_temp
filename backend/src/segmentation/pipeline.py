@@ -27,7 +27,7 @@ STAGES = [
     ("mascara", "Segmentando o rosto com BiSeNet", "Modelo pré-treinado: pele, nariz, olhos, lábios e cabelo", False),
     ("acne", "Segmentando áreas de acne", "U-Net/ResNet34: exclusões e áreas incertas", False),
     ("vitiligo", "Segmentando áreas de vitiligo", "YOLO: máscaras de instância no recorte preservado", False),
-    ("barba", "Avaliando barba e bigode", "EasyPortrait: discordância, localização e textura", False),
+    ("barba", "Avaliando barba e bigode", "Segmentação específica de pelos faciais", False),
     ("selecao", "Compondo a seleção de pele", "União de máscaras e avaliação de qualidade", False),
     ("clusters", "Descrevendo as cores da pele", "Agrupamento em a*/b* sem remover pixels da máscara", False),
     ("medidas", "Medindo a pele selecionada", "Estatísticas somente da seleção aprovada pela qualidade", False),

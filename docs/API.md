@@ -26,7 +26,7 @@ Regras:
 4. Executar `detectar_e_isolar_rosto` com a matriz BGR em memória.
 5. Se não houver rosto ou forem detectados múltiplos rostos, responder 422 antes da segmentação.
 6. Preservar o recorte RGB, converter para CIELAB/D65 e executar BiSeNet ONNX.
-   Executar acne, vitiligo e EasyPortrait em vistas do mesmo RGB, restaurar as
+   Executar acne, vitiligo e YOLOv8l-seg de barba em vistas do mesmo RGB, restaurar as
    máscaras e compor a seleção de pele. K-means continua apenas descritivo.
 7. Anatomia insuficiente interrompe com `PELE_INSUFICIENTE`. Seleção insuficiente,
    incerta ou com especialista indisponível retorna análise inconclusiva com
@@ -141,9 +141,11 @@ seus percentuais não devem ser somados. `valid_mask` é anatomia menos união
 de exclusões e incerteza. A prévia permanece disponível mesmo quando a
 qualidade reprova a medição; `pixels_pele` não implica amostra aprovada.
 
-EasyPortrait não possui classe nominal de barba. `barba` representa candidatos
-por discordância corroborada por textura/localização; discordância isolada
-permanece incerta. As quatro categorias são evidências para seleção cosmética,
+`barba` usa YOLOv8l-seg de prashants975, classe nominal `beard` (0); a classe
+`hair` (1) é ignorada. A evidência informa `nominal_beard_class: true`, fonte
+`prashants975_yolov8l_seg` e limiares provisórios de confiança 0,25/0,60 e
+de máscara 0,35/0,65. Bigode participa quando previsto como `beard`.
+As três categorias são evidências para seleção cosmética,
 sem diagnóstico. Rosácea não integra o contrato.
 
 Os critérios estão em calibração provisória (`provisoria_sem_validacao_anotada`);

@@ -108,44 +108,24 @@ class AdapterTests(unittest.TestCase):
         self.assertTrue(result.accepted[:, :29].all())
         self.assertFalse(result.accepted[:, 32:].any())
 
-    def test_easy_bgr_and_eight_class_contract(self):
+    def test_beard_rgb_letterbox_and_two_class_contract(self):
         rgb = np.full((32, 48, 3), [200, 100, 25], np.uint8)
-        logits = np.zeros((1, 8, 512, 512), np.float32)
-        logits[:, 1] = 10
-        with patch.object(beard, 'infer', return_value=[logits]) as infer:
+        original = rgb.copy()
+        outputs = [np.zeros((1, 38, 8400), np.float32), np.zeros((1, 32, 160, 160), np.float32)]
+        with patch.object(beard, 'infer', return_value=outputs) as infer:
             result = beard.detect(rgb, anatomy(rgb.shape[:2]))
-        values = infer.call_args.args[1][0, :, 0, 0]
-        np.testing.assert_allclose(values,
-            (np.array([25, 100, 200]) - [143.55267075, 132.96705975, 126.94924335]) /
-            [60.2625333, 60.32740275, 59.30988645], rtol=1e-5)
+        tensor = infer.call_args.args[1]
+        self.assertEqual(tensor.shape, (1, 3, 640, 640))
+        np.testing.assert_allclose(tensor[0, :, 320, 320], np.array([200, 100, 25]) / 255, rtol=1e-5)
+        np.testing.assert_allclose(tensor[0, :, 0, 0], np.full(3, 114) / 255, rtol=1e-5)
+        np.testing.assert_array_equal(rgb, original)
+        result.validate(rgb.shape[:2])
+        self.assertTrue(result.evidence['nominal_beard_class'])
         self.assertFalse(result.accepted.any())
         self.assertFalse(result.uncertain.any())
-        with patch.object(beard, 'infer', return_value=[np.zeros((1, 19, 512, 512), np.float32)]):
+        with patch.object(beard, 'infer', return_value=[np.zeros((1, 8, 512, 512), np.float32)]):
             with self.assertRaises(ValueError):
                 beard.detect(rgb, anatomy(rgb.shape[:2]))
-
-    def test_parser_disagreement_alone_is_not_beard(self):
-        rgb = np.full((80, 100, 3), 100, np.uint8)
-        masks = anatomy(rgb.shape[:2])
-        masks['labels'] = np.ones(rgb.shape[:2], np.uint8)
-        masks['labels'][30:40, 40:60] = 10
-        result = beard.from_probabilities(rgb, masks, np.ones(rgb.shape[:2]), np.zeros(rgb.shape[:2]))
-        self.assertFalse(result.accepted.any())
-        self.assertTrue(result.uncertain.all())
-        self.assertFalse(result.evidence['nominal_beard_class'])
-
-    def test_beard_needs_lower_face_texture_and_parser_support(self):
-        rgb = np.full((100, 100, 3), 130, np.uint8)
-        rgb[60:90:2, 25:75] = 30
-        masks = anatomy(rgb.shape[:2])
-        masks['labels'] = np.ones(rgb.shape[:2], np.uint8)
-        masks['labels'][30:40, 40:60] = 10
-        background = np.zeros((100, 100), np.float32)
-        background[60:90, 25:75] = 1
-        result = beard.from_probabilities(rgb, masks, background, 1 - background)
-        self.assertGreater(result.accepted.sum(), 100)
-        self.assertFalse(result.accepted[:40].any())
-        self.assertFalse(result.accepted[:, :20].any())
 
     def test_vitiligo_empty_and_letterbox_instance_union(self):
         rgb = np.zeros((60, 120, 3), np.uint8)
