@@ -87,6 +87,28 @@ docs/API.md                    Contratos e ponto de integração futura
 
 A cópia do CSV dentro de `frontend/reference/` é apenas parte do mock arquivado. **Atualize `backend/data/bases.csv`** para alterar o catálogo usado pela aplicação. Ele é relido a cada solicitação.
 
+## CUDA (GPU) opcional
+
+Os especialistas de pele (acne, vitiligo, barba) já são executados em paralelo.
+Se `onnxruntime-gpu` estiver instalado, o `CUDAExecutionProvider` é selecionado
+automaticamente — sem nenhuma alteração no código da aplicação.
+
+O `onnxruntime-gpu` requer **Python 3.10–3.12** e **CUDA 12.x** instalado.
+Use um ambiente virtual separado para não conflitar com o ambiente padrão:
+
+```powershell
+py -3.12 -m venv .venv-cuda
+.venv-cuda\Scripts\python -m pip install -r backend/requirements-cuda.txt
+.venv-cuda\Scripts\python -m backend.download_model
+.venv-cuda\Scripts\python -m backend.app
+```
+
+Para confirmar que a GPU está sendo usada, observe os logs de inicialização:
+`ONNX Runtime: CUDAExecutionProvider disponível — usando GPU.`
+
+Sem `onnxruntime-gpu` (ambiente padrão com `onnxruntime`), o sistema cai
+automaticamente para CPU sem nenhuma mensagem de erro — apenas o log informa.
+
 ## MediaPipe opcional
 
 A instalação padrão funciona com Haar/OpenCV, inclusive no Python 3.13. O import do segmentador anatômico é adiado para não impedir esse uso.

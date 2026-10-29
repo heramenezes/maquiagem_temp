@@ -1,5 +1,11 @@
-"""Sessões ONNX locais verificadas, carregadas uma vez por processo."""
+"""Sessões ONNX locais verificadas, carregadas uma vez por processo.
 
+CUDA é usado automaticamente quando o CUDAExecutionProvider estiver
+disponível no onnxruntime instalado. Caso contrário, a execução cai
+sem ruído para CPUExecutionProvider.
+"""
+
+import logging
 import threading
 
 import numpy as np
@@ -7,8 +13,24 @@ import numpy as np
 from ..segmentation.model_asset import ASSETS, verify_asset
 from ..segmentation.semantic import ModelUnavailableError
 
+logger = logging.getLogger(__name__)
+
 _sessions = {}
 _lock = threading.Lock()
+
+
+def _build_providers():
+    """Retorna a lista de providers preferida: CUDA quando disponível, CPU como fallback."""
+    import onnxruntime as ort
+    available = ort.get_available_providers()
+    if "CUDAExecutionProvider" in available:
+        logger.info("ONNX Runtime: CUDAExecutionProvider disponível — usando GPU.")
+        return [
+            ("CUDAExecutionProvider", {"cudnn_conv_algo_search": "DEFAULT"}),
+            "CPUExecutionProvider",
+        ]
+    logger.info("ONNX Runtime: CUDAExecutionProvider indisponível — usando CPU.")
+    return ["CPUExecutionProvider"]
 
 
 def get_session(key):
@@ -21,8 +43,11 @@ def get_session(key):
                 options = ort.SessionOptions()
                 options.intra_op_num_threads = 2
                 options.inter_op_num_threads = 1
-                _sessions[key] = ort.InferenceSession(str(asset.path), sess_options=options,
-                                                      providers=["CPUExecutionProvider"])
+                _sessions[key] = ort.InferenceSession(
+                    str(asset.path),
+                    sess_options=options,
+                    providers=_build_providers(),
+                )
             except Exception as exc:
                 raise ModelUnavailableError(
                     f"{key}: modelo ausente, inválido ou runtime indisponível. "

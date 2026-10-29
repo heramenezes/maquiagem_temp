@@ -1,6 +1,14 @@
-"""Orquestração sequencial dos especialistas; nenhuma imagem é pintada."""
+"""Orquestração paralela dos especialistas; nenhuma imagem é pintada.
+
+Os três detectores (acne, vitiligo, barba) são despachados simultaneamente
+via ThreadPoolExecutor. Quando o CUDAExecutionProvider estiver disponível
+(onnxruntime-gpu instalado) cada sessão ONNX pode utilizar a GPU; as threads
+permitem que o despacho e a cópia de dados da próxima inferência ocorram
+enquanto a GPU processa a anterior.
+"""
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import perf_counter
 
 from . import acne, vitiligo, beard
@@ -38,5 +46,16 @@ def finish(rgb, lab, anatomy, modules):
 
 
 def select_skin(rgb, lab, anatomy):
-    modules = {key: run_module(key, rgb, anatomy) for key in DETECTORS}
+    """Executa os especialistas em paralelo e compõe a máscara final.
+
+    Cada detector roda em uma thread separada. Se o onnxruntime-gpu estiver
+    instalado, o CUDAExecutionProvider é escolhido automaticamente por
+    runtime._build_providers() e a GPU é compartilhada entre as threads.
+    """
+    modules = {}
+    with ThreadPoolExecutor(max_workers=len(DETECTORS)) as pool:
+        futures = {pool.submit(run_module, key, rgb, anatomy): key for key in DETECTORS}
+        for future in as_completed(futures):
+            key = futures[future]
+            modules[key] = future.result()  # exceções já absorvidas em run_module
     return finish(rgb, lab, anatomy, modules)
