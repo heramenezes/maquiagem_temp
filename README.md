@@ -109,6 +109,8 @@ Para confirmar que a GPU está sendo usada, observe os logs de inicialização:
 Sem `onnxruntime-gpu` (ambiente padrão com `onnxruntime`), o sistema cai
 automaticamente para CPU sem nenhuma mensagem de erro — apenas o log informa.
 
+Veja o guia completo de ativação: [docs/CUDA_SETUP.md](docs/CUDA_SETUP.md).
+
 ## MediaPipe opcional
 
 A instalação padrão funciona com Haar/OpenCV, inclusive no Python 3.13. O import do segmentador anatômico é adiado para não impedir esse uso.
