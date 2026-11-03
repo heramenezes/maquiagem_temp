@@ -10,10 +10,11 @@ from PIL import Image
 from skimage.color import deltaE_ciede2000
 
 from backend.app import create_app
+from backend.src.catalog import load_catalog
 from backend.src.segmentation.color import rgb_to_lab
 from backend.src.tone_matching.analysis import build_analysis
-from backend.src.tone_matching.matching import classify_monk, rank_foundations
-from backend.src.tone_matching.palette import MONK_HEX, hex_to_lab
+from backend.src.tone_matching.matching import rank_foundations, validate_lab
+from backend.src.tone_matching.color import hex_to_lab
 from backend.src.skin_selection.contracts import ModuleResult
 
 
@@ -28,79 +29,70 @@ class ColorMatchingTests(unittest.TestCase):
         distance = deltaE_ciede2000([50, 2.6772, -79.7751], [50, 0, -82.7485])
         self.assertAlmostEqual(float(distance), 2.0425, places=4)
 
-    def test_all_ten_swatches_classify_as_themselves(self):
-        for index, color in enumerate(MONK_HEX, 1):
-            with self.subTest(monk=index):
-                tone = classify_monk(hex_to_lab(color))
-                self.assertEqual(tone["monk"], index)
-                self.assertAlmostEqual(tone["delta_e00"], 0)
-                self.assertEqual(len(tone["distancias_monk"]), 10)
-                self.assertGreater(tone["margem_delta_e00"], 0)
+    def test_hex_conversion_uses_the_same_lab_as_photos(self):
+        for color in ("#FFFFFF", "#000000", "#B4785A", "#E9CEBA"):
+            rgb = np.array([int(color[i:i + 2], 16) for i in (1, 3, 5)], np.uint8)
+            np.testing.assert_allclose(hex_to_lab(color), rgb_to_lab(rgb))
 
     def test_invalid_lab_hex_and_limit_are_rejected(self):
-        self.assertEqual(classify_monk(hex_to_lab("#FFFFFF"))["monk"], 1)
+        np.testing.assert_allclose(validate_lab([100, 0, 0]), [100, 0, 0])
         for lab in ([np.nan, 0, 0], [50, np.inf, 0], [101, 0, 0], [-1, 0, 0], [[50, 0, 0]]):
             with self.subTest(lab=lab), self.assertRaises(ValueError):
-                classify_monk(lab)
+                validate_lab(lab)
         for color in ("a07e56", "#xyz123", "#123", None):
             with self.subTest(color=color), self.assertRaises(ValueError):
                 hex_to_lab(color)
         for limit in (0, -1, True, 1.5):
             with self.subTest(limit=limit), self.assertRaises(ValueError):
-                rank_foundations(hex_to_lab(MONK_HEX[5]), [], limit=limit)
+                rank_foundations(hex_to_lab("#B4785A"), [], limit=limit)
 
-    def test_refinement_within_monk_and_id_tie_break_do_not_mutate_catalog(self):
-        catalog = [product(1, "#a08156"), product(9, MONK_HEX[5]), product(2, MONK_HEX[5])]
+    def test_nearest_color_and_id_tie_break_do_not_mutate_catalog(self):
+        catalog = [product(1, "#a08156"), product(9, "#B4785A"), product(2, "#B4785A")]
         before = json.dumps(catalog, sort_keys=True)
-        _, recommendations = rank_foundations(hex_to_lab(MONK_HEX[5]), catalog)
+        recommendations = rank_foundations(hex_to_lab("#B4785A"), catalog)
         self.assertEqual([p["id"] for p in recommendations], [2, 9, 1])
-        self.assertTrue(all(p["mesmo_monk"] for p in recommendations))
         self.assertEqual(recommendations[0]["delta_e00"], 0)
         self.assertEqual(json.dumps(catalog, sort_keys=True), before)
-        _, reversed_result = rank_foundations(hex_to_lab(MONK_HEX[5]), list(reversed(catalog)))
+        reversed_result = rank_foundations(hex_to_lab("#B4785A"), list(reversed(catalog)))
         self.assertEqual(recommendations, reversed_result)
 
-    def test_complementary_groups_follow_swatch_color_distance(self):
-        catalog = [product(1, MONK_HEX[4]), product(2, MONK_HEX[6]), product(3, MONK_HEX[5])]
-        _, recommendations = rank_foundations(hex_to_lab(MONK_HEX[5]), catalog)
-        self.assertEqual([p["monk"] for p in recommendations], [6, 7, 5])
-        self.assertEqual([p["mesmo_monk"] for p in recommendations], [True, False, False])
-
-    def test_closest_color_wins_even_when_it_belongs_to_another_monk(self):
-        # Pele Monk 7: o candidato Monk 6 mais próximo deve ganhar.
-        tone, recommendations = rank_foundations(hex_to_lab("#916d4f"), [
-            product(1, "#946f50"), product(2, MONK_HEX[6]),
+    def test_ranking_is_global_and_contains_only_direct_color_metadata(self):
+        recommendations = rank_foundations(hex_to_lab("#916D4F"), [
+            product(1, "#946F50"), product(2, "#825C43"), product(3, "#F9ECE7"),
         ])
-        self.assertEqual(tone["monk"], 7)
-        self.assertEqual([p["id"] for p in recommendations], [1, 2])
-        self.assertLess(recommendations[0]["delta_e00"], recommendations[1]["delta_e00"])
-        self.assertFalse(recommendations[0]["mesmo_monk"])
+        self.assertEqual([p["id"] for p in recommendations], [1, 2, 3])
+        distances = [p["delta_e00"] for p in recommendations]
+        self.assertEqual(distances, sorted(distances))
+        self.assertEqual(set(recommendations[0]), set(product(1, "#946F50")) | {"lab", "delta_e00"})
 
     def test_sparse_empty_and_duplicate_catalogs(self):
-        lab = hex_to_lab(MONK_HEX[5])
-        self.assertEqual(rank_foundations(lab, [product(1, MONK_HEX[5])])[1][0]["id"], 1)
-        tone, recommendations = rank_foundations(lab, [])
-        self.assertEqual(tone["monk"], 6)
+        lab = hex_to_lab("#B4785A")
+        self.assertEqual(rank_foundations(lab, [product(1, "#B4785A")])[0]["id"], 1)
+        recommendations = rank_foundations(lab, [])
         self.assertEqual(recommendations, [])
         with self.assertRaises(ValueError):
-            rank_foundations(lab, [product(1, MONK_HEX[5]), product(1, MONK_HEX[6])])
+            rank_foundations(lab, [product(1, "#B4785A"), product(1, "#825C43")])
 
-    def test_color_change_changes_both_tone_and_ranking(self):
-        catalog = [product(i, color) for i, color in enumerate(MONK_HEX, 1)]
-        for index in (2, 6, 9):
-            tone, recommendations = rank_foundations(hex_to_lab(MONK_HEX[index - 1]), catalog)
-            self.assertEqual(tone["monk"], index)
+    def test_color_change_changes_the_nearest_product(self):
+        colors = ["#E9CEBA", "#B4785A", "#604134"]
+        catalog = [product(i, color) for i, color in enumerate(colors, 1)]
+        for index, color in enumerate(colors, 1):
+            recommendations = rank_foundations(hex_to_lab(color), catalog)
             self.assertEqual(recommendations[0]["id"], index)
+            self.assertEqual(recommendations[0]["delta_e00"], 0)
             self.assertEqual(len(recommendations), 3)
 
     def test_quality_warning_keeps_real_tone_and_recommendations(self):
         mask = np.ones((20, 20), bool)
         for usable in (False, True):
-            skin = {"median_lab": hex_to_lab(MONK_HEX[5]), "mask": mask}
+            skin = {"median_lab": hex_to_lab("#B4785A"), "mask": mask}
             selection = {"quality": {"usable": usable, "reasons": [] if usable else ["nitidez_insuficiente"]},
                          "valid_mask": mask}
             result = build_analysis(skin, selection, 400)
-            self.assertEqual(result["tom"]["monk"], 6)
+            np.testing.assert_allclose(result["tom"]["lab"], skin["median_lab"])
+            self.assertEqual(set(result["tom"]), {"lab", "cor_pele_hex", "pele_utilizada"})
+            self.assertEqual(result["schema_version"], 3)
+            self.assertNotIn("monk", json.dumps(result).lower())
             self.assertEqual(len(result["recomendacoes"]), 3)
             self.assertEqual(result["match"]["status"], "calculado")
             self.assertEqual(result["match"]["confianca_reduzida"], not usable)
@@ -111,10 +103,18 @@ class ColorMatchingTests(unittest.TestCase):
         selection = {"quality": {"usable": True, "reasons": []}, "valid_mask": np.ones((20, 20), bool)}
         with patch("backend.src.tone_matching.analysis.load_catalog", return_value=[]):
             with self.assertRaisesRegex(ValueError, "catálogo"):
-                build_analysis({"median_lab": hex_to_lab(MONK_HEX[5])}, selection, 800)
+                build_analysis({"median_lab": hex_to_lab("#B4785A")}, selection, 800)
 
 
 class MatchingApiTests(unittest.TestCase):
+    def test_example_has_the_new_color_contract_without_classification(self):
+        result = create_app({"TESTING": True}).test_client().get('/api/exemplo').json
+        self.assertEqual(result['schema_version'], 3)
+        self.assertEqual(set(result['tom']), {'lab', 'cor_pele_hex', 'pele_utilizada'})
+        self.assertNotIn('monk', json.dumps(result).lower())
+        self.assertEqual(result['recomendacoes'], rank_foundations(
+            result['tom']['lab'], load_catalog()))
+
     def analyze(self, color, *, stream=False, fail=False, empty_anatomy=False):
         base = np.array([int(color[i:i + 2], 16) for i in (1, 3, 5)])
         noise = np.random.default_rng(1).integers(-3, 4, (100, 160, 1))
@@ -155,12 +155,13 @@ class MatchingApiTests(unittest.TestCase):
         return result, rgb
 
     def test_json_ndjson_use_only_approved_pixels_and_have_same_match(self):
-        plain, rgb = self.analyze(MONK_HEX[5])
-        streamed, _ = self.analyze(MONK_HEX[5], stream=True)
+        plain, rgb = self.analyze("#B4785A")
+        streamed, _ = self.analyze("#B4785A", stream=True)
         self.assertEqual(plain["tom"], streamed["tom"])
         self.assertEqual(plain["match"], streamed["match"])
         self.assertEqual(plain["recomendacoes"], streamed["recomendacoes"])
-        self.assertEqual(plain["tom"]["monk"], 6)
+        self.assertEqual(plain["schema_version"], 3)
+        self.assertNotIn("monk", json.dumps(plain).lower())
         np.testing.assert_allclose(plain["preprocessamento"]["mediana_lab"],
                                    np.median(rgb_to_lab(rgb[:, 40:]), axis=(0, 1)), atol=1e-4)
         np.testing.assert_allclose(plain["tom"]["lab"], plain["preprocessamento"]["medicao_regional"]["lab"])
@@ -177,17 +178,16 @@ class MatchingApiTests(unittest.TestCase):
         json.dumps(plain, allow_nan=False)
 
     def test_different_photos_change_recommendations(self):
-        light, _ = self.analyze(MONK_HEX[2])
-        dark, _ = self.analyze(MONK_HEX[7])
-        self.assertEqual(light["tom"]["monk"], 3)
-        self.assertEqual(dark["tom"]["monk"], 8)
+        light, _ = self.analyze("#E9CEBA")
+        dark, _ = self.analyze("#604134")
+        self.assertGreater(light["tom"]["lab"][0], dark["tom"]["lab"][0])
         self.assertNotEqual([p["id"] for p in light["recomendacoes"]],
                             [p["id"] for p in dark["recomendacoes"]])
 
     def test_no_segmented_skin_still_recommends_in_json_and_ndjson(self):
         for stream in (False, True):
             with self.subTest(stream=stream):
-                result, rgb = self.analyze(MONK_HEX[5], stream=stream, empty_anatomy=True)
+                result, rgb = self.analyze("#B4785A", stream=stream, empty_anatomy=True)
                 self.assertEqual(len(result['recomendacoes']), 3)
                 self.assertIn('pele_nao_segmentada', result['match']['motivos'])
                 self.assertIn('regiao_facial_aproximada', result['match']['motivos'])
@@ -207,7 +207,7 @@ class MatchingApiTests(unittest.TestCase):
     def test_failed_specialist_recommends_with_warning_in_json_and_ndjson(self):
         for stream in (False, True):
             with self.subTest(stream=stream):
-                result, _ = self.analyze(MONK_HEX[5], stream=stream, fail=True)
+                result, _ = self.analyze("#B4785A", stream=stream, fail=True)
                 self.assertEqual(result["status_analise"], "concluida")
                 self.assertIsNotNone(result["tom"])
                 self.assertEqual(len(result["recomendacoes"]), 3)

@@ -1,5 +1,9 @@
 # Plano: seleção independente de pele antes da medição de cor
 
+> Plano histórico: as menções à futura etapa Monk abaixo foram superadas.
+> Abandonamos a escala e adotamos match direto pele/base em Lab; veja o
+> [README atual](../README.md#por-que-abandonamos-monk) e o [contrato v3](API.md).
+
 Atualizado em **15/10/2026**. Planejamento; nenhuma etapa abaixo foi implementada nesta revisão. Candidatos, fontes, disponibilidade e tradeoffs estão em [PESQUISA_CONDICOES_PELE.md](PESQUISA_CONDICOES_PELE.md).
 
 **Implementação posterior em 15/10/2026:** o backend foi integrado conforme

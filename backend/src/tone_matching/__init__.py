@@ -1,5 +1,5 @@
-"""Classificação Monk e recomendação de bases com refinamento em Lab/D65."""
+"""Recomendação direta de bases por diferença de cor em Lab/D65."""
 
-from .matching import classify_monk, rank_foundations
+from .matching import rank_foundations
 
-__all__ = ["classify_monk", "rank_foundations"]
+__all__ = ["rank_foundations"]

@@ -5,8 +5,8 @@ de cores. A segmentação semântica substitui a adaptação anterior por geomet
 e crescimento de regiões das seções 4.1–4.2 do artigo. A seleção independente
 em [skin_selection](../skin_selection/README.md) acrescenta acne, vitiligo,
 YOLOv8l-seg específico para barba/bigode e qualidade.
-Monk e recomendações usam Lab regional ponderado, com fallback para a mediana
-global; veja [o contrato do match](../tone_matching/README.md). ITA fica nulo.
+As recomendações usam Lab regional ponderado, com fallback para a mediana
+global; veja [o contrato do match](../tone_matching/README.md).
 Rosácea saiu do escopo.
 
 ## Arquivos

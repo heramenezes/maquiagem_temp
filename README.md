@@ -46,19 +46,41 @@ A pré-verificação conta as detecções válidas antes do recorte: zero rostos
 
 Uploads combinam medianas Lab da testa e das bochechas por qualidade e consenso,
 com fallback para a mediana global quando não há regiões suficientes ou acordo.
-O ranking ordena todo o catálogo por CIEDE2000 pele/base; Monk é descritivo e
-não altera a ordem. A API informa métricas regionais e sensibilidade do top 3.
+O ranking ordena todo o catálogo diretamente por CIEDE2000 pele/base, sem
+classes intermediárias. A API informa métricas regionais e sensibilidade do top 3.
 Qualidade reduzida mantém o tom e as bases com aviso.
-ITA fica `null`; não participa dessa estratégia. O resultado é experimental,
+O resultado é experimental,
 sem correção de iluminação ou validação de bases aplicadas na pele.
 
-A interface mostra o tom estimado, a cor medida da foto, a referência Monk e
+A interface mostra a cor estimada da pele na foto e
 as bases na ordem enviada pelo backend, com preços, links e diferenças de cor.
 Análises com ressalvas mostram um único aviso no topo, explicando todos os fatores
 que podem tornar o tom incorreto. A estimativa continua usando pixels reais da foto.
 `/api/exemplo` continua usando fixtures de `backend/src/mock_analysis.py`,
 identificadas como demonstrativas. Não há percentual de compatibilidade inventado.
 Veja o [algoritmo e contrato](backend/src/tone_matching/README.md).
+
+### Por que abandonamos Monk
+
+**Abandonamos completamente o uso da escala Monk no backend e no frontend.**
+O objetivo do projeto é recomendar bases pela proximidade de cor com a pele,
+não atribuir à pessoa uma das dez categorias da escala. Classificar o pixel
+medido pelo HEX Monk mais próximo não foi validado como equivalente à avaliação
+do tom da pessoa: iluminação, câmera e vermelhidão podem alterar a cor observada
+e produzir um número de tom enganoso. A discretização também não fornece o
+ajuste fino necessário para comparar as cores das bases.
+
+Uma versão anterior priorizava bases do mesmo grupo Monk; depois passamos ao
+ranking direto por ΔE00 e mantivemos Monk apenas descritivo. Esta remoção final
+preserva esse ranking direto e elimina a classificação, as referências e os
+grupos da API e da interface. **Não significa que o match passou a ser calibrado:**
+iluminação, amostragem de pele e HEX do catálogo continuam sendo limitações.
+Confirmar a adequação exige dados de avaliação e testes com bases aplicadas.
+
+A resposta HTTP agora usa `schema_version: 3`: `tom` contém somente `lab`,
+`cor_pele_hex` e `pele_utilizada`; produtos incluem `lab` e `delta_e00`.
+Campos da escala, distâncias a referências e agrupamentos foram removidos.
+O frontend exige o novo contrato; atualize backend e frontend em conjunto.
 
 ## Avisos de precisão e recomendação contínua
 
@@ -143,7 +165,7 @@ backend/
   src/preprocessing/            Detectores e isolamento existentes
   src/segmentation/             Conversão, BiSeNet, estatísticas de cor e eventos
   src/skin_selection/           Especialistas, composição e qualidade
-  src/tone_matching/             Monk + ranking CIEDE2000 em Lab
+  src/tone_matching/             Ranking direto pele/base por CIEDE2000 em Lab
   src/distributed/               Etapa futura
   tests/test_api.py              Testes HTTP e integração com o detector
 frontend/
@@ -244,4 +266,4 @@ Leia [backend/src/segmentation/README.md](backend/src/segmentation/README.md) pa
 O backend do [plano de seleção](docs/PLANO_SELECAO_PELE.md) está implementado
 com YOLOv8l-seg de prashants975 para barba/bigode. Veja o [contrato e os limites](backend/src/skin_selection/README.md) e a [instalação do especialista](docs/DETECCAO_BARBA.md).
 Os limiares permanecem provisórios: faltam fotos anotadas, calibração e teste
-separado por pessoa para concluir a validação e liberar a medição para Monk.
+separado por pessoa para concluir a validação do match direto pele/base.

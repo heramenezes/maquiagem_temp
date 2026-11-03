@@ -168,12 +168,6 @@ main:focus { outline: 0; }
 .palette-panel { background: #edf2e9; border: 1px solid #e0e8da; border-radius: 16px; padding: 26px; }
 .palette-panel h2 { font-size: 1.7rem; }
 .palette-panel p { color: var(--muted); font-size: .82rem; }
-.scale { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; align-items: end; }
-.scale-item { display: flex; flex-direction: column; gap: 9px; text-align: center; color: #64715f; font-size: .61rem; }
-.scale-color { height: 48px; background: var(--swatch); border-radius: 5px; }
-.scale-item.selected { color: var(--dark); font-weight: 800; }
-.scale-item.selected .scale-color { height: 62px; outline: 2px solid var(--accent); outline-offset: 3px; }
-.scale-legend { display: flex; justify-content: space-between; margin-top: 16px; color: #64715f; font-size: .59rem; }
 
 /* Captura e revisão. */
 .intro { max-width: 700px; margin-bottom: 24px; gap: 10px; }
@@ -319,41 +313,33 @@ main:focus { outline: 0; }
 .tone-card { display: flex; flex-direction: row; align-items: center; gap: 21px; padding: 26px; background: #edf2e9; border-color: #dde7d5; }
 .tone-card .tight { gap: 6px; }
 .tone-swatch { width: 85px; height: 112px; flex-shrink: 0; background: var(--swatch); border-radius: 10px; }
-.tone-value { font-size: 1.85rem; line-height: 1.2; font-weight: 800; letter-spacing: -.04em; }
+.tone-value { overflow-wrap: anywhere; font-size: 1.85rem; line-height: 1.2; font-weight: 800; letter-spacing: -.04em; }
 .tone-card .eyebrow { font-size: .58rem; }
 .tone-card .small { font-size: .67rem; }
 .tone-metrics { padding-top: 5px; color: #64715f; font-size: .62rem; line-height: 1.7; }
 .tone-color-sample { display: grid; gap: 6px; flex-shrink: 0; text-align: center; }
 .tone-color-sample>span { font-size: .6rem; color: #64715f; }
-.tone-reference { display: flex; align-items: center; gap: 7px; font-size: .65rem; color: #64715f; }
-.tone-reference .mini-swatch { width: 16px; height: 16px; }
 .tone-card>div { min-width: 0; }
 .result-summary .tone-result { width: 100%; max-width: 700px; margin-inline: auto; padding: 24px 28px; flex-direction: column; gap: 20px; }
 .tone-result-main { display: flex; align-items: center; justify-content: center; gap: 24px; }
-.tone-result .tone-value { font-size: clamp(2.25rem, 4vw, 3rem); line-height: 1.05; }
+.tone-result .tone-value { overflow-wrap: anywhere; font-size: clamp(2.25rem, 4vw, 3rem); line-height: 1.05; }
 .tone-result .eyebrow { font-size: .65rem; }
-.tone-result .tone-reference { margin-top: 4px; font-size: .7rem; }
-.tone-scale-context { width: 100%; border-top: 1px solid #d6e2d0; padding-top: 16px; }
-.tone-scale-context p { max-width: 52ch; margin: 0 auto 16px; text-align: center; font-size: .78rem; line-height: 1.6; color: var(--muted); }
-.tone-scale-context strong { color: var(--ink); font-weight: 600; }
-.tone-scale-labels { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin-bottom: 10px; font-size: .65rem; color: var(--muted); }
-.tone-scale-labels>span:nth-child(2) { color: var(--dark); font-weight: 600; }
+.tone-context { width: 100%; border-top: 1px solid #d6e2d0; padding-top: 16px; }
+.tone-context p { max-width: 52ch; margin: 0 auto 16px; text-align: center; font-size: .78rem; line-height: 1.6; color: var(--muted); }
+.tone-context strong { color: var(--ink); font-weight: 600; }
 @media (min-width: 992px) {
-  .result-summary .tone-result { max-width: none; display: grid; grid-template-columns: 290px minmax(0, 1fr); padding: 18px 24px; gap: 24px; }
+  .result-summary .tone-result { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 18px 24px; gap: 24px; }
   .tone-result-main { justify-content: flex-start; gap: 18px; }
   .tone-result .tone-swatch { width: 72px; height: 96px; }
-  .tone-result .tone-value { font-size: 2.5rem; }
-  .tone-result .tone-scale-context { border-top: 0; border-left: 1px solid #d6e2d0; padding: 0 0 0 24px; }
-  .tone-result .tone-scale-context p { max-width: none; text-align: left; font-size: .75rem; line-height: 1.5; margin-bottom: 12px; }
-  .tone-result .result-scale .scale-color { height: 26px; }
-  .tone-result .result-scale .scale-item.selected .scale-color { height: 34px; }
+  .tone-result .tone-value { overflow-wrap: anywhere; font-size: 2.5rem; }
+  .tone-result .tone-context { border-top: 0; border-left: 1px solid #d6e2d0; padding: 0 0 0 24px; }
+  .tone-result .tone-context p { max-width: none; text-align: left; font-size: .75rem; line-height: 1.5; margin-bottom: 12px; }
 }
 @media (max-width: 575.98px) {
   .result-summary .tone-result { padding: 20px 16px; gap: 16px; }
   .tone-result-main { gap: 16px; }
   .tone-result .tone-swatch { width: 66px; height: 88px; }
-  .tone-result .tone-reference { font-size: .63rem; }
-  .tone-scale-context p { font-size: .73rem; }
+  .tone-context p { font-size: .73rem; }
 }
 .match-reasons { padding-left: 18px; font-size: .75rem; line-height: 1.5; color: #64715f; }
 .match-warning { padding: 18px 20px; background: #faf5e9; border: 1px solid #dfcfaa; border-radius: 14px; }
@@ -377,9 +363,6 @@ main:focus { outline: 0; }
 }
 .product-match { display: grid; gap: 5px; padding-top: 9px; border-top: 1px solid #edf0e7; }
 .product-match .small { font-size: .7rem; }
-.result-scale { padding-top: 4px; }
-.result-scale .scale-color { height: 34px; }
-.result-scale .scale-item.selected .scale-color { height: 45px; }
 .recommendations-section { background: #f0f4ed; border-block: 1px solid #e5ebdf; }
 .recommendations-section .section { padding-block: 20px; gap: 14px; }
 .recommendations-section h2 { font-size: 1.5rem; }
@@ -562,10 +545,6 @@ main:focus { outline: 0; }
   .palette-panel { padding: 25px 21px; }
   .palette-panel h2 { font-size: 1.55rem; }
   .palette-panel p { font-size: .77rem; }
-  .scale { gap: 4px; }
-  .scale-color { height: 42px; border-radius: 4px; }
-  .scale-item { font-size: .52rem; }
-  .scale-legend { font-size: .52rem; }
   .intro { margin-bottom: 25px; }
   .intro>p { font-size: .87rem; }
   .drop-zone { min-height: 360px; padding: 31px 17px 27px; }
@@ -592,8 +571,6 @@ main:focus { outline: 0; }
   .result-title .tag { font-size: .59rem; }
   .tone-card { padding: 23px; }
   .tone-swatch { width: 80px; height: 104px; }
-  .result-scale .scale-color { height: 31px; }
-  .result-scale .scale-item.selected .scale-color { height: 42px; }
   .product-grid { grid-template-columns: 1fr; gap: 20px; }
   .product-card { max-width: 460px; width: 100%; margin-inline: auto; }
   .product-art { min-height: 132px; }

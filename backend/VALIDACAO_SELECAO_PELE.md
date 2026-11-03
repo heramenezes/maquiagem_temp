@@ -77,5 +77,5 @@ divisão por pessoa, calibração de limiares e análise estratificada por tom,
 luz e condição. A ferramenta `backend.evaluate_selection` está pronta para
 essas comparações; não foi usada para fabricar uma referência de avaliação.
 
-`quality.calibration` permanece provisória e `released_for_monk` permanece
-`false`. Frontend e conversão para Monk continuam fora desta implementação.
+`quality.calibration` permanece provisória e `released_for_matching` permanece
+`false`. A validação da acurácia do match direto pele/base continua pendente.

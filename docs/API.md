@@ -31,8 +31,9 @@ Regras:
 7. Avaliar a qualidade para gerar ressalvas, sem impedir a medição. Seleção vazia
    usa pele com incertezas ou pele antes das exclusões. BiSeNet indisponível ou
    sem pixels de pele usa região central aproximada do rosto, com motivo explícito.
-8. Usar a mediana Lab da seleção disponível para classificar o tom Monk e
-   recomendar bases por grupo Monk com refinamento CIEDE2000 em Lab.
+8. Combinar as medianas Lab da testa e das bochechas por qualidade e consenso,
+   com fallback para a mediana global. Ordenar todo o catálogo diretamente por
+   CIEDE2000 pele/base, sem classes intermediárias.
    Toda análise concluída retorna `tom` e pelo menos uma recomendação.
 
 O servidor não aceita um parâmetro que desative a pré-verificação. Cada envio
@@ -42,12 +43,11 @@ verifica a própria imagem; nenhuma aprovação anterior é reutilizada.
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "simulado": false,
   "exemplo": false,
   "precheck": {"executado": true, "rosto_detectado": true},
-  "tom": {"monk": 6, "hex": "#a07e56", "ita": null, "pele_utilizada": 74},
-  "escala_monk": ["#f6ede4", "#f3e7db", "#f7ead0", "#eadaba", "#d7bd96", "#a07e56", "#825c43", "#604134", "#3a312a", "#292420"],
+  "tom": {"lab": [55.96, 20.05, 26.01], "cor_pele_hex": "#b4785a", "pele_utilizada": 74},
   "catalogo_total": 281,
   "recomendacoes": [],
   "match": {"status": "calculado", "experimental": true, "validado": false},
@@ -63,7 +63,7 @@ As regiões reais ficam em `preprocessamento.selecao.regions`. Esquemas:
 
 | Campo | Estrutura de cada item |
 |---|---|
-| `recomendacoes` | Dados do catálogo: `id`, `marca`, `nome`, `cor`, `hex`, `preco`, `link`; acrescenta `monk`, `lab`, `delta_e00`, `mesmo_monk`, `delta_e00_monk` |
+| `recomendacoes` | Dados do catálogo: `id`, `marca`, `nome`, `cor`, `hex`, `preco`, `link`, `imagem`; acrescenta `lab` e `delta_e00` pele/base |
 | `condicoes` | `id: string`, `nome: string`, `detectada: boolean ou null`, `estado: string`, `simulado: false`, `origem: string`, `pixels_excluidos: integer`, `pixels_incertos: integer`; `intensidade`/`local` são null |
 | `marcacoes` | `nome: string`, `x: number`, `y: number`, `largura: number`, `altura: number` |
 
@@ -73,14 +73,17 @@ visual. Fotos analisadas nunca recebem essas marcações fictícias.
 
 Uploads retornam `simulado: false`: tom e produtos dependem da medição real.
 Isso não implica validação de acurácia: `match.experimental` é `true` e
-`match.validado` é `false`. ITA é `null` e não participa do cálculo.
-`tom.hex` identifica o swatch Monk; `tom.cor_pele_hex` representa a cor medida.
-`tom.lab` contém a mediana da máscara efetivamente medida; `distancias_monk` contém as dez
-distâncias ΔE00, e `margem_delta_e00` indica ambiguidade, sem ser probabilidade.
+`match.validado` é `false`. `tom.cor_pele_hex` representa a aproximação sRGB da
+cor estimada. `tom.lab` contém a combinação regional ou a mediana global usada
+no fallback; `tom.pele_utilizada` informa a proporção da máscara efetivamente medida.
 
-O ranking prioriza o mesmo Monk, refinando por ΔE00 pele/base. Se faltarem
-produtos, usa outros grupos pela distância entre swatches Monk, com refinamento
-em cada grupo. `match.grupos_complementares_utilizados` identifica esse caso.
+O ranking usa somente ΔE00 pele/base e ID para desempate. O contrato v3 remove
+Monk, sua escala e seus metadados, além de ITA. Veja a
+[justificativa do abandono](../README.md#por-que-abandonamos-monk).
+`match.metodo` é `regional-ciede2000-lab-v3` e `criterio_ranking` é
+`delta_e00_pele_base_depois_id`. `match.sensibilidade_regional` inclui
+`avaliada`, `top3_por_regiao` e `ranking_varia`, comparando os IDs e sua ordem.
+`match.catalogo_sha256` identifica o catálogo normalizado usado na comparação.
 Não há limiar máximo de adequação calibrado ou porcentagem de compatibilidade.
 `match.status` é sempre `calculado`. `match.motivos` preserva todas as ressalvas;
 `match.confianca_reduzida` indica se existem motivos, sem representar probabilidade.
@@ -91,8 +94,9 @@ As ressalvas, comparadores e limiares numéricos estão no
 Um único aviso no topo explica os motivos e compara `quality.metrics` com
 `quality.thresholds`, mantendo o tom e os produtos visíveis.
 
-A interface só aceita resultados com tom e bases. Respostas antigas sem
-recomendações são recusadas antes da tela final. `/api/exemplo` continua demonstrativo.
+A interface exige `schema_version: 3`, cor estimada e bases com Lab e ΔE00
+finitos. Respostas antigas, simuladas em uploads ou sem recomendações são
+recusadas antes da tela final. `/api/exemplo` continua demonstrativo.
 
 ### Pré-processamento real
 
@@ -140,6 +144,9 @@ As prévias se referem ao recorte processado. `pele` tem alfa zero nos pixels ex
 - `origem_medicao`: `pele_valida`, `pele_com_incertezas` ou `pele_antes_exclusoes`.
 - `media_lab`, `media_rgb`, `mediana_lab`, `desvio_lab` e
   `dispersao_delta_e76_p90`: estatísticas dos pixels efetivamente medidos.
+- `medicao_regional`: estimador, cor final Lab, geometria, dispersão entre regiões,
+  motivos e métricas por região (bbox no recorte, pixels, clipping, mediana,
+  dispersão e peso). No fallback para a mediana global, os pesos são zero.
 - `clusters_referencia: anatomia_antes_das_exclusoes`: o K-means não é o tom final.
 - `selecao.schema_version: 1` e `coordinate_space: recorte_rgb`.
 - `selecao.masks`: PNGs 0/255 de `anatomical_mask`, `excluded_mask`,
@@ -150,7 +157,7 @@ As prévias se referem ao recorte processado. `pele` tem alfa zero nos pixels ex
 - `selecao.regions`: `reason`, `source`, `state`, `bbox: [x,y,largura,altura]`,
   `area_pixels`, `evidence_ref`; coordenadas em pixels do recorte, não da foto completa.
 - `selecao.quality`: `decision`, `usable`, `reasons`, `metrics`, `thresholds`,
-  `calibration` e `released_for_monk`. `decision` é `aprovada` ou `com_ressalvas`;
+  `calibration` e `released_for_matching`. `decision` é `aprovada` ou `com_ressalvas`;
   `usable` indica ausência de ressalvas, sem controlar a execução da medição.
 - `selecao.model_versions`: fontes, versões, hashes e contratos de processamento.
 - `selecao.debug_masks`: previsões brutas e discordâncias preservadas.
@@ -178,7 +185,7 @@ As três categorias são evidências para seleção cosmética,
 sem diagnóstico. Rosácea não integra o contrato.
 
 Os critérios estão em calibração provisória (`provisoria_sem_validacao_anotada`);
-`released_for_monk` permanece `false`. O backend não implementa Monk nesta fase.
+`released_for_matching` permanece `false`: ainda não há validação anotada do match.
 Veja [seleção de pele](../backend/src/skin_selection/README.md) e
 [instalação dos modelos](../backend/models/README.md). O frontend mostra as
 prévias anatômicas, três cartões de exclusão com incertezas e a seleção final
@@ -200,7 +207,7 @@ Neste exemplo, `etapas` e `dados` foram abreviados. Cada evento de etapa contém
 os dez itens, nos estados `aguardando`, `processando` ou `concluida`. IDs:
 `rosto`, `cielab`, `mascara`, `acne`, `vitiligo`, `barba`, `selecao`,
 `clusters`, `medidas`, `resultado`.
-A última etapa calcula o match experimental Monk/Lab. A fração
+A última etapa calcula o match experimental direto pele/base em Lab. A fração
 de etapas concluídas não é uma estimativa de tempo restante.
 
 Existe exatamente um evento terminal de sucesso (`resultado`) ou erro:
@@ -249,6 +256,8 @@ Retorna a mesma estrutura, com `exemplo: true` e:
 {"precheck": {"executado": false, "rosto_detectado": null}}
 ```
 
+Usa `schema_version: 3`, `simulado: true`, uma cor fixa ilustrativa em
+`tom.lab`/`tom.cor_pele_hex` e o mesmo ranking direto por ΔE00. Não inclui `match`.
 Não recebe imagem nem executa o detector/segmentação. Não inclui o objeto
 `preprocessamento`. A interface mostra uma silhueta ilustrativa, identificando
 a ausência de pré-verificação.
@@ -260,9 +269,9 @@ a ausência de pré-verificação.
 `catalog.py` converte nomes de campos, preços com vírgula e cores hexadecimais,
 validando os links HTTP/HTTPS. A cópia arquivada no mock não é lida pela aplicação.
 
-Monk e o ranking CIEDE2000 estão integrados à etapa `resultado` em
-`backend/src/segmentation/pipeline.py`, usando `skin['median_lab']` da máscara
-efetivamente medida. ITA permanece fora dessa estratégia. O frontend apresenta
+O ranking CIEDE2000 está integrado à etapa `resultado` em
+`backend/src/segmentation/pipeline.py`, usando a medição regional ponderada ou a
+mediana global no fallback. O frontend apresenta
 os resultados reais e preserva a distinção entre foto e exemplo demonstrativo.
 O fluxo real mantém a medição e o match mesmo com ressalvas de qualidade.
 Processamento distribuído permanece futuro. Detalhes dos limiares e das

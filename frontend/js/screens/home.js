@@ -1,7 +1,7 @@
-import { mascot, notice, scale, icon } from './shared.js';
+import { mascot, notice, icon } from './shared.js';
 
-// Referência visual da escala, não um resultado de análise.
-const MONK = ['#f6ede4','#f3e7db','#f7ead0','#eadaba','#d7bd96','#a07e56','#825c43','#604134','#3a312a','#292420'];
+// Cores decorativas, sem classes ou numeração de tons de pele.
+const COLORS = ['#F4D3C2', '#EFC0A3', '#D49C75', '#A86F50', '#694431'];
 
 export function home(state) {
   return `${state.error ? `<div class="container section">${notice(state.error)}</div>` : ''}
@@ -20,7 +20,7 @@ export function home(state) {
         <div class="col-lg-5 hero-art">
           <div class="hero-art-heading"><span class="eyebrow">Uma ajudinha para se encontrar</span><span class="art-star" aria-hidden="true">✳</span></div>
           <div class="mascot-stage">${mascot}<span class="mascot-caption">Oi, eu sou a Tonzinha!</span></div>
-          <div class="hero-art-footer"><div class="mini-palette" aria-hidden="true">${MONK.filter((_, i) => i % 2 === 0).map(color => `<span style="--swatch:${color}"></span>`).join('')}</div><span>Todos os tons.<br>O seu também.</span></div>
+          <div class="hero-art-footer"><div class="mini-palette" aria-hidden="true">${COLORS.map(color => `<span style="--swatch:${color}"></span>`).join('')}</div><span>Todos os tons.<br>O seu também.</span></div>
         </div>
       </div>
       <p class="demo-caption">${icon('info')} <span>Estimamos seu tom pela foto e comparamos com as cores do catálogo. O resultado é experimental e depende da iluminação.</span></p>
@@ -33,5 +33,5 @@ export function home(state) {
         <div class="col-md-4"><article class="card how-card"><div class="how-card-top"><span class="how-icon">${icon('sparkle')}</span><span class="how-number">03</span></div><h3>Conheça suas opções</h3><p>Veja seu tom estimado e até três bases selecionadas pela cor da sua pele.</p><span class="how-caption">Cor, preço e link em um só lugar</span></article></div>
       </div>
     </section>
-    <section class="container palette-section"><div class="palette-panel"><div class="row align-items-center g-4 g-lg-5"><div class="col-lg-5 stack tight"><span class="eyebrow">Beleza sem um tom só</span><h2>Feito para todos os tons.</h2><p>A Escala Monk reúne 10 tons de pele. Uma referência para valorizar toda essa diversidade.</p></div><div class="col-lg-7">${scale(MONK)}<div class="scale-legend"><span>Mais claro</span><span>Escala Monk</span><span>Mais escuro</span></div></div></div></div></section>`;
+    <section class="container palette-section"><div class="palette-panel"><div class="row align-items-center g-4 g-lg-5"><div class="col-lg-5 stack tight"><span class="eyebrow">Beleza sem um tom só</span><h2>Uma cor que combina com você.</h2></div><div class="col-lg-7"><p>Comparamos a cor estimada pela sua foto diretamente com as cores das bases. Você recebe até três opções para conhecer e testar na pele.</p><p class="small muted">Uma boa foto ajuda: prefira luz uniforme, sem filtros e sem maquiagem.</p></div></div></div></section>`;
 }

@@ -1,5 +1,8 @@
 # Pesquisa: acne, vitiligo e barba antes do tom Monk
 
+> Pesquisa histórica: Monk foi posteriormente abandonado. A seleção de pele
+> alimenta o match direto em Lab. Veja o [README atual](../README.md#por-que-abandonamos-monk).
+
 > Atualização de implementação em 15/10/2026: foi adotado o YOLOv8l-seg de
 > prashants975, com classes explícitas `beard`/`hair`, substituindo EasyPortrait.
 > A pesquisa abaixo registra as alternativas anteriores. Consulte

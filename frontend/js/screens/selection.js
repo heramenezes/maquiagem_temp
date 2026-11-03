@@ -82,7 +82,7 @@ export function finalSelection(data) {
       <div class="col-lg-7 stack">
         <div class="card selection-quality" data-quality="${quality?.usable ? 'approved' : 'with-warnings'}">
           <span class="tag">Medição realizada</span>
-          <p>Estes pixels foram usados para estimar seu tom Monk e comparar as cores das bases.</p>
+          <p>Estes pixels foram usados para estimar a cor da sua pele e comparar as cores das bases.</p>
           <dl class="selection-metrics final-metrics">
             ${metric('Pixels restantes', format(metrics.native_pixels ?? data.pixels_pele))}
             ${metric('Pixels usados na medição', format(data.pixels_pele))}

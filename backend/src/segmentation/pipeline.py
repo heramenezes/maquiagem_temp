@@ -32,7 +32,7 @@ STAGES = [
     ("selecao", "Compondo a seleção de pele", "União de máscaras e avaliação de qualidade", False),
     ("clusters", "Descrevendo as cores da pele", "Agrupamento em a*/b* sem remover pixels da máscara", False),
     ("medidas", "Medindo a pele selecionada", "Medição regional de testa e bochechas com pesos de qualidade", False),
-    ("resultado", "Correlacionando pele e bases", "Ranking direto pele/base por CIEDE2000; classificação Monk descritiva", False),
+    ("resultado", "Correlacionando pele e bases", "Comparação direta entre a cor da pele e as bases por CIEDE2000", False),
 ]
 
 

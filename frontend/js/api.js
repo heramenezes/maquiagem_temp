@@ -78,11 +78,14 @@ export async function analyzePhoto(file, signal, onProgress) {
   if (!result.preprocessamento.selecao?.masks?.anatomical_mask || !result.preprocessamento.selecao?.masks?.valid_mask) {
     throw new ApiError('O servidor não enviou as máscaras da seleção de pele. Reinicie o backend atualizado e tente novamente.', 'SELECAO_AUSENTE');
   }
-  const validTone = result.tom && Number.isInteger(result.tom.monk) && result.tom.monk >= 1 && result.tom.monk <= 10
-    && /^#[0-9a-f]{6}$/i.test(result.tom.cor_pele_hex) && /^#[0-9a-f]{6}$/i.test(result.tom.hex);
+  const validLab = lab => Array.isArray(lab) && lab.length === 3 && lab.every(Number.isFinite)
+    && lab[0] >= 0 && lab[0] <= 100;
+  const validTone = result.tom && /^#[0-9a-f]{6}$/i.test(result.tom.cor_pele_hex) && validLab(result.tom.lab);
   const status = result.match?.status;
-  const validMatch = result.schema_version === 2 && result.simulado === false && result.exemplo === false
-    && Array.isArray(result.escala_monk) && result.escala_monk.length === 10 && Array.isArray(result.recomendacoes)
+  const validMatch = result.schema_version === 3 && result.simulado === false && result.exemplo === false
+    && Array.isArray(result.recomendacoes)
+    && result.recomendacoes.every(product => /^#[0-9a-f]{6}$/i.test(product.hex)
+      && validLab(product.lab) && Number.isFinite(product.delta_e00) && product.delta_e00 >= 0)
     && validTone && result.preprocessamento.medicao_utilizavel === true
     && status === 'calculado' && result.recomendacoes.length > 0;
   if (!validMatch) {

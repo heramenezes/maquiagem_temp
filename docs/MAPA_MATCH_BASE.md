@@ -1,5 +1,10 @@
 # Mapa para implementar o match de pele com base
 
+> Registro histórico anterior à integração do match. O diagnóstico abaixo não
+> descreve o código atual: o ranking direto em Lab está implementado e Monk foi
+> abandonado. Consulte o [README atual](../README.md#por-que-abandonamos-monk)
+> e o [contrato v3](API.md).
+
 Inspeção em 03/11/2026. Este documento distingue implementação existente,
 validação pendente e proposta de evolução. Não altera o comportamento da aplicação.
 

@@ -70,9 +70,12 @@ exclusões geométricas. Acne usa U-Net, vitiligo usa YOLO e barba/bigode usam
 YOLOv8l-seg de prashants975, selecionando a classe `beard` e ignorando `hair`.
 As máscaras incluem bigode quando previsto como `beard`; confiança intermediária
 permanece incerta. Não há dependência de textura ou âncora nasal.
-Qualidade insuficiente ou especialista
-indisponível impede a medição e retorna os motivos. Rosácea saiu do escopo.
-ITA, Monk e KNN continuam para a fase seguinte. O frontend exibe as três categorias, suas máscaras e seus estados. A validação anotada e a
+Qualidade insuficiente ou especialista indisponível gera ressalvas, mantendo a
+medição e as recomendações. Rosácea saiu do escopo. A cor regional ponderada
+(ou a mediana global no fallback) é comparada diretamente com as bases por
+CIEDE2000. A escala Monk foi abandonada; veja [a justificativa](../README.md#por-que-abandonamos-monk).
+O frontend exibe a cor estimada, as bases e as três categorias de exclusão,
+suas máscaras e seus estados. A validação anotada e a
 calibração ainda estão pendentes; veja [seleção de pele](../backend/src/skin_selection/README.md).
 
 Veja o [método e os limites](../backend/src/segmentation/README.md), os

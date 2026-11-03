@@ -6,8 +6,8 @@ Inicie `python -m backend.app` com as dependências instaladas e acesse http://1
 
 - `index.html`: cabeçalho, navegação e ponto de montagem das telas.
 - `js/app.js`: estado da sessão, seleção de foto, navegação e tratamento de eventos.
-- `js/api.js`: único ponto de acesso à API; `fetch`, leitura incremental de NDJSON, timeout de 90 segundos e cancelamento. Valida segmentação, máscaras e contrato de match real v2; respostas antigas/simuladas ou inconsistentes preservam a foto para nova tentativa com o backend atualizado.
-- `js/screens/tone_results.js`: cor medida da foto separada da referência Monk, escala selecionada e até três produtos na ordem do backend. Mostra diferença de cor ΔE00, preço/link e uso de grupos complementares. Sempre exibe tom e bases; ressalvas de precisão aparecem num único aviso no topo. O modo de exemplo permanece identificado como demonstrativo.
+- `js/api.js`: único ponto de acesso à API; `fetch`, leitura incremental de NDJSON, timeout de 90 segundos e cancelamento. Valida segmentação, máscaras e contrato de match direto v3, com Lab e ΔE00 finitos; respostas antigas/simuladas ou inconsistentes preservam a foto para nova tentativa com o backend atualizado.
+- `js/screens/tone_results.js`: cor estimada da pele e até três produtos na ordem do backend. Mostra diferença de cor ΔE00, preço e link. Não há classificação numérica de tom ou agrupamento de produtos. Ressalvas de precisão aparecem num único aviso no topo. O modo de exemplo permanece identificado como demonstrativo.
 - `js/screens/`: início, captura, revisão, processamento e resultado.
 - `js/screens/preprocessing.js`: preserva as três imagens básicas — recorte, máscara anatômica e pele inicial — antes das exclusões.
 - `js/screens/selection.js`: cartões de acne, vitiligo e barba/bigode, com pixels, percentuais, regiões, tempo e disponibilidade. A imagem final mostra os pixels realmente medidos, incluindo a região alternativa quando necessária, sem repetir o aviso de precisão. Diferencia pixels da seleção estrita dos usados na medição.
@@ -21,7 +21,7 @@ Inicie `python -m backend.app` com as dependências instaladas e acesse http://1
 - `reference/`: mock original, preservado como referência; não é servido pela aplicação.
 - `tests/test_browser.py`: testes de interface com Playwright.
 
-Os resultados e produtos vêm da API; a escala na página inicial é uma referência visual estática. Bootstrap e a fonte Archivo são carregados do próprio servidor, inclusive sem internet. O Bootstrap é usado apenas pelo CSS: não há dependência de seu JavaScript.
+Os resultados e produtos vêm da API; as amostras decorativas da página inicial não classificam tons de pele. A escala Monk foi abandonada; veja a justificativa no [README principal](../README.md#por-que-abandonamos-monk). Bootstrap e a fonte Archivo são carregados do próprio servidor, inclusive sem internet. O Bootstrap é usado apenas pelo CSS: não há dependência de seu JavaScript.
 
 Quando houver ressalvas, `js/screens/match_warning.js` apresenta um único aviso no topo com todos os motivos,
 ações sugeridas e nomes/estados dos especialistas que não concluíram. O detalhe

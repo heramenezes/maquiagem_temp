@@ -117,14 +117,12 @@ class BrowserTests(unittest.TestCase):
     def test_real_tone_and_products_use_api_colors_values_and_order(self):
         data, _, _ = selection_fixture()
         self.show_fixture(data)
-        expect(self.page.locator('.tone-value')).to_have_text(f"Tom {data['tom']['monk']:02d}")
+        expect(self.page.locator('.tone-value')).to_have_text("Cor estimada da pele")
         expect(self.page.locator('.tone-card')).to_have_attribute('data-tone-state', 'measured')
-        expect(self.page.locator('.result-scale .selected')).to_have_attribute(
-            'aria-label', f"Tom {data['tom']['monk']:02d} estimado selecionado")
+        self.assertNotIn('Monk', self.page.locator('main').inner_text())
         color = data['tom']['cor_pele_hex']
         expected_rgb = 'rgb(' + ', '.join(str(int(color[i:i + 2], 16)) for i in (1, 3, 5)) + ')'
         self.assertEqual(self.page.locator('.tone-swatch').evaluate('el => getComputedStyle(el).backgroundColor'), expected_rgb)
-        self.assertNotEqual(data['tom']['cor_pele_hex'], data['tom']['hex'])
         for index, product in enumerate(data['recomendacoes']):
             card = self.page.locator('.product-card').nth(index)
             expect(card).to_have_attribute('data-product-id', str(product['id']))
@@ -160,7 +158,7 @@ class BrowserTests(unittest.TestCase):
     def test_next_photo_replaces_tone_and_recommendations(self):
         light, _, _ = selection_fixture(base_rgb=(234, 218, 186))
         dark, _, _ = selection_fixture(base_rgb=(96, 65, 52))
-        self.assertNotEqual(light['tom']['monk'], dark['tom']['monk'])
+        self.assertNotEqual(light['tom']['cor_pele_hex'], dark['tom']['cor_pele_hex'])
         self.show_fixture(light)
         first_ids = self.page.locator('.product-card').evaluate_all('cards => cards.map(c => c.dataset.productId)')
         self.page.locator("#header-action").click()
@@ -170,13 +168,13 @@ class BrowserTests(unittest.TestCase):
             status=200, content_type='application/json', body=json.dumps(dark)))
         self.page.locator('#gallery-input').set_input_files(str(ROOT / 'samples/imagem_teste.jpeg'))
         self.page.get_by_role('button', name='Enviar para análise').click()
-        expect(self.page.locator('.tone-value')).to_have_text(f"Tom {dark['tom']['monk']:02d}")
+        expect(self.page.locator('.tone-value')).to_have_text("Cor estimada da pele")
         self.assertNotEqual(first_ids, self.page.locator('.product-card').evaluate_all('cards => cards.map(c => c.dataset.productId)'))
 
     def test_unavailable_specialist_shows_one_top_warning_and_keeps_recommendations(self):
         data, _, _ = selection_fixture({'barba': 'indisponivel'})
         self.show_fixture(data)
-        expect(self.page.locator('.tone-value')).to_have_text(f"Tom {data['tom']['monk']:02d}")
+        expect(self.page.locator('.tone-value')).to_have_text("Cor estimada da pele")
         expect(self.page.locator('.match-reasons')).to_contain_text('Uma das análises necessárias')
         expect(self.page.get_by_role('alert')).to_contain_text('Barba e bigode: indisponível')
         expect(self.page.get_by_role('alert')).to_have_count(1)
@@ -184,7 +182,7 @@ class BrowserTests(unittest.TestCase):
         title_box = self.page.locator('#match-warning-title').bounding_box()
         header_box = self.page.locator('.site-header').bounding_box()
         self.assertGreaterEqual(title_box['y'], header_box['y'] + header_box['height'])
-        expect(self.page.locator('.result-scale .selected')).to_have_count(1)
+        self.assertNotIn('Monk', self.page.locator('main').inner_text())
         expect(self.page.locator('.product-card')).to_have_count(3)
         self.assertNotIn('Precisamos de outra foto', self.page.locator('main').inner_text())
 
@@ -252,16 +250,13 @@ class BrowserTests(unittest.TestCase):
         np.testing.assert_array_equal(final[:, :, :3][selected['measurement_mask']], rgb[selected['measurement_mask']])
         self.assertFalse(selected['valid_mask'].any())
 
-    def test_single_candidate_and_complementary_group_are_explained(self):
+    def test_single_candidate_shows_direct_color_distance(self):
         data, _, _ = selection_fixture()
         data['recomendacoes'] = data['recomendacoes'][:1]
-        data['recomendacoes'][0]['mesmo_monk'] = False
-        data['match']['grupos_complementares_utilizados'] = True
         self.show_fixture(data)
         expect(self.page.get_by_role('heading', name='Sua opção de base')).to_be_visible()
         expect(self.page.locator('.product-card')).to_have_count(1)
-        expect(self.page.locator('.product-match')).to_contain_text('Grupo complementar')
-        expect(self.page.locator('.recommendations-section')).to_contain_text('conforme a proximidade de cor com a sua pele')
+        expect(self.page.locator('.product-match')).to_contain_text('Diferen')
 
     def test_old_simulated_match_is_rejected_and_keeps_photo(self):
         data, _, _ = selection_fixture()
@@ -271,6 +266,17 @@ class BrowserTests(unittest.TestCase):
             status=200, content_type='application/json', body=json.dumps(data)))
         self.page.get_by_role('button', name='Enviar para análise').click()
         expect(self.page.get_by_role('alert')).to_contain_text('O servidor não enviou um resultado válido de tom e bases')
+        expect(self.page.get_by_alt_text('Prévia da foto selecionada')).to_be_visible()
+        expect(self.page.locator('.product-card')).to_have_count(0)
+
+    def test_previous_schema_is_rejected_and_keeps_photo(self):
+        data, _, _ = selection_fixture()
+        data['schema_version'] = 2
+        self.select_sample()
+        self.page.route('**/api/analises', lambda route: route.fulfill(
+            status=200, content_type='application/json', body=json.dumps(data)))
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.get_by_role('alert')).to_contain_text('O servidor não enviou um resultado válido')
         expect(self.page.get_by_alt_text('Prévia da foto selecionada')).to_be_visible()
         expect(self.page.locator('.product-card')).to_have_count(0)
 
@@ -437,6 +443,8 @@ class BrowserTests(unittest.TestCase):
     def test_example_and_marks(self):
         self.page.get_by_role("button", name="Ver um exemplo", exact=True).click()
         expect(self.page.get_by_text("Exemplo de resultado", exact=True)).to_be_visible()
+        self.assertNotIn('Monk', self.page.locator('main').inner_text())
+        expect(self.page.locator('.tone-value')).to_have_text('Cor demonstrativa')
         expect(self.page.locator(".notice").first).to_contain_text("não enviou uma foto")
         # Bootstrap também define .mark; as marcações não podem cobrir a foto.
         self.assertEqual(self.page.locator(".mark").first.evaluate("el => getComputedStyle(el).backgroundColor"), "rgba(0, 0, 0, 0)")

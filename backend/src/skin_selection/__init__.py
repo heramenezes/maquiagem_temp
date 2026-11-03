@@ -1,1 +1,1 @@
-"""Seleção de pixels para cor; não fornece diagnóstico ou classificação Monk."""
+"""Seleção de pixels para medição de cor; não fornece diagnóstico."""

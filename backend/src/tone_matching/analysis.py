@@ -8,7 +8,6 @@ from skimage.color import lab2rgb
 
 from ..catalog import load_catalog
 from .matching import METHOD_VERSION, rank_foundations
-from .palette import MONK_HEX, PALETTE_SOURCE, PALETTE_VERSION
 
 
 def build_analysis(skin, selection, face_pixels):
@@ -26,31 +25,30 @@ def build_analysis(skin, selection, face_pixels):
         "metodo": METHOD_VERSION,
         "estimador": regional["estimador"] if regional else "mediana_lab",
         "espaco_cor": "CIELAB", "branco_referencia": "D65",
-        "paleta_versao": PALETTE_VERSION, "paleta_fonte": PALETTE_SOURCE,
         "catalogo_sha256": fingerprint,
         "criterio_ranking": "delta_e00_pele_base_depois_id",
         "experimental": True, "validado": False,
         "limiar_aceitacao_delta_e00": None,
         "avisos": [
-            "Classificação da cor observada; não corrige iluminação ou balanço de branco.",
+            "Estimativa da cor observada; não corrige iluminação ou balanço de branco.",
             "Comparação com HEX do catálogo, sem validação de bases aplicadas na pele.",
-            "Critérios de seleção e classificação Monk ainda não validados com anotações humanas.",
+            "Critérios de seleção e recomendação ainda não validados com bases aplicadas na pele.",
             "Regiões faciais e pesos de qualidade são heurísticos, sem validação de acurácia.",
         ],
     }
     result = {
-        "schema_version": 2, "simulado": False, "exemplo": False,
+        "schema_version": 3, "simulado": False, "exemplo": False,
         "precheck": {"executado": True, "rosto_detectado": True},
-        "tom": None, "escala_monk": list(MONK_HEX), "catalogo_total": len(catalog),
+        "tom": None, "catalogo_total": len(catalog),
         "recomendacoes": [], "match": match,
     }
     # A máscara efetivamente medida pode incluir um fallback documentado.
     lab = regional["lab"] if regional else skin["median_lab"]
-    tone, recommendations = rank_foundations(lab, catalog)
+    recommendations = rank_foundations(lab, catalog)
     regional_rankings = []
     for region in regional["regioes"] if regional else []:
         if region["lab"] is not None:
-            _, candidates = rank_foundations(region["lab"], catalog)
+            candidates = rank_foundations(region["lab"], catalog)
             regional_rankings.append({"regiao": region["nome"],
                                       "ids": [p["id"] for p in candidates]})
     ids = [p["id"] for p in recommendations]
@@ -60,16 +58,13 @@ def build_analysis(skin, selection, face_pixels):
         "ranking_varia": len(regional_rankings) >= 2 and any(r["ids"] != ids for r in regional_rankings),
     }
     rgb = np.rint(lab2rgb(np.asarray(lab, dtype=np.float64)) * 255).astype(np.uint8)
-    tone.update(
+    tone = dict(
         lab=np.asarray(lab, dtype=float).tolist(),
         cor_pele_hex="#{:02x}{:02x}{:02x}".format(*rgb),
-        ita=None,  # ITA não participa desta implementação; nenhum valor demonstrativo.
         pele_utilizada=round(100 * int(skin["mask"].sum()) / max(face_pixels, 1), 2),
     )
     result.update(tom=tone, recomendacoes=recommendations)
-    fallback = any(not product["mesmo_monk"] for product in recommendations)
     reasons = list(dict.fromkeys([*quality["reasons"], *(regional["motivos"] if regional else [])]))
     match.update(status="calculado", motivos=reasons,
-                 confianca_reduzida=bool(reasons),
-                 grupos_complementares_utilizados=fallback)
+                 confianca_reduzida=bool(reasons))
     return result

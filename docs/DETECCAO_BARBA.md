@@ -62,6 +62,6 @@ Isso verifica a conversão, não acurácia contra máscaras humanas.
 Ainda é necessário medir contaminação residual, pele saudável removida, erro
 de cor, negativos, diferentes tons/luzes e latência em conjunto representativo.
 O YOLOv8l é a variante Large; não se promete tempo real em CPU. Acne e vitiligo
-mantêm seus modelos. Os critérios de qualidade e a não liberação para Monk
+mantêm seus modelos. Os critérios de qualidade e a ausência de validação do match
 continuam vigentes. O repositório de origem declara MIT; confira também os
 termos de Ultralytics e dos dados antes de redistribuir os pesos.

@@ -5,25 +5,22 @@ O catálogo é real; a recomendação deste exemplo é simulada.
 """
 
 from .catalog import load_catalog
-from .tone_matching.palette import MONK_HEX
-
-MONK = list(MONK_HEX)
+from .tone_matching.color import hex_to_lab
+from .tone_matching.matching import rank_foundations
 
 
 def generate_analysis(*, example=False):
-    # Proximidade RGB ao TOM FIXO da demonstração, não à foto do usuário.
-    def distance(product):
-        color = product["hex"].lstrip("#")
-        channels = [int(color[i:i + 2], 16) for i in (0, 2, 4)]
-        return sum((v - t) ** 2 for v, t in zip(channels, (160, 126, 86)))
-
+    # Cor fixa ilustrativa; não é inferida de uma foto enviada pelo usuário.
+    color = "#B4785A"
+    lab = hex_to_lab(color)
     catalog = load_catalog()
-    recommendations = sorted(catalog, key=lambda p: (distance(p), p["id"]))[:3]
+    recommendations = rank_foundations(lab, catalog)
     return {
+        "schema_version": 3,
         "simulado": True, "exemplo": example,
         "precheck": {"executado": not example, "rosto_detectado": None if example else True},
-        "tom": {"monk": 6, "hex": MONK[5], "ita": 22.0, "pele_utilizada": 74},
-        "escala_monk": MONK, "catalogo_total": len(catalog),
+        "tom": {"cor_pele_hex": color, "lab": lab.tolist(), "pele_utilizada": 74},
+        "catalogo_total": len(catalog),
         "recomendacoes": recommendations,
         "condicoes": [
             {"id": "acne", "nome": "Acne", "detectada": True,

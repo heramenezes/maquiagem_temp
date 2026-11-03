@@ -3,7 +3,7 @@
 Backend atualizado em 15/10/2026, usando YOLOv8l-seg específico para
 barba e bigode (prashants975). O frontend exibe máscaras e estados das três categorias. O piloto de 100–200 fotos anotadas por
 pessoa ainda não existe no repositório: esta implementação é experimental,
-com limiares provisórios, sem declaração de acurácia ou liberação para Monk.
+com limiares provisórios, sem declaração de acurácia ou validação do match.
 
 ## Execução
 
@@ -51,7 +51,7 @@ média ao incluir incertezas. Todos os valores e razões são retornados em
 maior, testa limpa, cor mais escura ou componente único.
 
 `quality.usable` indica ausência de ressalvas pelos critérios técnicos provisórios.
-`calibration` é `provisoria_sem_validacao_anotada` e `released_for_monk` é
+`calibration` é `provisoria_sem_validacao_anotada` e `released_for_matching` é
 sempre `false`. Mesmo com ressalvas, `measure_skin` é chamada. Média Lab/RGB,
 mediana Lab, desvio e dispersão usam os pixels reais de `measurement_mask`;
 overlays nunca entram na medição. As exclusões estritas são preservadas para
@@ -60,7 +60,8 @@ estão no [README principal](../../../README.md#limiares-de-qualidade).
 
 K-means é descritivo da anatomia anterior às exclusões, limitado a uma vista
 de 512 pixels e 4.000 amostras. Nenhuma alteração em `grow_skin()` foi reativada.
-Rosácea não participa do backend; Monk e bases usam a mediana Lab real.
+Rosácea não participa do backend; as bases usam Lab regional ponderado, com
+fallback para a mediana global. Veja o [contrato do match](../tone_matching/README.md).
 
 ## Instalação e verificação
 

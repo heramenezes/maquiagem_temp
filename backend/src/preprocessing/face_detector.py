@@ -2,7 +2,7 @@
 ===============================================================================
  MÓDULO DE DETECÇÃO E ISOLAMENTO FACIAL
 ===============================================================================
- Sistema: Pipeline de Análise de Tons de Pele (Escala Monk)
+ Sistema: Pipeline de Análise de Cor da Pele
  Camada: Backend — Pré-processamento de Imagem
  Arquitetura: Nós descentralizados (P2P) com suporte futuro a CUDA/OpenMP
 

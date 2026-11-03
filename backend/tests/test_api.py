@@ -56,7 +56,9 @@ class ApiTests(unittest.TestCase):
         data = self.client.get("/api/exemplo").json
         self.assertEqual(len(data["recomendacoes"]), 3)
         for product in data["recomendacoes"]:
-            self.assertIn(product, catalog)
+            original = next(item for item in catalog if item['id'] == product['id'])
+            self.assertEqual({key: product[key] for key in original}, original)
+            self.assertEqual(set(product) - set(original), {'lab', 'delta_e00'})
 
     def test_missing_photo(self):
         response = self.client.post("/api/analises")

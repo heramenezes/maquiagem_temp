@@ -1,5 +1,5 @@
 """
-Backend - Sistema de Análise de Tons de Pele e Recomendação de Base (Escala Monk)
+Backend - Sistema de Análise de Cor da Pele e Recomendação de Base
 """
 
 from .preprocessing import (

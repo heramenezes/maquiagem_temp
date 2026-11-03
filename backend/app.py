@@ -1,4 +1,4 @@
-"""Servidor HTTP, seleção de pele e match experimental Monk/Lab com progresso."""
+"""Servidor HTTP, seleção de pele e match direto em Lab com progresso."""
 
 from io import BytesIO
 from pathlib import Path

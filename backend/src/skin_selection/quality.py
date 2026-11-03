@@ -65,4 +65,4 @@ def evaluate(rgb, lab, selection, config=QualityConfig()):
                 reasons.append(reason)
     return {"decision": "aprovada" if not reasons else "com_ressalvas", "usable": not reasons,
             "reasons": reasons, "metrics": metrics, "thresholds": asdict(config),
-            "calibration": "provisoria_sem_validacao_anotada", "released_for_monk": False}
+            "calibration": "provisoria_sem_validacao_anotada", "released_for_matching": False}
