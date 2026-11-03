@@ -6,7 +6,8 @@ Inicie `python -m backend.app` com as dependências instaladas e acesse http://1
 
 - `index.html`: cabeçalho, navegação e ponto de montagem das telas.
 - `js/app.js`: estado da sessão, seleção de foto, navegação e tratamento de eventos.
-- `js/api.js`: único ponto de acesso à API; `fetch`, leitura incremental de NDJSON, timeout de 90 segundos (inclui as pausas de apresentação) e cancelamento. Respostas de upload sem segmentação ou sem as máscaras da seleção geram uma mensagem para reiniciar o backend atualizado, preservando a foto para tentar novamente.
+- `js/api.js`: único ponto de acesso à API; `fetch`, leitura incremental de NDJSON, timeout de 90 segundos e cancelamento. Valida segmentação, máscaras e contrato de match real v2; respostas antigas/simuladas ou inconsistentes preservam a foto para nova tentativa com o backend atualizado.
+- `js/screens/tone_results.js`: cor medida da foto separada da referência Monk, escala selecionada e até três produtos na ordem do backend. Mostra diferença de cor ΔE00, preço/link e uso de grupos complementares. Não exibe ITA nulo ou porcentagem de compatibilidade. Análise inconclusiva mostra motivos e nova captura, sem tom ou produtos; catálogo sem candidatos preserva o tom. O modo de exemplo permanece identificado como demonstrativo.
 - `js/screens/`: início, captura, revisão, processamento e resultado.
 - `js/screens/preprocessing.js`: preserva as três imagens básicas — recorte, máscara anatômica e pele inicial — antes das exclusões.
 - `js/screens/selection.js`: cartões de acne, vitiligo e barba/bigode, com pixels, percentuais, regiões, tempo e disponibilidade. A imagem final mostra somente a prévia RGBA de pele útil do backend, sobre fundo quadriculado, com a qualidade e as métricas da seleção consolidada. Medições nulas são apresentadas como não calculadas.
@@ -20,6 +21,13 @@ Inicie `python -m backend.app` com as dependências instaladas e acesse http://1
 - `tests/test_browser.py`: testes de interface com Playwright.
 
 Os resultados e produtos vêm da API; a escala na página inicial é uma referência visual estática. Bootstrap e a fonte Archivo são carregados do próprio servidor, inclusive sem internet. O Bootstrap é usado apenas pelo CSS: não há dependência de seu JavaScript.
+
+Em falhas, `js/screens/match_failure.js` apresenta um aviso com todos os motivos,
+ações sugeridas e nomes/estados dos especialistas que não concluíram. O detalhe
+expansível compara as medidas da foto com `quality.thresholds`, sem números
+duplicados no JavaScript. Falha do serviço é distinguida de captura ruim e de
+catálogo vazio. Os [limiares exatos e condições de bloqueio](../README.md#quando-o-tom-e-as-recomendações-são-bloqueados)
+estão documentados no README principal. Valores iguais aos limites são aceitos.
 
 O tema usa a paleta verde e o mascote do mock original, uma escala consistente de espaçamento, cartões e botões Bootstrap personalizados, ícones SVG locais, estados de foco visíveis e adaptação para movimento reduzido. O CSS de terceiros deve vir antes de `styles.css`. Os templates ficam em `js/screens/`; os estilos específicos de cada tela estão agrupados e comentados no tema.
 

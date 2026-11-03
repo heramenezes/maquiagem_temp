@@ -86,9 +86,13 @@ Não há limiar máximo de adequação calibrado ou porcentagem de compatibilida
 `match.motivos` preserva razões de qualidade ou informa ausência de catálogo.
 Catálogo vazio mantém o tom medido; seleção reprovada não emite tom/produtos.
 O contrato completo está no [módulo de match](../backend/src/tone_matching/README.md).
+As condições de bloqueio, comparadores e limiares numéricos estão no
+[README principal](../README.md#quando-o-tom-e-as-recomendações-são-bloqueados).
+O aviso de falha no frontend compara `quality.metrics` com `quality.thresholds`
+e distingue falha de serviço, captura reprovada e catálogo vazio.
 
-A interface ainda não foi adaptada a esse contrato; nesta etapa somente o
-backend expõe o tom e o ranking reais. `/api/exemplo` continua demonstrativo.
+A interface consome o tom e o ranking reais, tratando tom nulo e ausência de
+candidatos sem preencher produtos fictícios. `/api/exemplo` continua demonstrativo.
 
 ### Pré-processamento real
 
@@ -254,7 +258,8 @@ validando os links HTTP/HTTPS. A cópia arquivada no mock não é lida pela apli
 
 Monk e o ranking CIEDE2000 estão integrados à etapa `resultado` em
 `backend/src/segmentation/pipeline.py`, usando `skin['median_lab']` da máscara
-válida aprovada. ITA e adaptação do frontend permanecem fora desta etapa.
+válida aprovada. ITA permanece fora dessa estratégia. O frontend apresenta
+os resultados reais e preserva a distinção entre foto e exemplo demonstrativo.
 O fluxo real de seleção bloqueia a medição e o match se inconclusivo.
 Processamento distribuído permanece futuro. Detalhes dos limiares e das
 limitações estão no [README da segmentação](../backend/src/segmentation/README.md).

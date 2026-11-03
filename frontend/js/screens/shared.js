@@ -28,6 +28,6 @@ export function icon(name, className = '') {
   };
   return `<svg class="icon ${className}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.sparkle}</svg>`;
 }
-export function scale(colors, selected = 0) {
-  return `<div class="scale" aria-label="Escala Monk, dez tons">${colors.map((color, i) => `<div class="scale-item ${i + 1 === selected ? 'selected' : ''}" ${i + 1 === selected ? 'aria-label="Tom demonstrativo selecionado"' : ''}><div class="scale-color" style="--swatch:${safeColor(color)}"></div><span>${String(i + 1).padStart(2, '0')}</span></div>`).join('')}</div>`;
+export function scale(colors, selected = 0, demo = false) {
+  return `<div class="scale" aria-label="Escala Monk, dez tons">${colors.map((color, i) => `<div class="scale-item ${i + 1 === selected ? 'selected' : ''}" ${i + 1 === selected ? `aria-label="Tom ${String(selected).padStart(2, '0')} ${demo ? 'demonstrativo' : 'estimado'} selecionado"` : ''}><div class="scale-color" style="--swatch:${safeColor(color)}"></div><span>${String(i + 1).padStart(2, '0')}</span></div>`).join('')}</div>`;
 }

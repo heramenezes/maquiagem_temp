@@ -17,7 +17,7 @@ from werkzeug.serving import make_server
 
 from backend.app import create_app
 from backend.tests.images import face_photo
-from backend.src.mock_analysis import generate_analysis
+from backend.src.tone_matching.analysis import build_analysis
 from backend.src.segmentation.color import rgb_to_lab
 from backend.src.segmentation.semantic import measure_skin
 from backend.src.segmentation.pipeline import STAGES, summarize
@@ -30,11 +30,11 @@ ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS = ROOT / ".test-artifacts"
 
 
-def selection_fixture(module_states=None, empty=()):
+def selection_fixture(module_states=None, empty=(), base_rgb=(180, 120, 90)):
     """Recorte não quadrado com sobreposição, furos e incerteza externa."""
     shape = (60, 100)
     noise = np.random.default_rng(8).integers(-4, 5, (*shape, 1))
-    rgb = (np.full((*shape, 3), [180, 120, 90]) + noise).astype(np.uint8)
+    rgb = (np.full((*shape, 3), base_rgb) + noise).astype(np.uint8)
     anatomy = np.zeros(shape, bool)
     anatomy[5:55, 10:90] = True
     modules = {key: ModuleResult.empty(shape, status='executado', source='fixture') for key in CATEGORIES}
@@ -52,7 +52,7 @@ def selection_fixture(module_states=None, empty=()):
     lab = rgb_to_lab(rgb)
     selected['quality'] = evaluate(rgb, lab, selected)
     skin = measure_skin(lab, selected['valid_mask']) if selected['quality']['usable'] else None
-    result = generate_analysis()
+    result = build_analysis(skin, selected, int(anatomy.sum()))
     result['preprocessamento'] = summarize(rgb, {'face': anatomy, 'method': 'fixture', 'model': 'fixture', 'warnings': []}, {'k': 1}, skin, selected)
     result['condicoes'] = conditions(selected)
     result['marcacoes'] = []
@@ -113,6 +113,149 @@ class BrowserTests(unittest.TestCase):
     def image_pixels(self, selector):
         url = self.page.locator(selector).get_attribute('src')
         return np.array(Image.open(BytesIO(base64.b64decode(url.split(',', 1)[1]))).convert('RGBA'))
+
+    def test_real_tone_and_products_use_api_colors_values_and_order(self):
+        data, _, _ = selection_fixture()
+        self.show_fixture(data)
+        expect(self.page.locator('.tone-value')).to_have_text(f"Tom {data['tom']['monk']:02d}")
+        expect(self.page.locator('.tone-card')).to_have_attribute('data-tone-state', 'measured')
+        expect(self.page.locator('.result-scale .selected')).to_have_attribute(
+            'aria-label', f"Tom {data['tom']['monk']:02d} estimado selecionado")
+        color = data['tom']['cor_pele_hex']
+        expected_rgb = 'rgb(' + ', '.join(str(int(color[i:i + 2], 16)) for i in (1, 3, 5)) + ')'
+        self.assertEqual(self.page.locator('.tone-swatch').evaluate('el => getComputedStyle(el).backgroundColor'), expected_rgb)
+        self.assertNotEqual(data['tom']['cor_pele_hex'], data['tom']['hex'])
+        for index, product in enumerate(data['recomendacoes']):
+            card = self.page.locator('.product-card').nth(index)
+            expect(card).to_have_attribute('data-product-id', str(product['id']))
+            expect(card.locator('h3')).to_have_text(product['nome'])
+            expect(card.locator('.shade b')).to_have_text(product['cor'])
+            expect(card.locator('a')).to_have_attribute('href', product['link'])
+            expect(card.locator('.product-match')).to_contain_text('Diferença de cor (ΔE00)')
+        self.assertNotIn('demonstrativ', self.page.locator('.result-summary').inner_text())
+        self.assertNotIn('ITA', self.page.locator('.result-summary').inner_text())
+        self.assertNotIn('undefined', self.page.locator('main').inner_text())
+        self.page.screenshot(path=str(ARTIFACTS / 'match-desktop.png'), full_page=True)
+        for width in (390, 320):
+            self.page.set_viewport_size({'width': width, 'height': 844})
+            self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), width)
+            self.page.screenshot(path=str(ARTIFACTS / f'match-mobile-{width}.png'), full_page=True)
+
+    def test_next_photo_replaces_tone_and_recommendations(self):
+        light, _, _ = selection_fixture(base_rgb=(234, 218, 186))
+        dark, _, _ = selection_fixture(base_rgb=(96, 65, 52))
+        self.assertNotEqual(light['tom']['monk'], dark['tom']['monk'])
+        self.show_fixture(light)
+        first_ids = self.page.locator('.product-card').evaluate_all('cards => cards.map(c => c.dataset.productId)')
+        self.page.get_by_role('button', name='Fazer nova análise').click()
+        self.page.unroute('**/api/analises')
+        self.page.route('**/api/analises', lambda route: route.fulfill(
+            status=200, content_type='application/json', body=json.dumps(dark)))
+        self.page.locator('#gallery-input').set_input_files(str(ROOT / 'samples/imagem_teste.jpeg'))
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.locator('.tone-value')).to_have_text(f"Tom {dark['tom']['monk']:02d}")
+        self.assertNotEqual(first_ids, self.page.locator('.product-card').evaluate_all('cards => cards.map(c => c.dataset.productId)'))
+
+    def test_inconclusive_hides_tone_scale_and_products_and_allows_retry(self):
+        data, _, _ = selection_fixture({'barba': 'indisponivel'})
+        self.show_fixture(data)
+        expect(self.page.locator('h1')).to_have_text('Não foi possível concluir a análise.')
+        expect(self.page.locator('.tone-card')).to_have_attribute('data-tone-state', 'unavailable')
+        expect(self.page.locator('.match-reasons')).to_contain_text('Uma das análises necessárias')
+        expect(self.page.get_by_role('alert')).to_contain_text('Barba e bigode: indisponível')
+        expect(self.page.get_by_role('alert')).to_contain_text('trocar a iluminação da foto não resolve')
+        expect(self.page.locator('.tone-swatch, .tone-value, .result-scale .selected, .product-card')).to_have_count(0)
+        expect(self.page.locator('[data-match-state="inconclusive"]')).to_be_visible()
+        self.page.get_by_role('button', name='Escolher outra foto').click()
+        expect(self.page.get_by_role('heading', name='Vamos começar pela sua foto.')).to_be_visible()
+
+    def test_empty_catalog_keeps_tone_and_shows_no_candidates(self):
+        data, _, _ = selection_fixture()
+        data['recomendacoes'] = []
+        data['catalogo_total'] = 0
+        data['match']['status'] = 'sem_candidatos'
+        data['match']['motivos'] = ['catalogo_vazio']
+        self.show_fixture(data)
+        expect(self.page.locator('.tone-value')).to_be_visible()
+        expect(self.page.locator('.product-card')).to_have_count(0)
+        expect(self.page.locator('[data-match-state="no-candidates"]')).to_contain_text('Seu tom foi estimado')
+        expect(self.page.get_by_role('alert')).to_contain_text('o catálogo está vazio')
+        expect(self.page.get_by_role('alert')).to_contain_text('não indica um problema com sua foto')
+
+    def test_quality_failure_explains_each_reason_and_uses_server_thresholds(self):
+        data, _, _ = selection_fixture()
+        quality = data['preprocessamento']['selecao']['quality']
+        quality['usable'] = False
+        quality['reasons'] = ['poucos_pixels_nativos', 'cobertura_insuficiente',
+            'amostra_concentrada', 'clipping_excessivo', 'nitidez_insuficiente',
+            'iluminacao_desigual', 'cor_inconsistente', 'cor_sensivel_a_incerteza',
+            'incerteza_excessiva']
+        quality['thresholds']['min_pixels'] = 777  # O site deve usar o servidor, não 512 fixo.
+        quality['metrics']['native_pixels'] = 400
+        data['preprocessamento']['medicao_utilizavel'] = False
+        data['tom'] = None
+        data['recomendacoes'] = []
+        data['match']['status'] = 'inconclusivo'
+        data['match']['motivos'] = list(quality['reasons'])
+        self.show_fixture(data)
+        alert = self.page.get_by_role('alert')
+        expect(alert.get_by_role('heading')).to_have_text('Por que não foi possível identificar o tom?')
+        expect(alert.locator('[data-failure-reason]')).to_have_count(9)
+        expect(alert).to_contain_text('confira o foco no rosto')
+        expect(self.page.locator('h1')).to_have_text('Precisamos de outra foto.')
+        alert.locator('summary').click()
+        expect(alert.locator('tbody tr')).to_have_count(9)
+        expect(alert.locator('tbody tr').first).to_contain_text('400')
+        expect(alert.locator('tbody tr').first).to_contain_text('pelo menos 777')
+        expect(alert).to_contain_text('no máximo 35%')
+        self.page.locator('.result-summary').screenshot(path=str(ARTIFACTS / 'failure-reasons-desktop.png'))
+        self.page.set_viewport_size({'width': 320, 'height': 844})
+        self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), 320)
+        self.page.locator('.result-summary').screenshot(path=str(ARTIFACTS / 'failure-reasons-mobile.png'))
+
+    def test_single_candidate_and_complementary_group_are_explained(self):
+        data, _, _ = selection_fixture()
+        data['recomendacoes'] = data['recomendacoes'][:1]
+        data['recomendacoes'][0]['mesmo_monk'] = False
+        data['match']['grupos_complementares_utilizados'] = True
+        self.show_fixture(data)
+        expect(self.page.get_by_role('heading', name='Sua opção de base')).to_be_visible()
+        expect(self.page.locator('.product-card')).to_have_count(1)
+        expect(self.page.locator('.product-match')).to_contain_text('Grupo complementar')
+        expect(self.page.locator('.recommendations-section')).to_contain_text('Incluímos grupos Monk complementares')
+
+    def test_old_simulated_match_is_rejected_and_keeps_photo(self):
+        data, _, _ = selection_fixture()
+        data['simulado'] = True
+        self.select_sample()
+        self.page.route('**/api/analises', lambda route: route.fulfill(
+            status=200, content_type='application/json', body=json.dumps(data)))
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.get_by_role('alert')).to_contain_text('O servidor não enviou um resultado válido de tom e bases')
+        expect(self.page.get_by_alt_text('Prévia da foto selecionada')).to_be_visible()
+        expect(self.page.locator('.product-card')).to_have_count(0)
+
+    def test_missing_face_model_explains_service_failure_and_keeps_photo(self):
+        self.select_sample()
+        self.page.route('**/api/analises', lambda route: route.fulfill(
+            status=200, content_type='application/x-ndjson', body=json.dumps({
+                'tipo': 'erro', 'codigo': 'MODELO_INDISPONIVEL',
+                'mensagem': 'Modelo ausente. Execute comando no servidor.', 'status': 503}) + '\n'))
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.get_by_role('alert')).to_contain_text('análise facial está indisponível no servidor')
+        expect(self.page.get_by_role('alert')).to_contain_text('trocar a foto não resolve')
+        expect(self.page.get_by_alt_text('Prévia da foto selecionada')).to_be_visible()
+        expect(self.page.locator('.product-card')).to_have_count(0)
+
+    def test_processing_failure_explains_server_error_and_keeps_photo(self):
+        self.select_sample()
+        self.page.route('**/api/analises', lambda route: route.fulfill(
+            status=500, content_type='application/json', body=json.dumps({
+                'codigo': 'ERRO_INTERNO', 'mensagem': 'Não foi possível processar agora.'})))
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.get_by_role('alert')).to_contain_text('O processamento falhou no servidor')
+        expect(self.page.get_by_alt_text('Prévia da foto selecionada')).to_be_visible()
+        expect(self.page.locator('.product-card')).to_have_count(0)
 
     def test_masks_keep_alignment_holes_uncertainty_and_final_union(self):
         data, rgb, selected = selection_fixture()
@@ -230,7 +373,7 @@ class BrowserTests(unittest.TestCase):
         expect(self.page.locator('.final-metrics')).to_contain_text('Não calculada')
         self.assertEqual(self.page.locator('.preprocessing-previews img').count(), 3)
         self.assertTrue(self.page.locator('.preprocessing-previews img').evaluate_all("images => images.every(i => i.complete && i.naturalWidth > 0)"))
-        self.assertEqual(self.page.locator(".product-card").count(), 3)
+        self.assertEqual(self.page.locator(".product-card").count(), 0)
         self.page.screenshot(path=str(ARTIFACTS / "result-desktop.png"), full_page=True)
         self.page.locator('.preprocessing-previews').screenshot(path=str(ARTIFACTS / 'segmentation-basic-desktop.png'))
         self.page.locator('.exclusion-grid').screenshot(path=str(ARTIFACTS / 'exclusions-desktop.png'), style='.site-header { visibility: hidden; }')

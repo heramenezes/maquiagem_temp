@@ -11,6 +11,7 @@ export function capture(state) {
       <input type="file" id="camera-input" accept="image/*" capture="user" hidden aria-label="Tirar uma selfie">
       <p id="file-status" class="small muted" role="status"></p>
       <p class="small muted capture-help">No celular, “Tirar foto” pode abrir a câmera. No computador, abre o seletor de arquivos. Sua foto não fica salva no servidor.</p>
+      <details class="capture-help"><summary>Quando não é possível calcular o tom?</summary><p class="small muted">Precisamos detectar um único rosto e separar pele suficiente, nítida e com luz uniforme. Pouca pele disponível, sombras, brilho excessivo ou muitas regiões incertas podem impedir a medição. Se uma análise do serviço falhar, também interrompemos o cálculo. O resultado explica os motivos e mostra os limites usados. Acne, vitiligo ou barba, por si só, não impedem a análise.</p></details>
     </div><div class="col-lg-5"><aside class="tips stack"><div class="tips-heading">${icon('sun')}<span class="eyebrow">Vale a dica</span></div><h3>Uma boa foto faz<br>toda a diferença.</h3><ul class="tip-list">
       <li><span><b>Luz natural de frente.</b> Perto de uma janela é o ideal. Evite sombras no rosto.</span></li>
       <li><span><b>Somente você na foto.</b> Evite outras pessoas e rostos em espelhos, telas ou ao fundo.</span></li>

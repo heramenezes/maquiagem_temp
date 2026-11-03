@@ -23,6 +23,10 @@ const reasons = {
   cor_inconsistente: 'As cores da pele restante variam muito.',
   cor_sensivel_a_incerteza: 'Incluir as áreas incertas mudaria bastante a cor medida.',
 };
+export const qualityReason = code => reasons[code] || ({
+  medicao_ausente: 'A medição de cor não ficou disponível.',
+  catalogo_vazio: 'Não há cores disponíveis no catálogo neste momento.',
+}[code]) || 'Não foi possível concluir a medição com qualidade suficiente.';
 function metric(label, value) {
   return `<div><dt>${e(label)}</dt><dd>${e(value)}</dd></div>`;
 }
@@ -74,7 +78,7 @@ export function finalSelection(data) {
       <div class="col-lg-7 stack">
         <div class="card selection-quality ${usable ? '' : 'needs-review'}" data-quality="${usable ? 'approved' : 'inconclusive'}">
           <span class="tag ${usable ? '' : 'status-warning'}">${usable ? 'Seleção aprovada pelos critérios atuais' : 'Seleção inconclusiva'}</span>
-          <p>${usable ? 'Estes pixels foram usados para medir a cor. A conversão para o tom Monk ainda é uma etapa futura.' : 'Estes são os pixels candidatos restantes. A medição de cor não foi liberada para esta foto.'}</p>
+          <p>${usable ? 'Estes pixels foram usados para estimar seu tom Monk e comparar as cores das bases.' : 'Estes são os pixels candidatos restantes. A medição de cor não foi liberada para esta foto.'}</p>
           ${(quality?.reasons || []).length ? `<ul class="quality-reasons">${quality.reasons.map(reason => `<li>${e(reasons[reason] || 'A seleção precisa de revisão adicional.')}</li>`).join('')}</ul>` : ''}
           <dl class="selection-metrics final-metrics">
             ${metric('Pixels restantes', format(metrics.native_pixels ?? data.pixels_pele))}

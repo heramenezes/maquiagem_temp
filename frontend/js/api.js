@@ -1,5 +1,12 @@
 export class ApiError extends Error {
-  constructor(message, code) { super(message); this.code = code; }
+  constructor(message, code) {
+    const explanations = {
+      MODELO_INDISPONIVEL: 'A análise facial está indisponível no servidor. Não foi possível identificar seu tom ou recomendar bases. Tente novamente mais tarde; trocar a foto não resolve uma falha do serviço.',
+      ERRO_INTERNO: 'O processamento falhou no servidor. Não foi possível concluir seu tom ou suas recomendações. Tente novamente; se persistir, o serviço precisa ser verificado.',
+    };
+    super(explanations[code] || message);
+    this.code = code;
+  }
 }
 
 async function readEvents(response, onProgress, signal) {
@@ -70,6 +77,18 @@ export async function analyzePhoto(file, signal, onProgress) {
   }
   if (!result.preprocessamento.selecao?.masks?.anatomical_mask || !result.preprocessamento.selecao?.masks?.valid_mask) {
     throw new ApiError('O servidor não enviou as máscaras da seleção de pele. Reinicie o backend atualizado e tente novamente.', 'SELECAO_AUSENTE');
+  }
+  const validTone = result.tom && Number.isInteger(result.tom.monk) && result.tom.monk >= 1 && result.tom.monk <= 10
+    && /^#[0-9a-f]{6}$/i.test(result.tom.cor_pele_hex) && /^#[0-9a-f]{6}$/i.test(result.tom.hex);
+  const status = result.match?.status;
+  const validMatch = result.schema_version === 2 && result.simulado === false && result.exemplo === false
+    && Array.isArray(result.escala_monk) && result.escala_monk.length === 10 && Array.isArray(result.recomendacoes)
+    && ((status === 'inconclusivo' && result.tom === null && result.recomendacoes.length === 0)
+      || (validTone && result.preprocessamento.medicao_utilizavel === true
+        && ((status === 'sem_candidatos' && result.recomendacoes.length === 0)
+          || (status === 'calculado' && result.recomendacoes.length > 0))));
+  if (!validMatch) {
+    throw new ApiError('O servidor não enviou um resultado válido de tom e bases. Reinicie o backend atualizado e tente novamente.', 'MATCH_AUSENTE');
   }
   return result;
 }

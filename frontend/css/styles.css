@@ -314,6 +314,34 @@ main:focus { outline: 0; }
 .tone-card .eyebrow { font-size: .58rem; }
 .tone-card .small { font-size: .67rem; }
 .tone-metrics { padding-top: 5px; color: #64715f; font-size: .62rem; line-height: 1.7; }
+.tone-color-sample { display: grid; gap: 6px; flex-shrink: 0; text-align: center; }
+.tone-color-sample>span { font-size: .6rem; color: #64715f; }
+.tone-reference { display: flex; align-items: center; gap: 7px; font-size: .65rem; color: #64715f; }
+.tone-reference .mini-swatch { width: 16px; height: 16px; }
+.tone-card>div { min-width: 0; }
+.tone-unavailable { background: #f6f4ed; border-color: #e6dfcd; }
+.tone-unavailable h2 { font-size: 1.25rem; }
+.tone-empty-icon { padding: 14px; border-radius: 50%; background: #ebe6d7; flex-shrink: 0; }
+.tone-empty-icon .icon { width: 28px; height: 28px; }
+.match-reasons { padding-left: 20px; font-size: .8rem; line-height: 1.8; color: #64715f; }
+.match-failure { padding: 24px; background: #faf5e9; border: 1px solid #dfcfaa; border-radius: 14px; }
+.match-failure h2 { font-size: 1.2rem; margin-bottom: 12px; }
+.match-failure>p, .match-failure li p, .failed-modules { font-size: .8rem; line-height: 1.7; }
+.match-failure .match-reasons { margin-block: 16px; }
+.match-failure li+li { margin-top: 12px; }
+.match-failure li p { margin: 3px 0 0; }
+.match-quality-details { margin-top: 16px; }
+.match-quality-details summary { cursor: pointer; font-size: .8rem; font-weight: 700; padding-block: 8px; }
+.quality-table-wrap { width: 100%; overflow-x: auto; margin-block: 12px; }
+.quality-thresholds { width: 100%; border-collapse: collapse; font-size: .75rem; }
+.quality-thresholds caption { color: inherit; }
+.quality-thresholds th, .quality-thresholds td { padding: 10px 7px; border-bottom: 1px solid #dfcfaa; vertical-align: top; }
+.quality-thresholds tbody th { font-weight: 500; }
+.match-empty { padding: 28px; gap: 12px; align-items: flex-start; }
+.match-empty h3 { font-size: 1.2rem; }
+.match-empty p { max-width: 65ch; font-size: .85rem; }
+.product-match { display: grid; gap: 5px; padding-top: 9px; border-top: 1px solid #edf0e7; }
+.product-match .small { font-size: .7rem; }
 .result-scale { padding-top: 4px; }
 .result-scale .scale-color { height: 34px; }
 .result-scale .scale-item.selected .scale-color { height: 45px; }

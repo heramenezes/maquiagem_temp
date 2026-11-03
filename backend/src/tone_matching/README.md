@@ -78,10 +78,10 @@ de ITA para Monk, inferência de subtom ou percentual de compatibilidade.
 Os HEX do catálogo não são medições de bases aplicadas; isso limita a validade
 física do ranking. Classificação digital Monk não substitui anotação humana.
 
-Somente backend foi integrado. O frontend existente ainda usa textos e
-pressupostos demonstrativos e precisará consumir o novo contrato, inclusive
-`tom: null`, em uma etapa posterior. Não utilizar a interface antiga para
-validar este resultado; inspecionar a API ou os testes.
+O frontend consome esse contrato, incluindo `tom: null` e catálogo sem
+candidatos. Mostra a cor medida da foto separada do swatch Monk, preserva a ordem
+do ranking e identifica grupos complementares. `/api/exemplo` permanece
+explicitamente demonstrativo. Distâncias nunca são apresentadas como confiança.
 
 ## Testes
 

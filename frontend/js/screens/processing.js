@@ -10,7 +10,7 @@ const descriptions = {
   selecao: ['Unindo as máscaras', 'Reunimos as exclusões e verificamos a qualidade.'],
   clusters: ['Descrevendo as cores da pele', 'Contamos os grupos de cor sem alterar a seleção.'],
   medidas: ['Avaliando a medição de cor', 'Medimos somente se os pixels restantes passarem pelos critérios de qualidade.'],
-  resultado: ['Preparando as imagens e métricas', 'Organizamos as máscaras reais. Tom e bases continuam demonstrativos.'],
+  resultado: ['Comparando seu tom com as bases', 'Estimamos o tom Monk e selecionamos as cores mais próximas no catálogo, quando a medição é utilizável.'],
 };
 const moduleStates = { indisponivel: 'Indisponível', falha: 'Falha na análise', nao_executado: 'Não executada' };
 
