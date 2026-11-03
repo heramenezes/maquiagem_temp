@@ -302,7 +302,6 @@ main:focus { outline: 0; }
 .selection-quality .final-metrics>div { gap: 3px; }
 .selection-quality .final-metrics dt { font-size: .67rem; }
 .selection-quality .final-metrics dd { font-size: .82rem; }
-.new-analysis-section { padding-top: 0; }
 @media (max-width: 767px) {
   .exclusion-grid { grid-template-columns: 1fr; }
   .exclusion-card { padding: 20px; }
@@ -385,7 +384,6 @@ main:focus { outline: 0; }
 .recommendations-section { background: #f0f4ed; border-block: 1px solid #e5ebdf; }
 .recommendations-section .section { padding-block: 20px; gap: 14px; }
 .recommendations-section h2 { font-size: 1.5rem; }
-.recommendations-section .section-heading .eyebrow { margin-bottom: 6px; }
 .product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .product-card { overflow: hidden; border-radius: 14px; transition: box-shadow .2s, transform .2s; }
 .product-card.featured { border-color: #80ab77; box-shadow: 0 5px 18px rgb(31 64 37 / 4%); }
@@ -422,10 +420,6 @@ main:focus { outline: 0; }
 .condition-detail b { color: #576d4a; font-size: .7rem; font-weight: 600; }
 .medical-note { display: flex; align-items: flex-start; gap: 8px; color: #64715f; font-size: .65rem; line-height: 1.7; margin-top: 17px; }
 .medical-note .icon { width: 15px; height: 15px; flex-shrink: 0; }
-.new-analysis { display: flex; justify-content: space-between; align-items: center; gap: 25px; padding: 28px 30px; background: var(--pale); border: 1px solid #dce8d4; border-radius: 14px; margin-top: 12px; }
-.new-analysis h3 { font-size: 1.05rem; margin-bottom: 6px; }
-.new-analysis p { font-size: .77rem; }
-.new-analysis>.btn { flex-shrink: 0; }
 .example-face { position: absolute; left: 20%; top: 12%; width: 60%; height: 72%; border-radius: 50%; background: var(--swatch); }
 .marks { position: absolute; inset: 0; pointer-events: none; }
 .marks[hidden] { display: none; }
@@ -496,7 +490,6 @@ main:focus { outline: 0; }
   .selection-metrics { gap: 12px; }
   .useful-skin-image img { height: clamp(180px, 32vh, 260px); object-fit: contain; }
   .condition { padding-block: 18px; }
-  .new-analysis { padding: 22px 24px; }
 }
 
 /* Em notebooks baixos, mantém as ações e as seis dicas visíveis. */
@@ -620,8 +613,6 @@ main:focus { outline: 0; }
   .condition-detail>div { padding: 10px; }
   .condition-detail b { font-size: .65rem; }
   .condition-detail span { font-size: .51rem; }
-  .new-analysis { flex-direction: column; align-items: stretch; padding: 25px; gap: 18px; }
-  .new-analysis>.btn { width: 100%; }
 }
 @media (max-width: 359.98px) {
   .container { padding-inline: 16px; }

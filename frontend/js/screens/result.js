@@ -39,5 +39,5 @@ export function result(state) {
       <div class="col-lg-7"><div class="card condition-panel">${conditions}</div><p class="medical-note">${icon('info')} Estas informações são ilustrativas e não constituem diagnóstico médico.</p></div>
     </div>
   </section>`}
-  <section class="container section new-analysis-section"><div class="new-analysis"><div><h3>Quer tentar com outra foto?</h3><p class="muted">Um novo começo, com o mesmo cuidado.</p></div><button class="btn btn-primary" data-action="capture">${icon('refresh')} Fazer nova análise</button></div></section>`;
+  `;
 }

@@ -163,7 +163,8 @@ class BrowserTests(unittest.TestCase):
         self.assertNotEqual(light['tom']['monk'], dark['tom']['monk'])
         self.show_fixture(light)
         first_ids = self.page.locator('.product-card').evaluate_all('cards => cards.map(c => c.dataset.productId)')
-        self.page.get_by_role('button', name='Fazer nova análise').click()
+        self.page.locator("#header-action").click()
+        self.page.locator("#header-action").click()
         self.page.unroute('**/api/analises')
         self.page.route('**/api/analises', lambda route: route.fulfill(
             status=200, content_type='application/json', body=json.dumps(dark)))
@@ -394,7 +395,8 @@ class BrowserTests(unittest.TestCase):
         self.page.locator('.preprocessing-previews').screenshot(path=str(ARTIFACTS / 'segmentation-basic-desktop.png'))
         self.page.locator('.exclusion-grid').screenshot(path=str(ARTIFACTS / 'exclusions-desktop.png'), style='.site-header { visibility: hidden; }')
         self.page.locator('.final-selection').screenshot(path=str(ARTIFACTS / 'useful-skin-desktop.png'))
-        self.page.get_by_role("button", name="Fazer nova análise").click()
+        self.page.locator("#header-action").click()
+        self.page.locator("#header-action").click()
         expect(self.page.get_by_role("heading", name="Vamos começar pela sua foto.")).to_be_visible()
         self.assertEqual(self.page.locator(".product-card").count(), 0)
 

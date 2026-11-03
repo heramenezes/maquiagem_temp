@@ -73,7 +73,7 @@ export function recommendations(data) {
   const title = products.length ? `${products.length === 1 ? 'Sua opção' : `Suas ${products.length} opções`} de base` : 'Bases ainda não disponíveis';
   const noTone = !data.tom;
   return `<section class="recommendations-section"><div class="container section stack">
-    <div class="section-heading"><div><span class="eyebrow">Do nosso catálogo</span><h2>${title}</h2></div><span class="small muted">${demo ? 'Seleção demonstrativa' : 'Seleção pela sua foto'} · ${e(data.catalogo_total)} cores no catálogo</span></div>
+    <div class="section-heading"><h2>${title}</h2><span class="small muted">${demo ? 'Seleção demonstrativa' : 'Seleção pela sua foto'} · ${e(data.catalogo_total)} cores no catálogo</span></div>
     ${products.length ? `<div class="product-grid">${products.map((product, index) => productCard(product, index, demo)).join('')}</div>
       ${!demo && data.match?.grupos_complementares_utilizados ? '<p class="small muted">Incluímos grupos Monk complementares porque havia poucas opções no mesmo grupo da sua pele.</p>' : ''}
       ${demo ? '<p class="small muted">Esta seleção usa um tom fixo de exemplo.</p>' : ''}`
