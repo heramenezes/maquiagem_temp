@@ -141,6 +141,22 @@ class BrowserTests(unittest.TestCase):
             self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), width)
             self.page.screenshot(path=str(ARTIFACTS / f'match-mobile-{width}.png'), full_page=True)
 
+    def test_product_photos_load_and_failed_photo_has_fallback(self):
+        data, _, _ = selection_fixture()
+        broken_image = data['recomendacoes'][0]['imagem']
+        self.page.route('**' + broken_image, lambda route: route.abort())
+        self.show_fixture(data)
+        cards = self.page.locator('.product-card')
+        cards.first.scroll_into_view_if_needed()
+        expect(cards.first.locator('.product-image')).to_be_hidden()
+        expect(cards.first.locator('.product-image-fallback')).to_be_visible()
+        for index in range(1, len(data['recomendacoes'])):
+            photo = cards.nth(index).locator('.product-image')
+            photo.evaluate('img => img.decode()')
+            self.assertGreater(photo.evaluate('img => img.naturalWidth'), 100)
+        self.assertNotIn('Priorizamos o mesmo grupo Monk', self.page.locator('main').inner_text())
+        self.assertNotIn('A cor da base aplicada pode variar', self.page.locator('main').inner_text())
+
     def test_next_photo_replaces_tone_and_recommendations(self):
         light, _, _ = selection_fixture(base_rgb=(234, 218, 186))
         dark, _, _ = selection_fixture(base_rgb=(96, 65, 52))

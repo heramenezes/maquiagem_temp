@@ -16,6 +16,7 @@ Inicie `python -m backend.app` com as dependências instaladas e acesse http://1
 - `css/styles.css`: visual derivado do mock, com layouts responsivos.
 - `css/vendor/`: Bootstrap 5.3.8 e licença MIT, servidos localmente.
 - `assets/tonzinha.svg`: mascote reaproveitado do original.
+- `assets/products/`: fotos reais das 12 linhas de base, servidas localmente. O backend associa `imagem` ao produto por marca e nome; `backend/data/product_images.json` registra a página e a imagem de origem. A foto identifica a linha/embalagem, enquanto o nome da cor e a amostra do card identificam a tonalidade recomendada. Imagem ausente ou falha de carregamento mostra “Foto indisponível”. Não há consulta às lojas durante a análise.
 - `assets/fonts/`: fonte Archivo extraída do mock, com licença SIL OFL.
 - `reference/`: mock original, preservado como referência; não é servido pela aplicação.
 - `tests/test_browser.py`: testes de interface com Playwright.

@@ -1,12 +1,22 @@
 """Catálogo real: o CSV é a única fonte dos dados de produtos."""
 
 import csv
+import json
+from functools import lru_cache
 from decimal import Decimal
 from pathlib import Path
 import re
 from urllib.parse import urlparse
 
 CATALOG_PATH = Path(__file__).resolve().parents[1] / "data" / "bases.csv"
+
+
+@lru_cache(maxsize=1)
+def product_images():
+    """Fotos locais das linhas do catálogo, com origem registrada no manifesto."""
+    path = CATALOG_PATH.with_name("product_images.json")
+    with path.open(encoding="utf-8") as source:
+        return {(row["marca"], row["nome"]): row["imagem"] for row in json.load(source)}
 
 
 def load_catalog(path=CATALOG_PATH):
@@ -25,5 +35,6 @@ def load_catalog(path=CATALOG_PATH):
                 "hex": color.upper(),
                 "preco": float(Decimal(row["preco"].strip().replace(",", "."))),
                 "link": link,
+                "imagem": product_images().get((row["marca"].strip(), row["nomebase"].strip())),
             })
     return products

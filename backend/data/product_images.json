@@ -1,0 +1,98 @@
+[
+  {
+    "marca": "Bruna Tavares",
+    "nome": "BT Skin",
+    "imagem": "/assets/products/1.png",
+    "pagina_origem": "https://www.linhabrunatavares.com/bt-skin/p?skuId=1044937757",
+    "imagem_origem": "https://brunatavares.vtexassets.com/arquivos/ids/156358/001-F10.png?v=638013909393770000",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "Mascavo",
+    "nome": "Soft Radiance",
+    "imagem": "/assets/products/31.jpg",
+    "pagina_origem": "https://www.mascavo.com/mascavo-soft-radiance-base-liquida-7c-30ml-18932/p",
+    "imagem_origem": "https://mascavo.vtexassets.com/arquivos/ids/162155/1.jpg?v=639216278045570000",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "MAC",
+    "nome": "Studio Radiance Face & Body Radiant Sheer",
+    "imagem": "/assets/products/67.png",
+    "pagina_origem": "https://www.maccosmetics.com.br/product/13847/86415/produtos/maquiagem/rosto/base/base-liquida-hidratante-studio-radiance-face-body-radiant-sheer?shade=C0",
+    "imagem_origem": "https://sdcdn.io/mac/br/mac_sku_SMXT11_1x1_0.png?height=1080&width=1080",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "Mari Maria",
+    "nome": "Base Matte Mari Maria Velvet Skin",
+    "imagem": "/assets/products/97.png",
+    "pagina_origem": "https://www.marimariamakeup.com/products/mm-base-corret-mat-velvet-skin-2-0",
+    "imagem_origem": "https://www.marimariamakeup.com/cdn/shop/files/BAUNILHA_95300a42-fbf5-4768-846a-512ecf96a1d9.png?v=1791222980&width=1920",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "Vizzela",
+    "nome": "Base Líquida SATIN",
+    "imagem": "/assets/products/108.jpg",
+    "pagina_origem": "https://www.vizzela.com.br/products/base-liquida-satin-vizzela?variant=46307193585917",
+    "imagem_origem": "https://www.vizzela.com.br/cdn/shop/files/770-1.jpg?v=1762793829&width=1200",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "Karen Bachini",
+    "nome": "Base Facial Cosmos",
+    "imagem": "/assets/products/126.jpg",
+    "pagina_origem": "https://karenbachinibeauty.com.br/products/base-facial-cosmos-by-karen-bachini-c00n",
+    "imagem_origem": "https://karenbachinibeauty.com.br/cdn/shop/files/base-00.jpg?v=1753967873&width=1946",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "Catharine Hill",
+    "nome": "Base Média Cobertura Angel Wings by Pri Lessa",
+    "imagem": "/assets/products/162.png",
+    "pagina_origem": "https://www.catharinehill.com.br/base-media-cobertura-chill-angel-wings/p?skuId=387",
+    "imagem_origem": "https://tfdidx.vtexassets.com/arquivos/ids/158499/base-chill-angel-wings-pri-lessa-catharine-hill-2021-0.5.png?v=639111696416730000",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "Make B.",
+    "nome": "Base em Pó Mineral Make B.",
+    "imagem": "/assets/products/172.webp",
+    "pagina_origem": "https://www.boticario.com.br/base-em-po-mineral-cor-10-make-b-55g/",
+    "imagem_origem": "https://cdn.gbmedia.com.br/images/w_1500,f_webp,fl_progressive,q_auto:eco,w_800/v1/imagens/products/B75742/75742_ABERTO.jpg",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "Shiseido",
+    "nome": "Shiseido Future Solution LX Total Radiance Foundation",
+    "imagem": "/assets/products/179.jpg",
+    "pagina_origem": "https://www.shiseido.com.br/shiseido-future-solution-lx-total-radiance-fps-15-base-cremosa-30ml-10113935303/p?skuId=1",
+    "imagem_origem": "https://shiseido.vtexassets.com/arquivos/ids/155416/729238139350_1.jpg?v=638545876516300000",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "Natura",
+    "nome": "Base Sérum Nude Me Una",
+    "imagem": "/assets/products/183.jpg",
+    "pagina_origem": "https://www.natura.com.br/p/base-serum-nude-me-una/NATBRA-110182",
+    "imagem_origem": "https://production.na01.natura.com/dw/image/v2/BFKR_PRD/on/demandware.static/-/Sites-natura-br-storefront-catalog/default/dw1d9e69fc/produto-joia/background/desktop/110182.jpg",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "SHEGLAM",
+    "nome": "SKINFINITE Hydrating Foundation",
+    "imagem": "/assets/products/206.jpg",
+    "pagina_origem": "https://us.sheglam.com/en/product/Base-Hidratante-Skinfinite-Walnut-11344223369216960",
+    "imagem_origem": "https://img.ltwebstatic.com/v4/j/pi/2026/04/17/c2/1776409000a5b6d81a1fdd0c89f64fa638b8a3fba2.jpg",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  },
+  {
+    "marca": "TIRTIR",
+    "nome": "Mask Fit Red Cushion",
+    "imagem": "/assets/products/242.png",
+    "pagina_origem": "https://tirtir.global/products/mask-fit-red-cushion?srsltid=AU7gw4XZLncAftToDUaJQ9xQ6eh4FG-tvUzpppxkXS6sR8Ru4S_R0tGm",
+    "imagem_origem": "https://tirtir.global/cdn/shop/files/thumnail_mask-fit-red-cushion_1.png?v=1785922203",
+    "escopo": "Foto da linha de produto; a cor recomendada é identificada separadamente no card."
+  }
+]

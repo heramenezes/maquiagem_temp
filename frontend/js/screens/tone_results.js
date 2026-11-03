@@ -50,14 +50,12 @@ export function toneSummary(data) {
 
 function productCard(product, index, demo) {
   const color = safeColor(product.hex);
+  const image = /^\/assets\/products\/[a-z0-9._-]+$/i.test(product.imagem || '') ? e(product.imagem) : null;
   return `<article class="card product-card ${index === 0 ? 'featured' : ''}" data-product-id="${e(product.id)}">
     <div class="product-art" style="--swatch:${color}">
       <span class="tag ${index ? 'neutral' : ''}">${index + 1}ª opção${demo ? ' demonstrativa' : ''}</span>
-      <svg class="pigment-sample" viewBox="0 0 190 140" aria-hidden="true">
-        <path d="M31 51C48 24 94 18 133 30C163 39 178 65 165 91C152 118 107 126 71 116C39 107 14 81 31 51Z" fill="${color}"/>
-        <path d="M42 55C61 35 96 32 123 39" fill="none" stroke="white" stroke-opacity=".2" stroke-width="5" stroke-linecap="round"/>
-        <path d="M57 104C87 117 130 108 151 91" fill="none" stroke="black" stroke-opacity=".06" stroke-width="3" stroke-linecap="round"/>
-      </svg><small>Cor do catálogo · ilustração</small>
+      ${image ? `<img class="product-image" src="${image}" alt="Foto de ${e(product.nome)} — ${e(product.marca)}" width="240" height="160" loading="lazy" decoding="async">` : ''}
+      <span class="product-image-fallback small muted" ${image ? 'hidden' : ''}>Foto indisponível</span>
     </div>
     <div class="card-body product-info"><span class="eyebrow">${e(product.marca)}</span><h3>${e(product.nome)}</h3>
       <div class="shade"><span class="mini-swatch" style="--swatch:${color}"></span><span>Cor <b>${e(product.cor)}</b></span></div>
@@ -78,8 +76,7 @@ export function recommendations(data) {
     <div class="section-heading"><div><span class="eyebrow">Do nosso catálogo</span><h2>${title}</h2></div><span class="small muted">${demo ? 'Seleção demonstrativa' : 'Seleção pela sua foto'} · ${e(data.catalogo_total)} cores no catálogo</span></div>
     ${products.length ? `<div class="product-grid">${products.map((product, index) => productCard(product, index, demo)).join('')}</div>
       ${!demo && data.match?.grupos_complementares_utilizados ? '<p class="small muted">Incluímos grupos Monk complementares porque havia poucas opções no mesmo grupo da sua pele.</p>' : ''}
-      <p class="catalog-note">${icon('info')}<span>${demo ? 'Esta seleção usa um tom fixo de exemplo.' : 'Priorizamos o mesmo grupo Monk e refinamos a ordem pela diferença de cor. Dentro de cada grupo, um ΔE00 menor indica uma cor mais próxima; não é percentual de compatibilidade.'} Produtos, cores e preços vêm do catálogo. Confirme os valores no site da marca.</span></p>
-      ${!demo ? '<p class="small muted">A cor da base aplicada pode variar. O resultado é uma aproximação às cores do catálogo e ainda não foi validado com testes de aplicação na pele.</p>' : ''}`
+      ${demo ? '<p class="small muted">Esta seleção usa um tom fixo de exemplo.</p>' : ''}`
       : `<div class="card match-empty" data-match-state="${noTone ? 'inconclusive' : 'no-candidates'}"><h3>${noTone ? 'Precisamos concluir a medição antes de recomendar' : 'Seu tom foi estimado, mas não há opções disponíveis'}</h3><p class="muted">${noTone ? 'Sem uma medição de tom utilizável, não selecionamos bases. Confira os motivos acima e tente novamente.' : 'O catálogo está vazio. Você pode tentar novamente mais tarde; não é necessário trocar a foto.'}</p>${noTone ? `${technicalIssue(data) ? '<button class="btn btn-primary" data-action="analyze">Tentar novamente</button>' : ''}<button class="btn btn-outline-primary" data-action="capture">Escolher outra foto</button>` : ''}</div>`}
   </div></section>`;
 }

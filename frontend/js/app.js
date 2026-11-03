@@ -127,6 +127,12 @@ document.addEventListener('click', event => {
   }
 });
 
+main.addEventListener('error', event => {
+  if (!event.target.matches?.('.product-image')) return;
+  event.target.hidden = true;
+  event.target.parentElement.querySelector('.product-image-fallback').hidden = false;
+}, true);
+
 main.addEventListener('change', event => {
   if (event.target.matches('input[type="file"]')) selectFile(event.target.files[0]);
 });
