@@ -85,7 +85,7 @@ def fallback_facial_masks(rgb, reason):
             'warnings': ['A seleção inicial usa uma região central aproximada do rosto detectado.']}
 
 
-def measure_skin(lab, valid_mask):
+def measure_skin(lab, valid_mask, *, rgb=None, face_mask=None):
     """Mede exclusivamente a seleção explícita nos pixels Lab preservados."""
     if valid_mask.dtype != bool or valid_mask.shape != lab.shape[:2]:
         raise ValueError('A medição requer uma máscara bool alinhada ao Lab.')
@@ -93,6 +93,10 @@ def measure_skin(lab, valid_mask):
         raise InsufficientSkinError('A seleção não contém pixels utilizáveis.')
     pixels = lab[valid_mask]
     median = np.median(pixels, axis=0)
-    return {'mask': valid_mask, 'mean_lab': pixels.mean(axis=0), 'median_lab': median,
+    result = {'mask': valid_mask, 'mean_lab': pixels.mean(axis=0), 'median_lab': median,
             'std_lab': pixels.std(axis=0),
             'dispersion_delta_e76_p90': float(np.percentile(np.linalg.norm(pixels - median, axis=1), 90))}
+    if rgb is not None and face_mask is not None:
+        from .regional import estimate_regions
+        result['regional'] = estimate_regions(lab, rgb, valid_mask, face_mask)
+    return result

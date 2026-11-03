@@ -261,7 +261,7 @@ class BrowserTests(unittest.TestCase):
         expect(self.page.get_by_role('heading', name='Sua opção de base')).to_be_visible()
         expect(self.page.locator('.product-card')).to_have_count(1)
         expect(self.page.locator('.product-match')).to_contain_text('Grupo complementar')
-        expect(self.page.locator('.recommendations-section')).to_contain_text('Incluímos grupos Monk complementares')
+        expect(self.page.locator('.recommendations-section')).to_contain_text('conforme a proximidade de cor com a sua pele')
 
     def test_old_simulated_match_is_rejected_and_keeps_photo(self):
         data, _, _ = selection_fixture()

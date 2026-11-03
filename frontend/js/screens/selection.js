@@ -27,6 +27,9 @@ const reasons = {
   regiao_facial_aproximada: 'Foi usada uma região aproximada do rosto.',
   pele_com_incertezas: 'A estimativa incluiu regiões incertas.',
   pele_antes_exclusoes: 'A estimativa usou a pele antes das exclusões.',
+  regioes_insuficientes: 'Faltou pele com detalhes suficientes na testa ou nas bochechas.',
+  discordancia_entre_regioes: 'A cor medida varia entre a testa e as bochechas.',
+  sem_consenso_regional: 'As regiões do rosto não concordaram; usamos a medição global.',
 };
 export const qualityReason = code => reasons[code] || 'Um fator pode reduzir a precisão do tom.';
 function metric(label, value) {

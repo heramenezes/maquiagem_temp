@@ -5,7 +5,7 @@ from skimage.color import deltaE_ciede2000
 
 from .palette import MONK_HEX, MONK_LAB, hex_to_lab
 
-METHOD_VERSION = "monk-ciede2000-lab-v1"
+METHOD_VERSION = "regional-ciede2000-lab-v2"
 
 
 def validate_lab(lab):
@@ -33,11 +33,9 @@ def classify_monk(lab):
 
 
 def rank_foundations(lab, catalog, *, limit=3):
-    """Mesmo Monk primeiro; dentro de cada grupo, menor ΔE00 pele/base.
+    """Menor ΔE00 pele/base em todo o catálogo; Monk é apenas descritivo.
 
-    Grupos de complemento são visitados pela distância entre seus swatches e
-    o swatch Monk da pele, não pela diferença numérica de índices. Distâncias
-    sem arredondamento decidem a ordem; ID desempata produtos de cor idêntica.
+    Distâncias sem arredondamento decidem a ordem; ID desempata cores idênticas.
     Nenhum limiar de adequação cosmética é presumido.
     """
     lab = validate_lab(lab)
@@ -45,8 +43,6 @@ def rank_foundations(lab, catalog, *, limit=3):
         raise ValueError("limit deve ser um inteiro positivo.")
     tone = classify_monk(lab)
     group_distances = deltaE_ciede2000(MONK_LAB[tone["monk"] - 1][None, :], MONK_LAB)
-    group_order = np.argsort(group_distances, kind="stable")
-    group_priority = {int(index) + 1: priority for priority, index in enumerate(group_order)}
     ranked = []
     seen = set()
     for product in catalog:
@@ -57,7 +53,7 @@ def rank_foundations(lab, catalog, *, limit=3):
         product_tone = classify_monk(product_lab)
         distance = float(deltaE_ciede2000(lab, product_lab))
         monk = product_tone["monk"]
-        ranked.append((group_priority[monk], distance, product["id"], {
+        ranked.append((distance, product["id"], {
             **product,
             "monk": monk,
             "lab": product_lab.tolist(),
@@ -65,5 +61,5 @@ def rank_foundations(lab, catalog, *, limit=3):
             "mesmo_monk": monk == tone["monk"],
             "delta_e00_monk": float(group_distances[monk - 1]),
         }))
-    ranked.sort(key=lambda item: item[:3])
-    return tone, [item[3] for item in ranked[:limit]]
+    ranked.sort(key=lambda item: item[:2])
+    return tone, [item[2] for item in ranked[:limit]]

@@ -66,15 +66,15 @@ class ColorMatchingTests(unittest.TestCase):
         self.assertEqual([p["monk"] for p in recommendations], [6, 7, 5])
         self.assertEqual([p["mesmo_monk"] for p in recommendations], [True, False, False])
 
-    def test_same_monk_has_priority_even_if_another_group_is_closer(self):
-        # Pele perto da fronteira 6/7: candidato Monk 6 é mais próximo em Lab,
-        # mas a estratégia escolhida mantém a prioridade do grupo Monk 7.
+    def test_closest_color_wins_even_when_it_belongs_to_another_monk(self):
+        # Pele Monk 7: o candidato Monk 6 mais próximo deve ganhar.
         tone, recommendations = rank_foundations(hex_to_lab("#916d4f"), [
             product(1, "#946f50"), product(2, MONK_HEX[6]),
         ])
         self.assertEqual(tone["monk"], 7)
-        self.assertEqual([p["id"] for p in recommendations], [2, 1])
-        self.assertGreater(recommendations[0]["delta_e00"], recommendations[1]["delta_e00"])
+        self.assertEqual([p["id"] for p in recommendations], [1, 2])
+        self.assertLess(recommendations[0]["delta_e00"], recommendations[1]["delta_e00"])
+        self.assertFalse(recommendations[0]["mesmo_monk"])
 
     def test_sparse_empty_and_duplicate_catalogs(self):
         lab = hex_to_lab(MONK_HEX[5])
@@ -161,7 +161,13 @@ class MatchingApiTests(unittest.TestCase):
         self.assertEqual(plain["match"], streamed["match"])
         self.assertEqual(plain["recomendacoes"], streamed["recomendacoes"])
         self.assertEqual(plain["tom"]["monk"], 6)
-        np.testing.assert_allclose(plain["tom"]["lab"], np.median(rgb_to_lab(rgb[:, 40:]), axis=(0, 1)))
+        np.testing.assert_allclose(plain["preprocessamento"]["mediana_lab"],
+                                   np.median(rgb_to_lab(rgb[:, 40:]), axis=(0, 1)), atol=1e-4)
+        np.testing.assert_allclose(plain["tom"]["lab"], plain["preprocessamento"]["medicao_regional"]["lab"])
+        self.assertEqual(plain["match"]["estimador"], "lab_regional_ponderado")
+        self.assertTrue(plain["match"]["sensibilidade_regional"]["avaliada"])
+        distances = [p["delta_e00"] for p in plain["recomendacoes"]]
+        self.assertEqual(distances, sorted(distances))
         self.assertEqual(plain["tom"]["pele_utilizada"], 75)
         self.assertEqual(plain["match"]["status"], "calculado")
         self.assertFalse(plain["simulado"])

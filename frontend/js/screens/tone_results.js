@@ -53,7 +53,7 @@ export function recommendations(data) {
   return `<section class="recommendations-section"><div class="container section stack">
     <div class="section-heading"><h2>${title}</h2><span class="small muted">${demo ? 'Seleção demonstrativa' : 'Seleção pela sua foto'} · ${e(data.catalogo_total)} cores no catálogo</span></div>
     <div class="product-grid">${products.map((product, index) => productCard(product, index, demo)).join('')}</div>
-      ${!demo && data.match?.grupos_complementares_utilizados ? '<p class="small muted">Incluímos grupos Monk complementares porque havia poucas opções no mesmo grupo da sua pele.</p>' : ''}
+      ${!demo && data.match?.grupos_complementares_utilizados ? '<p class="small muted">A seleção pode incluir outros grupos Monk conforme a proximidade de cor com a sua pele.</p>' : ''}
       ${demo ? '<p class="small muted">Esta seleção usa um tom fixo de exemplo.</p>' : ''}
   </div></section>`;
 }

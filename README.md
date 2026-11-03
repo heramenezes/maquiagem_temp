@@ -44,10 +44,11 @@ A pré-verificação conta as detecções válidas antes do recorte: zero rostos
 
 ## Match de tom e recomendações
 
-Uploads usam a mediana Lab dos pixels selecionados para classificar o tom
-Monk e recomendar bases. O ranking prioriza o mesmo Monk e refina por
-CIEDE2000 pele/base; se necessário, completa com outros grupos pela distância
-entre referências Monk. Qualidade reduzida mantém o tom e as bases com aviso.
+Uploads combinam medianas Lab da testa e das bochechas por qualidade e consenso,
+com fallback para a mediana global quando não há regiões suficientes ou acordo.
+O ranking ordena todo o catálogo por CIEDE2000 pele/base; Monk é descritivo e
+não altera a ordem. A API informa métricas regionais e sensibilidade do top 3.
+Qualidade reduzida mantém o tom e as bases com aviso.
 ITA fica `null`; não participa dessa estratégia. O resultado é experimental,
 sem correção de iluminação ou validação de bases aplicadas na pele.
 

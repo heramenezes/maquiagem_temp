@@ -22,6 +22,9 @@ const guidance = {
   regiao_facial_aproximada: 'A região central pode incluir olhos, lábios, pelos ou outras áreas que alteram a estimativa.',
   pele_com_incertezas: 'Não restaram pixels na seleção estrita. A medição incluiu áreas que os modelos consideraram incertas.',
   pele_antes_exclusoes: 'As exclusões cobriram toda a pele selecionada. A medição usou a pele inicial, que pode incluir acne, vitiligo ou pelos.',
+  regioes_insuficientes: 'Mostre o rosto de frente, com testa e bochechas visíveis, sem sombras fortes ou luz estourada. Usamos a medição global disponível.',
+  discordancia_entre_regioes: 'Use luz difusa de frente e evite reflexos ou sombras em apenas uma parte do rosto.',
+  sem_consenso_regional: 'Tente outra foto com luz uniforme e sem filtros ou maquiagem para reduzir as diferenças entre as regiões.',
 };
 
 export function warningReasons(data) {
@@ -58,10 +61,12 @@ export function matchWarning(data) {
   const statuses = data.preprocessamento?.selecao?.module_status || {};
   const unavailable = Object.entries(statuses).filter(([, status]) => status.state !== 'executado');
   return `<aside class="match-warning" role="alert" aria-labelledby="match-warning-title">
+    <div class="match-warning-overview">
     <h2 id="match-warning-title">O tom estimado pode estar incorreto.</h2>
     <p>Recomendamos as bases com a estimativa disponível, mas os fatores abaixo podem reduzir a precisão do tom.</p>
     <ul class="match-reasons">${reasons.map(reason => `<li data-warning-reason="${e(reason)}"><b>${e(qualityReason(reason))}</b><p>${e(guidance[reason] || 'Este fator pode alterar a cor medida e reduzir a precisão da estimativa.')}</p></li>`).join('')}</ul>
     ${unavailable.length ? `<p class="failed-modules"><b>Análises que não concluíram:</b> ${unavailable.map(([key, status]) => e(`${modules[key] || 'Análise necessária'}: ${states[status.state] || 'não disponível'}`)).join('; ')}.</p>` : ''}
+    </div>
     ${qualityDetails(data)}
   </aside>`;
 }

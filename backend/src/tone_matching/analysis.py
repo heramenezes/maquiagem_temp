@@ -21,19 +21,21 @@ def build_analysis(skin, selection, face_pixels):
         allow_nan=False,
     ).encode("utf8")).hexdigest()
     quality = selection["quality"]
+    regional = skin.get("regional")
     match = {
         "metodo": METHOD_VERSION,
-        "estimador": "mediana_lab",
+        "estimador": regional["estimador"] if regional else "mediana_lab",
         "espaco_cor": "CIELAB", "branco_referencia": "D65",
         "paleta_versao": PALETTE_VERSION, "paleta_fonte": PALETTE_SOURCE,
         "catalogo_sha256": fingerprint,
-        "criterio_ranking": "mesmo_monk_depois_grupos_por_delta_e00_monk_e_refinamento_pele_base",
+        "criterio_ranking": "delta_e00_pele_base_depois_id",
         "experimental": True, "validado": False,
         "limiar_aceitacao_delta_e00": None,
         "avisos": [
             "Classificação da cor observada; não corrige iluminação ou balanço de branco.",
             "Comparação com HEX do catálogo, sem validação de bases aplicadas na pele.",
             "Critérios de seleção e classificação Monk ainda não validados com anotações humanas.",
+            "Regiões faciais e pesos de qualidade são heurísticos, sem validação de acurácia.",
         ],
     }
     result = {
@@ -43,8 +45,20 @@ def build_analysis(skin, selection, face_pixels):
         "recomendacoes": [], "match": match,
     }
     # A máscara efetivamente medida pode incluir um fallback documentado.
-    lab = skin["median_lab"]
+    lab = regional["lab"] if regional else skin["median_lab"]
     tone, recommendations = rank_foundations(lab, catalog)
+    regional_rankings = []
+    for region in regional["regioes"] if regional else []:
+        if region["lab"] is not None:
+            _, candidates = rank_foundations(region["lab"], catalog)
+            regional_rankings.append({"regiao": region["nome"],
+                                      "ids": [p["id"] for p in candidates]})
+    ids = [p["id"] for p in recommendations]
+    match["sensibilidade_regional"] = {
+        "avaliada": len(regional_rankings) >= 2,
+        "top3_por_regiao": regional_rankings,
+        "ranking_varia": len(regional_rankings) >= 2 and any(r["ids"] != ids for r in regional_rankings),
+    }
     rgb = np.rint(lab2rgb(np.asarray(lab, dtype=np.float64)) * 255).astype(np.uint8)
     tone.update(
         lab=np.asarray(lab, dtype=float).tolist(),
@@ -54,7 +68,8 @@ def build_analysis(skin, selection, face_pixels):
     )
     result.update(tom=tone, recomendacoes=recommendations)
     fallback = any(not product["mesmo_monk"] for product in recommendations)
-    match.update(status="calculado", motivos=list(quality["reasons"]),
-                 confianca_reduzida=bool(quality["reasons"]),
+    reasons = list(dict.fromkeys([*quality["reasons"], *(regional["motivos"] if regional else [])]))
+    match.update(status="calculado", motivos=reasons,
+                 confianca_reduzida=bool(reasons),
                  grupos_complementares_utilizados=fallback)
     return result

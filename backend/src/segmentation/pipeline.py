@@ -31,8 +31,8 @@ STAGES = [
     ("barba", "Avaliando barba e bigode", "Segmentação específica de pelos faciais", False),
     ("selecao", "Compondo a seleção de pele", "União de máscaras e avaliação de qualidade", False),
     ("clusters", "Descrevendo as cores da pele", "Agrupamento em a*/b* sem remover pixels da máscara", False),
-    ("medidas", "Medindo a pele selecionada", "Estatísticas da seleção disponível com avisos de precisão", False),
-    ("resultado", "Correlacionando pele e bases", "Monk como intermediário e refinamento CIEDE2000 em Lab", False),
+    ("medidas", "Medindo a pele selecionada", "Medição regional de testa e bochechas com pesos de qualidade", False),
+    ("resultado", "Correlacionando pele e bases", "Ranking direto pele/base por CIEDE2000; classificação Monk descritiva", False),
 ]
 
 
@@ -55,6 +55,7 @@ def summarize(rgb, masks, clusters, skin, selection):
         "media_lab": [round(float(v), 4) for v in skin["mean_lab"]] if skin else None,
         "media_rgb": [round(float(v), 2) for v in rgb[mask].mean(axis=0)] if skin else None,
         "mediana_lab": [round(float(v), 4) for v in skin["median_lab"]] if skin else None,
+        "medicao_regional": skin.get("regional") if skin else None,
         "desvio_lab": [round(float(v), 4) for v in skin["std_lab"]] if skin else None,
         "dispersao_delta_e76_p90": skin["dispersion_delta_e76_p90"] if skin else None,
         "medicao_utilizavel": skin is not None,
@@ -113,7 +114,7 @@ def analysis_events(image_bgr, detect_face):
                 small_mask = cv2.resize(masks["allowed"].astype(np.uint8), size, interpolation=cv2.INTER_NEAREST).astype(bool)
                 clusters = adaptive_clusters(small_lab, {"allowed": small_mask, "seeds": small_mask}) if small_mask.sum() >= 64 else {"k": None}
             elif step["id"] == "medidas":
-                skin = measure_skin(lab, selection["measurement_mask"])
+                skin = measure_skin(lab, selection["measurement_mask"], rgb=rgb, face_mask=masks["face"])
             else:
                 result = build_analysis(skin, selection, int(masks["face"].sum()))
                 result["condicoes"] = conditions(selection)
