@@ -31,7 +31,9 @@ Regras:
 7. Anatomia insuficiente interrompe com `PELE_INSUFICIENTE`. Seleção insuficiente,
    incerta ou com especialista indisponível retorna análise inconclusiva com
    máscaras, razões e médias nulas; não chama a medição.
-8. Retornar medições/máscaras reais e, separadamente, os dados demonstrativos de tom e bases.
+8. Usar a mediana Lab da seleção aprovada para classificar o tom Monk e
+   recomendar bases por grupo Monk com refinamento CIEDE2000 em Lab.
+   Seleção inconclusiva retorna `tom: null` e `recomendacoes: []`.
 
 O servidor não aceita um parâmetro que desative a pré-verificação. Cada envio
 verifica a própria imagem; nenhuma aprovação anterior é reutilizada.
@@ -40,25 +42,28 @@ verifica a própria imagem; nenhuma aprovação anterior é reutilizada.
 
 ```json
 {
-  "simulado": true,
+  "schema_version": 2,
+  "simulado": false,
   "exemplo": false,
   "precheck": {"executado": true, "rosto_detectado": true},
-  "tom": {"monk": 6, "hex": "#a07e56", "ita": 22.0, "pele_utilizada": 74},
+  "tom": {"monk": 6, "hex": "#a07e56", "ita": null, "pele_utilizada": 74},
   "escala_monk": ["#f6ede4", "#f3e7db", "#f7ead0", "#eadaba", "#d7bd96", "#a07e56", "#825c43", "#604134", "#3a312a", "#292420"],
   "catalogo_total": 281,
   "recomendacoes": [],
+  "match": {"status": "calculado", "experimental": true, "validado": false},
   "condicoes": [],
   "marcacoes": []
 }
 ```
 
-Os arrays acima estão abreviados. Fotos enviadas incluem três produtos
-demonstrativos, quatro condições com estados reais e `marcacoes: []`.
+O objeto e os arrays acima estão abreviados e ilustram o formato, não valores
+fixos de resposta. Fotos aprovadas incluem até três produtos do ranking,
+três condições com estados reais e `marcacoes: []`.
 As regiões reais ficam em `preprocessamento.selecao.regions`. Esquemas:
 
 | Campo | Estrutura de cada item |
 |---|---|
-| `recomendacoes` | `id: number`, `marca: string`, `nome: string`, `cor: string`, `hex: string`, `preco: number`, `link: string` |
+| `recomendacoes` | Dados do catálogo: `id`, `marca`, `nome`, `cor`, `hex`, `preco`, `link`; acrescenta `monk`, `lab`, `delta_e00`, `mesmo_monk`, `delta_e00_monk` |
 | `condicoes` | `id: string`, `nome: string`, `detectada: boolean ou null`, `estado: string`, `simulado: false`, `origem: string`, `pixels_excluidos: integer`, `pixels_incertos: integer`; `intensidade`/`local` são null |
 | `marcacoes` | `nome: string`, `x: number`, `y: number`, `largura: number`, `altura: number` |
 
@@ -66,10 +71,24 @@ As regiões reais ficam em `preprocessamento.selecao.regions`. Esquemas:
 Somente `/api/exemplo` mantém marcações ilustrativas em percentuais do quadro
 visual. Fotos analisadas nunca recebem essas marcações fictícias.
 
-`simulado: true` continua indicando que tom, ITA e recomendações
-são fictícios. Condições, `precheck` e `preprocessamento` são reais para
-fotos enviadas. A média CIELAB calculada da foto fica nesse novo objeto;
-o cartão de tom e a proximidade RGB de produtos ainda usam o exemplo fixo.
+Uploads retornam `simulado: false`: tom e produtos dependem da medição real.
+Isso não implica validação de acurácia: `match.experimental` é `true` e
+`match.validado` é `false`. ITA é `null` e não participa do cálculo.
+`tom.hex` identifica o swatch Monk; `tom.cor_pele_hex` representa a cor medida.
+`tom.lab` contém a mediana da seleção aprovada; `distancias_monk` contém as dez
+distâncias ΔE00, e `margem_delta_e00` indica ambiguidade, sem ser probabilidade.
+
+O ranking prioriza o mesmo Monk, refinando por ΔE00 pele/base. Se faltarem
+produtos, usa outros grupos pela distância entre swatches Monk, com refinamento
+em cada grupo. `match.grupos_complementares_utilizados` identifica esse caso.
+Não há limiar máximo de adequação calibrado ou porcentagem de compatibilidade.
+`match.status` pode ser `calculado`, `inconclusivo` ou `sem_candidatos`.
+`match.motivos` preserva razões de qualidade ou informa ausência de catálogo.
+Catálogo vazio mantém o tom medido; seleção reprovada não emite tom/produtos.
+O contrato completo está no [módulo de match](../backend/src/tone_matching/README.md).
+
+A interface ainda não foi adaptada a esse contrato; nesta etapa somente o
+backend expõe o tom e o ranking reais. `/api/exemplo` continua demonstrativo.
 
 ### Pré-processamento real
 
@@ -171,7 +190,7 @@ Neste exemplo, `etapas` e `dados` foram abreviados. Cada evento de etapa contém
 os dez itens, nos estados `aguardando`, `processando` ou `concluida`. IDs:
 `rosto`, `cielab`, `mascara`, `acne`, `vitiligo`, `barba`, `selecao`,
 `clusters`, `medidas`, `resultado`.
-A última etapa inclui a preparação dos resultados ainda simulados. A fração
+A última etapa calcula o match experimental Monk/Lab. A fração
 de etapas concluídas não é uma estimativa de tempo restante.
 
 Existe exatamente um evento terminal de sucesso (`resultado`) ou erro:
@@ -233,9 +252,9 @@ a ausência de pré-verificação.
 `catalog.py` converte nomes de campos, preços com vírgula e cores hexadecimais,
 validando os links HTTP/HTTPS. A cópia arquivada no mock não é lida pela aplicação.
 
-Para integrar ITA/Monk/KNN, substituir a etapa `resultado` em
-`backend/src/segmentation/pipeline.py`, usando `skin['mean_lab']` e a máscara
-de pixels válidos, e atualizar os textos/indicadores de simulação no frontend.
-O fluxo real de seleção já ocorre antes dessa etapa e bloqueia a medição se
-inconclusivo. Processamento distribuído permanece futuro. Detalhes dos limiares e das
+Monk e o ranking CIEDE2000 estão integrados à etapa `resultado` em
+`backend/src/segmentation/pipeline.py`, usando `skin['median_lab']` da máscara
+válida aprovada. ITA e adaptação do frontend permanecem fora desta etapa.
+O fluxo real de seleção bloqueia a medição e o match se inconclusivo.
+Processamento distribuído permanece futuro. Detalhes dos limiares e das
 limitações estão no [README da segmentação](../backend/src/segmentation/README.md).

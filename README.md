@@ -42,17 +42,21 @@ inconclusiva e não emite medição. A conversão dos pesos ocorre em ambiente s
 
 A pré-verificação conta as detecções válidas antes do recorte: zero rostos pede outra foto, um rosto passa e mais de um aborta. Não há conferência por um segundo detector nem reagrupamento das caixas retornadas pelo detector. O Haar considera caixas a partir de 40 × 40 pixels na imagem redimensionada. A detecção ainda pode falhar em rostos muito pequenos, de perfil ou parcialmente cobertos e pode produzir falsos positivos. Ela não certifica iluminação, nitidez ou ausência de maquiagem.
 
-## O que continua simulado
+## Match no backend e interface demonstrativa
 
-Tom Monk, ITA e a porcentagem do cartão de tom continuam fixtures de
-`backend/src/mock_analysis.py`. Condições e máscaras de fotos enviadas agora
-vêm da seleção real; marcações fictícias ficam apenas em `/api/exemplo`.
-Rosácea saiu do backend. A interface preserva as três prévias anatômicas e
-mostra abaixo acne, vitiligo e barba com máscaras e métricas.
-A imagem final reúne somente a pele útil restante. Disponibilidade dos modelos
-e resultados inconclusivos são indicados sem apresentar medições nulas como zero.
+Uploads usam a mediana Lab da pele válida aprovada para classificar o tom
+Monk e recomendar bases. O ranking prioriza o mesmo Monk e refina por
+CIEDE2000 pele/base; se necessário, completa com outros grupos pela distância
+entre referências Monk. Seleção inconclusiva retorna `tom: null` e nenhuma base.
+ITA fica `null`; não participa dessa estratégia. O resultado é experimental,
+sem correção de iluminação ou validação de bases aplicadas na pele.
 
-As três recomendações usam proximidade RGB a um **tom fixo de exemplo**, sem implementar o pipeline futuro de ITA/KNN. Os nomes, cores, preços e links são lidos do CSV real. O CSV não contém fotos ou acabamento; os cartões mostram uma amostra de cor e não inventam esses dados. Não há percentual fictício de compatibilidade.
+Esta integração é **somente backend**. A interface ainda contém textos e
+pressupostos demonstrativos e precisará ser adaptada, inclusive ao tom nulo;
+valide o match pela API/testes, não pelos cartões atuais. `/api/exemplo`
+continua usando fixtures de `backend/src/mock_analysis.py`. Os dados das bases
+vêm do CSV real. Não há percentual de compatibilidade inventado.
+Veja o [algoritmo e contrato](backend/src/tone_matching/README.md).
 
 ## Estrutura
 
@@ -69,7 +73,7 @@ backend/
   src/preprocessing/            Detectores e isolamento existentes
   src/segmentation/             Conversão, BiSeNet, estatísticas de cor e eventos
   src/skin_selection/           Especialistas, composição e qualidade
-  src/tone_matching/             Etapa futura
+  src/tone_matching/             Monk + ranking CIEDE2000 em Lab
   src/distributed/               Etapa futura
   tests/test_api.py              Testes HTTP e integração com o detector
 frontend/

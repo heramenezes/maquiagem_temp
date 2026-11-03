@@ -1,4 +1,4 @@
-"""Frontend + pré-processamento real, com eventos de progresso e resultado parcial."""
+"""Servidor HTTP, seleção de pele e match experimental Monk/Lab com progresso."""
 
 from io import BytesIO
 from pathlib import Path
@@ -92,7 +92,7 @@ def create_app(test_config=None):
             return error("FOTO_INVALIDA", "Não foi possível ler a foto. Use JPG, PNG ou WebP com até 24 megapixels.", 400)
 
         # O mesmo pipeline atende JSON e progresso em tempo real, sem guardar jobs.
-        events = analysis_events(image, detectar_e_isolar_rosto, generate_analysis)
+        events = analysis_events(image, detectar_e_isolar_rosto)
         if request.accept_mimetypes.best == "application/x-ndjson":
             def stream():
                 try:

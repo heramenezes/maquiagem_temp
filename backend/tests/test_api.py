@@ -94,7 +94,8 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.json)
         self.assertEqual(response.json["precheck"], {"executado": True, "rosto_detectado": True})
         self.assertFalse(response.json["exemplo"])
-        self.assertTrue(response.json["simulado"])
+        self.assertFalse(response.json["simulado"])
+        self.assertTrue(response.json["match"]["experimental"])
 
     def test_multiple_real_faces_stop_before_color_conversion_in_json_and_stream(self):
         for count, scale in [(2, 1), (3, 1), (2, 0.6)]:

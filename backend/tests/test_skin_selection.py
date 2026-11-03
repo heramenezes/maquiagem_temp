@@ -13,7 +13,6 @@ from backend.app import create_app
 from backend.src.segmentation.color import rgb_to_lab
 from backend.src.segmentation.semantic import measure_skin, ModelUnavailableError
 from backend.src.segmentation.pipeline import analysis_events
-from backend.src.mock_analysis import generate_analysis
 from backend.src.skin_selection import acne, beard, vitiligo
 from backend.src.skin_selection.contracts import Transform, ModuleResult, CATEGORIES, probability_masks
 from backend.src.skin_selection.compose import compose
@@ -210,7 +209,7 @@ class PipelineIntegrationTests(unittest.TestCase):
         with patch('backend.src.segmentation.pipeline.facial_masks', return_value=masks), \
              patch('backend.src.segmentation.pipeline.run_module', return_value=unavailable), \
              patch('backend.src.segmentation.pipeline.measure_skin') as measure:
-            events = list(analysis_events(rgb, lambda image: image, generate_analysis))
+            events = list(analysis_events(rgb, lambda image: image))
         result = events[-1]['dados']
         measure.assert_not_called()
         self.assertEqual(result['preprocessamento']['dimensoes'], {'largura': 900, 'altura': 600})
@@ -234,7 +233,7 @@ class PipelineIntegrationTests(unittest.TestCase):
              patch('backend.src.segmentation.pipeline.run_module', return_value=modules['barba']), \
              patch('backend.src.segmentation.pipeline.finish', return_value=selected), \
              patch('backend.src.segmentation.pipeline.measure_skin', wraps=measure_skin) as measure:
-            events = list(analysis_events(rgb, lambda image: image, generate_analysis))
+            events = list(analysis_events(rgb, lambda image: image))
         np.testing.assert_array_equal(measure.call_args.args[1], selected['valid_mask'])
         np.testing.assert_allclose(events[-1]['dados']['preprocessamento']['media_lab'],
                                    rgb_to_lab(rgb)[selected['valid_mask']].mean(axis=0), atol=.0001)

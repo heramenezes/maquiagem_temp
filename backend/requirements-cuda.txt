@@ -3,3 +3,4 @@ numpy>=1.24,<3
 opencv-python>=4.8,<5
 Pillow>=11,<13
 onnxruntime-gpu==1.21.0
+scikit-image>=0.25,<0.27

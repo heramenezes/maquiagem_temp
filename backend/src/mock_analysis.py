@@ -1,13 +1,13 @@
 """Fixtures demonstrativas; nenhum valor abaixo é inferido da foto enviada.
 
-Substituir generate_analysis pelo pipeline real mantendo o contrato HTTP.
-O catálogo é real; apenas a recomendação é simulada.
+Usadas somente por /api/exemplo. Uploads usam tone_matching.analysis.
+O catálogo é real; a recomendação deste exemplo é simulada.
 """
 
 from .catalog import load_catalog
+from .tone_matching.palette import MONK_HEX
 
-MONK = ["#f6ede4", "#f3e7db", "#f7ead0", "#eadaba", "#d7bd96",
-        "#a07e56", "#825c43", "#604134", "#3a312a", "#292420"]
+MONK = list(MONK_HEX)
 
 
 def generate_analysis(*, example=False):

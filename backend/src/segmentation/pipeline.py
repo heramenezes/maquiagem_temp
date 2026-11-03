@@ -13,6 +13,7 @@ from .semantic import ModelUnavailableError, facial_masks, measure_skin
 from ..preprocessing.face_detector import MultipleFacesError
 from ..skin_selection.pipeline import run_module, finish
 from ..skin_selection.serialization import serialize_selection, conditions
+from ..tone_matching.analysis import build_analysis
 
 
 class PipelineError(Exception):
@@ -31,7 +32,7 @@ STAGES = [
     ("selecao", "Compondo a seleção de pele", "União de máscaras e avaliação de qualidade", False),
     ("clusters", "Descrevendo as cores da pele", "Agrupamento em a*/b* sem remover pixels da máscara", False),
     ("medidas", "Medindo a pele selecionada", "Estatísticas somente da seleção aprovada pela qualidade", False),
-    ("resultado", "Preparando o resultado", "Pré-processamento real; tom e recomendações demonstrativos", True),
+    ("resultado", "Correlacionando pele e bases", "Monk como intermediário e refinamento CIEDE2000 em Lab", False),
 ]
 
 
@@ -66,7 +67,7 @@ def summarize(rgb, masks, clusters, skin, selection):
     }
 
 
-def analysis_events(image_bgr, detect_face, mock_result):
+def analysis_events(image_bgr, detect_face):
     """Cada etapa anuncia início antes de executar e conclusão após executar.
 
     O consumidor pode transmitir NDJSON ou consumir tudo para produzir JSON.
@@ -112,7 +113,7 @@ def analysis_events(image_bgr, detect_face, mock_result):
                     step["estado_modulo"] = "nao_executado"
                     step["motivo"] = "qualidade_inconclusiva"
             else:
-                result = mock_result()
+                result = build_analysis(skin, selection, int(masks["face"].sum()))
                 result["condicoes"] = conditions(selection)
                 result["marcacoes"] = []  # Bboxes reais estão em selecao.regions, no recorte.
                 result["preprocessamento"] = summarize(rgb, masks, clusters, skin, selection)
