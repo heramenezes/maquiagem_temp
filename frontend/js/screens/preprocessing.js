@@ -7,7 +7,7 @@ export function preprocessing(data) {
   if (!data || data.simulado) return '';
   const anatomy = png(data.selecao?.masks?.anatomical_mask);
   return `<section class="container section stack real-preprocessing">
-    <div class="section-heading"><div class="stack tight"><span class="eyebrow">Processamento real da sua foto</span><h2>Segmentação básica do rosto</h2><p class="muted">Primeiro, o BiSeNet separa pele e nariz das demais partes do rosto. Estas três imagens mostram a seleção inicial, antes das exclusões abaixo.</p></div></div>
+    <h2>Segmentação básica do rosto</h2>
     <div class="preprocessing-previews">
       <figure class="card"><img src="${png(data.previas?.rosto)}" alt="Recorte do rosto" width="${Number(data.dimensoes?.largura)}" height="${Number(data.dimensoes?.altura)}"><figcaption>Recorte do rosto</figcaption></figure>
       <figure class="card"><img src="${anatomy}" alt="Máscara anatômica de pele e nariz antes das exclusões" width="${Number(data.dimensoes?.largura)}" height="${Number(data.dimensoes?.altura)}"><figcaption>Máscara de pele inicial</figcaption></figure>

@@ -1,4 +1,4 @@
-﻿import { mascot, icon, escapeHTML as e } from './shared.js';
+﻿import { icon, escapeHTML as e } from './shared.js';
 
 const descriptions = {
   rosto: ['Verificando o rosto', 'Confirmamos um único rosto e preservamos o recorte da foto.'],
@@ -44,10 +44,10 @@ export function updateProcessing(progress) {
 }
 
 export function processing(state) {
-  return `<section class="container section processing" aria-busy="true"><div class="card processing-card stack"><div class="processing-mascot">${mascot}</div>
-    <div class="processing-heading stack tight"><span class="eyebrow">Um instante para cuidar dos detalhes</span><h1>${state.example ? 'Preparando o exemplo…' : 'Processando sua foto…'}</h1><p class="muted" id="processing-status" role="status">${state.example ? 'Carregando a demonstração.' : 'Enviando a foto e aguardando o servidor.'}</p></div>
+  return `<section class="container section processing" aria-busy="true"><div class="card processing-card stack">
+    <div class="processing-heading stack tight"><h1>${state.example ? 'Preparando o exemplo…' : 'Processando sua foto…'}</h1><p class="muted" id="processing-status" role="status">${state.example ? 'Carregando a demonstração.' : 'Enviando a foto e aguardando o servidor.'}</p></div>
     <div class="processing-progress-label" id="processing-count">${state.example ? 'Exemplo demonstrativo' : 'Aguardando o início das etapas'}</div>
     <div class="loading-bar" id="processing-progress" role="progressbar" aria-label="Etapas de processamento" aria-valuemin="0" aria-valuemax="100"><span></span></div>
     <div class="processing-steps" id="processing-steps">${state.example ? '<p class="small muted">Nenhuma foto pessoal será enviada. Este exemplo não executa o processamento real.</p>' : '<p class="small muted">Vamos separar a pele, analisar acne, vitiligo e barba e reunir os pixels restantes.</p>'}</div>
-    <div><button class="btn btn-outline-primary" data-action="home">Cancelar e voltar ao início</button></div><p class="privacy-note">${icon('shield')} Sua foto não fica salva no servidor.</p></div></section>`;
+    <div class="processing-footer"><p class="privacy-note">${icon('shield')} Sua foto não fica salva no servidor.</p><button class="btn btn-outline-primary" data-action="home">Cancelar e voltar ao início</button></div></div></section>`;
 }

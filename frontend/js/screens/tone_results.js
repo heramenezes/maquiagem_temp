@@ -10,31 +10,41 @@ export function toneSummary(data) {
   const tone = data.tom;
   const measured = Boolean(tone && Number.isInteger(tone.monk) && tone.monk >= 1 && tone.monk <= 10);
   const technical = technicalIssue(data);
+  if (measured) {
+    return `<section class="container section result-summary stack">
+      ${demo ? `<div class="alert notice demo-notice">${icon('info')}<div><b>Exemplo de resultado</b>Este exemplo não enviou uma foto. O tom e as recomendações são simulados.</div></div>` : ''}
+      <div class="card tone-card tone-result" data-tone-state="${demo ? 'example' : 'measured'}">
+        <div class="tone-result-main">
+          <div class="tone-color-sample"><div class="tone-swatch" style="--swatch:${safeColor(demo ? tone.hex : tone.cor_pele_hex)}"></div><span>${demo ? 'Cor de exemplo' : 'Cor da foto'}</span></div>
+          <div class="stack tight"><span class="eyebrow">${demo ? 'Tom demonstrativo' : 'Seu tom estimado'}</span>
+            <h1 class="tone-value">Tom ${monkNumber(tone.monk)}</h1>
+            <span class="small muted">na escala Monk</span>
+            ${!demo ? `<span class="tone-reference"><i class="mini-swatch" style="--swatch:${safeColor(tone.hex)}"></i>Referência Monk ${monkNumber(tone.monk)}</span>` : ''}
+          </div>
+        </div>
+        <div class="tone-scale-context">
+          <p>Criada pelo sociólogo <strong>Ellis Monk, de Harvard</strong>, e disponibilizada em parceria com o <strong>Google</strong>, a escala Monk reúne 10 tons para representar melhor a diversidade de cores de pele. <a href="https://news.harvard.edu/gazette/story/2022/07/teaching-algorithms-about-colors-of-people/" target="_blank" rel="noopener noreferrer">Sobre a escala<span class="visually-hidden"> (abre em nova aba)</span></a></p>
+          <div class="tone-scale-labels"><span>01 · Mais claro</span><span>${demo ? 'Tom de exemplo em destaque' : 'Seu tom estimado em destaque'}</span><span>10 · Mais escuro</span></div>
+          <div class="result-scale">${scale(data.escala_monk, tone.monk, demo)}</div>
+        </div>
+      </div>
+      ${matchFailure(data)}
+    </section>`;
+  }
   const notice = demo
     ? '<b>Resultado demonstrativo</b>Este exemplo não enviou uma foto nem executou a verificação facial. O tom, as condições e as recomendações são simulados.'
-    : measured
-      ? `<b>Análise da sua foto · resultado experimental</b>${data.match?.status === 'sem_candidatos' ? 'Seu tom foi estimado, mas não há bases disponíveis no catálogo.' : 'O tom e a seleção de bases foram calculados a partir da pele disponível.'} A iluminação pode alterar a cor estimada.`
-      : '<b>Análise inconclusiva</b>Não foi possível medir o tom com qualidade suficiente. As regiões analisadas continuam disponíveis abaixo.';
-  const title = demo ? 'Uma prévia das bases para o seu tom.' : measured ? 'Seu tom, suas opções de base.' : technical ? 'Não foi possível concluir a análise.' : 'Precisamos de outra foto.';
+    : '<b>Análise inconclusiva</b>Não foi possível medir o tom com qualidade suficiente. As regiões analisadas continuam disponíveis abaixo.';
+  const title = demo ? 'Uma prévia das bases para o seu tom.' : technical ? 'Não foi possível concluir a análise.' : 'Precisamos de outra foto.';
   const description = demo ? 'Conheça um exemplo de como seu resultado será apresentado.'
-    : measured ? 'Uma estimativa da sua pele e as cores mais próximas no nosso catálogo.'
-      : technical ? 'Uma análise necessária não ficou disponível. Confira o aviso e tente novamente.' : 'Tente uma foto nítida, de frente, sem filtros e com luz uniforme.';
-  const card = measured ? `<div class="card tone-card" data-tone-state="${demo ? 'example' : 'measured'}">
-      <div class="tone-color-sample"><div class="tone-swatch" style="--swatch:${safeColor(demo ? tone.hex : tone.cor_pele_hex)}"></div><span>${demo ? 'Exemplo' : 'Cor da foto'}</span></div>
-      <div class="stack tight"><span class="eyebrow">${demo ? 'Tom demonstrativo' : 'Tom estimado da sua pele'}</span>
-        <span class="tone-value">Tom ${monkNumber(tone.monk)}</span><span class="small muted">na Escala Monk, de 01 a 10</span>
-        ${!demo ? `<span class="tone-reference"><i class="mini-swatch" style="--swatch:${safeColor(tone.hex)}"></i>Referência Monk ${monkNumber(tone.monk)}</span>` : ''}
-        <span class="tone-metrics">${finite(tone.pele_utilizada) ? `${format(tone.pele_utilizada)}% da face ${demo ? 'no exemplo' : 'usada na medição'}` : ''}${demo ? '<br>Valores simulados' : ''}</span>
-      </div></div>`
-    : `<div class="card tone-card tone-unavailable" data-tone-state="unavailable"><span class="tone-empty-icon">${icon('sun')}</span><div class="stack tight"><span class="eyebrow">Tom não calculado</span><h2>Vamos tentar de novo</h2><p class="small muted">${technical ? 'A análise precisa concluir antes de medir o tom.' : 'Uma nova captura pode melhorar a medição.'}</p></div></div>`;
+    : technical ? 'Uma análise necessária não ficou disponível. Confira o aviso e tente novamente.' : 'Tente uma foto nítida, de frente, sem filtros e com luz uniforme.';
+  const card = `<div class="card tone-card tone-unavailable" data-tone-state="unavailable"><span class="tone-empty-icon">${icon('sun')}</span><div class="stack tight"><span class="eyebrow">Tom não calculado</span><h2>Vamos tentar de novo</h2><p class="small muted">${technical ? 'A análise precisa concluir antes de medir o tom.' : 'Uma nova captura pode melhorar a medição.'}</p></div></div>`;
   return `<section class="container section result-summary stack">
     <div class="alert notice ${demo ? 'demo-notice' : 'match-notice'}">${icon('info')}<div>${notice}</div></div>
     ${matchFailure(data)}
     <div class="row g-4 g-lg-5 align-items-center result-title">
-      <div class="col-lg-7 stack"><span class="tag">${data.precheck?.rosto_detectado ? '✓ Rosto detectado · verificação real' : 'Exemplo de resultado'}</span><h1>${title}</h1><p class="lead-copy">${description}</p>
+      <div class="col-lg-7 stack"><h1>${title}</h1><p class="lead-copy">${description}</p>
       </div><div class="col-lg-5">${card}</div>
     </div>
-    ${measured ? `<div class="result-scale">${scale(data.escala_monk, tone.monk, demo)}</div>` : ''}
   </section>`;
 }
 

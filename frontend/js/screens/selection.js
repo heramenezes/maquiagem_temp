@@ -6,9 +6,9 @@ export const format = value => typeof value === 'number' && Number.isFinite(valu
 const percent = value => typeof value === 'number' && Number.isFinite(value) ? `${format(value)}%` : '—';
 const fraction = value => typeof value === 'number' ? percent(value * 100) : '—';
 const categories = [
-  ['acne', 'Acne', 'Áreas apontadas pelo modelo de acne.'],
-  ['vitiligo', 'Vitiligo', 'Áreas apontadas pelo modelo de vitiligo.'],
-  ['barba', 'Barba e bigode', 'Áreas de pelos faciais apontadas pelo modelo de barba.'],
+  ['acne', 'Acne'],
+  ['vitiligo', 'Vitiligo'],
+  ['barba', 'Barba e bigode'],
 ];
 const statusNames = { indisponivel: 'Modelo indisponível', falha: 'Falha na análise', nao_executado: 'Não executado' };
 const reasons = {
@@ -35,8 +35,8 @@ export function categoryPreviews(data) {
   const selection = data.selecao;
   if (!selection) return '';
   return `<div class="selection-breakdown stack">
-    <div class="stack tight"><span class="eyebrow">Análise por região</span><h2>O que foi separado da pele</h2><p class="muted">Cada imagem usa o mesmo recorte. A cor de cada cartão marca as exclusões; amarelo indica áreas incertas, também retiradas da seleção final.</p></div>
-    <div class="exclusion-grid">${categories.map(([key, name, description]) => {
+    <h2>Análise por região</h2>
+    <div class="exclusion-grid">${categories.map(([key, name]) => {
       const status = selection.module_status?.[key];
       const executed = status?.state === 'executado';
       const available = executed && png(selection.masks?.accepted_masks?.[key]);
@@ -46,7 +46,6 @@ export function categoryPreviews(data) {
       const regions = (selection.regions || []).filter(region => region.reason === key && region.state === 'aceita').length;
       return `<article class="card exclusion-card category-${key}" data-category="${key}" data-module-state="${e(status?.state || 'nao_executado')}">
         <div class="condition-head"><h3>${name}</h3><span class="tag ${executed ? 'neutral' : 'status-warning'}">${label}</span></div>
-        <p class="small muted">${description}</p>
         <figure class="exclusion-figure"><div class="mask-render" data-render-state="${available ? 'loading' : 'unavailable'}">
           ${available ? `<img data-mask-preview="${key}" alt="${name}: exclusões destacadas sobre o recorte do rosto; áreas incertas em amarelo" hidden>` : ''}
           <p class="preview-placeholder" role="status">${available ? 'Preparando a visualização…' : executed ? 'Máscara não recebida.' : 'Não há uma máscara disponível para esta análise.'}</p>
@@ -72,7 +71,7 @@ export function finalSelection(data) {
   const usable = quality?.usable === true;
   const lab = Array.isArray(data.media_lab) && data.media_lab.length === 3 && data.media_lab.every(Number.isFinite) ? data.media_lab : null;
   return `<section class="container section skin-section final-selection stack">
-    <div class="section-heading"><div class="stack tight"><span class="eyebrow">Todas as etapas reunidas</span><h2>Pele útil após todas as exclusões</h2><p class="muted">A imagem mantém apenas os pixels restantes após unir as exclusões e retirar as áreas incertas. O quadriculado indica transparência.</p></div></div>
+    <h2>Pele útil após exclusões</h2>
     <div class="row g-4 g-lg-5 align-items-start">
       <div class="col-lg-5"><figure class="final-skin-figure card"><div class="useful-skin-image"><img id="segmentation-overlay" src="${png(data.previas?.pele)}" alt="Somente os pixels de pele restantes após todas as exclusões e incertezas" width="${Number(data.dimensoes?.largura)}" height="${Number(data.dimensoes?.altura)}"></div><figcaption>Pele anatômica − exclusões − incertezas</figcaption></figure></div>
       <div class="col-lg-7 stack">
