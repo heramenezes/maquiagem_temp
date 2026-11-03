@@ -93,7 +93,3 @@ export async function analyzePhoto(file, signal, onProgress) {
   }
   return result;
 }
-
-export function getExample(signal) {
-  return request('/api/exemplo', { method: 'GET' }, signal);
-}

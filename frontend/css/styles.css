@@ -156,18 +156,48 @@ main:focus { outline: 0; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; }
 .section-heading .eyebrow { display: block; margin-bottom: 10px; }
 .section-heading>p { font-size: .83rem; }
-.how-section { padding-top: 32px; padding-bottom: 32px; }
-.how-grid { margin-top: 8px; }
-.how-card { height: 100%; padding: 20px; gap: 10px; border-radius: 14px; }
-.how-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
-.how-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: var(--pale); color: var(--accent); }
-.how-number { color: #d5ded0; font-size: 1.85rem; font-weight: 800; letter-spacing: -.06em; }
-.how-card p { font-size: .83rem; color: var(--muted); line-height: 1.8; }
-.how-caption { font-size: .67rem; color: #64715f; padding-top: 4px; margin-top: auto; }
-.palette-section { padding-bottom: 36px; }
-.palette-panel { background: #edf2e9; border: 1px solid #e0e8da; border-radius: 16px; padding: 26px; }
-.palette-panel h2 { font-size: 1.7rem; }
-.palette-panel p { color: var(--muted); font-size: .82rem; }
+
+/* Guia de uso: primeiro os passos, depois as explicações técnicas opcionais. */
+.how-page { max-width: 1100px; padding-block: 28px 40px; gap: 28px; }
+.how-page h1 { font-size: clamp(1.9rem, 3vw, 2.5rem); }
+.how-page h2 { font-size: clamp(1.2rem, 2vw, 1.5rem); line-height: 1.3; }
+.how-intro { gap: 12px; }
+.how-guide { gap: 14px; }
+.how-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.how-steps>li { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.how-step-index { display: grid; place-items: center; align-self: flex-start; width: 30px; height: 30px; border-radius: 8px; background: var(--pale); color: var(--dark); font-size: .75rem; font-weight: 700; }
+.how-steps h3 { font-size: 1rem; }
+.how-steps p { font-size: .82rem; color: var(--muted); line-height: 1.65; }
+.how-step-note { display: block; margin-top: auto; padding-top: 4px; font-size: .69rem; color: var(--muted); line-height: 1.5; }
+.how-privacy { display: flex; align-items: flex-start; gap: 8px; font-size: .73rem; color: var(--muted); }
+.how-privacy .icon { width: 17px; height: 17px; margin-top: 2px; color: var(--accent); }
+.how-limit { padding: 20px 22px; gap: 10px; background: #faf5e9; border-color: #dfcfaa; }
+.how-limit-heading { display: flex; align-items: flex-start; gap: 10px; }
+.how-limit-heading .icon { color: #876321; margin-top: 3px; }
+.how-limit h2 { font-size: 1.1rem; }
+.how-limit p { font-size: .82rem; line-height: 1.65; }
+.how-engine { gap: 14px; }
+.how-technical { border: 1px solid var(--line); border-radius: 14px; background: var(--white); overflow: hidden; }
+.how-technical details+details { border-top: 1px solid var(--line); }
+.how-technical summary { display: flex; align-items: center; gap: 12px; padding: 16px 18px; cursor: pointer; list-style: none; font-size: .85rem; font-weight: 600; }
+.how-technical summary::-webkit-details-marker { display: none; }
+.how-technical summary::after { content: '+'; color: var(--accent); font-size: 1.2rem; margin-left: auto; }
+.how-technical details[open]>summary::after { content: '−'; }
+.how-technical details[open]>summary { background: #f5f8f1; }
+.how-tech-label { color: var(--muted); font-size: .67rem; font-weight: 400; margin-left: auto; text-align: right; }
+.how-technical summary::after { margin-left: 0; }
+.how-detail { padding: 0 18px 18px; background: #f5f8f1; }
+.how-detail p { max-width: 100ch; font-size: .8rem; line-height: 1.7; color: #53644e; }
+.how-detail p+p { margin-top: 10px; }
+@media (max-width: 767.98px) {
+  .how-page { padding-block: 24px; gap: 24px; }
+  .how-steps { grid-template-columns: 1fr; gap: 12px; }
+  .how-limit { padding: 18px; }
+  .how-technical summary { flex-wrap: wrap; gap: 6px; padding: 14px; }
+  .how-technical summary>span:first-child { flex: 1 1 calc(100% - 28px); }
+  .how-tech-label { order: 2; flex-basis: 100%; text-align: left; margin-left: 0; }
+  .how-detail { padding: 0 14px 14px; }
+}
 
 /* Captura e revisão. */
 .intro { max-width: 700px; margin-bottom: 24px; gap: 10px; }
@@ -387,26 +417,9 @@ main:focus { outline: 0; }
 .skin-section { gap: 30px; padding-bottom: 35px; }
 .skin-section>.section-heading { max-width: 720px; }
 .skin-section>.section-heading p { font-size: .87rem; }
-.photo-column { gap: 14px; }
-.photo-column>.btn { align-self: flex-start; min-height: 42px; font-size: .73rem; }
-.condition-panel { padding: 3px 26px; }
-.condition { display: flex; flex-direction: column; gap: 11px; padding: 24px 0; }
-.condition+.condition { border-top: 1px solid var(--line); }
 .condition-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .condition-head h3 { font-size: 1rem; }
 .condition-head .tag { font-size: .59rem; }
-.condition>p { font-size: .75rem; }
-.condition-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.condition-detail>div { padding: 12px 14px; background: #f3f6ef; border-radius: 8px; display: flex; flex-direction: column; gap: 5px; }
-.condition-detail span { color: #64715f; font-size: .56rem; text-transform: uppercase; letter-spacing: .06em; }
-.condition-detail b { color: #576d4a; font-size: .7rem; font-weight: 600; }
-.medical-note { display: flex; align-items: flex-start; gap: 8px; color: #64715f; font-size: .65rem; line-height: 1.7; margin-top: 17px; }
-.medical-note .icon { width: 15px; height: 15px; flex-shrink: 0; }
-.example-face { position: absolute; left: 20%; top: 12%; width: 60%; height: 72%; border-radius: 50%; background: var(--swatch); }
-.marks { position: absolute; inset: 0; pointer-events: none; }
-.marks[hidden] { display: none; }
-.mark { position: absolute; padding: 0; background: transparent; border: 2px solid white; border-radius: 4px; box-shadow: 0 0 0 1px rgb(35 50 30 / 30%); }
-.mark span { position: absolute; left: -2px; bottom: calc(100% + 3px); padding: 3px 6px; background: var(--dark); color: white; border-radius: 4px; font-size: .58rem; white-space: nowrap; }
 @media (hover: hover) {
   .btn-primary:hover { transform: translateY(-1px); }
   .product-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgb(35 65 30 / 7%); }
@@ -471,7 +484,6 @@ main:focus { outline: 0; }
   .exclusion-card .tag { white-space: normal; }
   .selection-metrics { gap: 12px; }
   .useful-skin-image img { height: clamp(180px, 32vh, 260px); object-fit: contain; }
-  .condition { padding-block: 18px; }
 }
 
 /* Em notebooks baixos, mantém as ações e as seis dicas visíveis. */
@@ -505,7 +517,6 @@ main:focus { outline: 0; }
   .tone-card { max-width: 480px; }
   .product-grid { gap: 16px; }
   .product-info { padding: 14px; }
-  .condition-panel { padding-inline: 22px; }
 }
 @media (max-width: 767.98px) {
   .container { padding-inline: 22px; }
@@ -536,15 +547,6 @@ main:focus { outline: 0; }
   .section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
   .section-heading .eyebrow { margin-bottom: 8px; }
   .section-heading>p { font-size: .77rem; }
-  .how-section { padding-top: 38px; }
-  .how-grid { margin-top: 0; --bs-gutter-y: 14px; }
-  .how-card { padding: 24px; gap: 11px; }
-  .how-card-top { margin-bottom: 1px; }
-  .how-caption { margin-top: 0; }
-  .palette-section { padding-bottom: 30px; }
-  .palette-panel { padding: 25px 21px; }
-  .palette-panel h2 { font-size: 1.55rem; }
-  .palette-panel p { font-size: .77rem; }
   .intro { margin-bottom: 25px; }
   .intro>p { font-size: .87rem; }
   .drop-zone { min-height: 360px; padding: 31px 17px 27px; }
@@ -580,15 +582,8 @@ main:focus { outline: 0; }
   .recommendations-section .section { padding-block: 24px; }
   .skin-section { gap: 25px; }
   .skin-section>.section-heading p { font-size: .8rem; }
-  .photo-column { max-width: 380px; margin-inline: auto; }
-  .photo-column>.btn { align-self: stretch; }
-  .condition-panel { padding-inline: 20px; }
   .condition-head { gap: 10px; }
   .condition-head .tag { font-size: .55rem; }
-  .condition-detail { gap: 8px; }
-  .condition-detail>div { padding: 10px; }
-  .condition-detail b { font-size: .65rem; }
-  .condition-detail span { font-size: .51rem; }
 }
 @media (max-width: 359.98px) {
   .container { padding-inline: 16px; }

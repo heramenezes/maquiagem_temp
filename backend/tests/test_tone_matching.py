@@ -107,14 +107,6 @@ class ColorMatchingTests(unittest.TestCase):
 
 
 class MatchingApiTests(unittest.TestCase):
-    def test_example_has_the_new_color_contract_without_classification(self):
-        result = create_app({"TESTING": True}).test_client().get('/api/exemplo').json
-        self.assertEqual(result['schema_version'], 3)
-        self.assertEqual(set(result['tom']), {'lab', 'cor_pele_hex', 'pele_utilizada'})
-        self.assertNotIn('monk', json.dumps(result).lower())
-        self.assertEqual(result['recomendacoes'], rank_foundations(
-            result['tom']['lab'], load_catalog()))
-
     def analyze(self, color, *, stream=False, fail=False, empty_anatomy=False):
         base = np.array([int(color[i:i + 2], 16) for i in (1, 3, 5)])
         noise = np.random.default_rng(1).integers(-3, 4, (100, 160, 1))
@@ -139,8 +131,7 @@ class MatchingApiTests(unittest.TestCase):
         client = create_app({"TESTING": True}).test_client()
         with patch("backend.app.detectar_e_isolar_rosto", return_value=rgb), \
              patch("backend.src.segmentation.pipeline.facial_masks", return_value=anatomy), \
-             patch("backend.src.segmentation.pipeline.run_module", side_effect=module), \
-             patch("backend.app.generate_analysis") as mock_result:
+             patch("backend.src.segmentation.pipeline.run_module", side_effect=module):
             response = client.post("/api/analises", data={"foto": (photo, "skin.png")},
                                    headers={"Accept": "application/x-ndjson" if stream else "application/json"})
             self.assertEqual(response.status_code, 200)
@@ -151,7 +142,6 @@ class MatchingApiTests(unittest.TestCase):
                 result = events[-1]["dados"]
             else:
                 result = response.json
-        mock_result.assert_not_called()
         return result, rgb
 
     def test_json_ndjson_use_only_approved_pixels_and_have_same_match(self):

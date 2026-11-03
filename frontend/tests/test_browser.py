@@ -440,18 +440,40 @@ class BrowserTests(unittest.TestCase):
         self.page.get_by_role("button", name="Enviar para análise").click()
         expect(self.page.locator('.tone-value')).to_be_visible(timeout=40000)
 
-    def test_example_and_marks(self):
-        self.page.get_by_role("button", name="Ver um exemplo", exact=True).click()
-        expect(self.page.get_by_text("Exemplo de resultado", exact=True)).to_be_visible()
-        self.assertNotIn('Monk', self.page.locator('main').inner_text())
-        expect(self.page.locator('.tone-value')).to_have_text('Cor demonstrativa')
-        expect(self.page.locator(".notice").first).to_contain_text("não enviou uma foto")
-        # Bootstrap também define .mark; as marcações não podem cobrir a foto.
-        self.assertEqual(self.page.locator(".mark").first.evaluate("el => getComputedStyle(el).backgroundColor"), "rgba(0, 0, 0, 0)")
-        self.page.get_by_role("button", name="Ocultar marcações").click()
-        expect(self.page.locator("#marks")).to_be_hidden()
-        self.page.get_by_role("button", name="Mostrar marcações").click()
-        expect(self.page.locator("#marks")).to_be_visible()
+    def test_how_page_navigation_content_and_start(self):
+        api_calls = []
+        self.page.on('request', lambda req: api_calls.append(req.url) if '/api/' in req.url else None)
+        expect(self.page.get_by_role('button', name='Ver um exemplo', exact=True)).to_have_count(0)
+        self.page.get_by_role('button', name='Como funciona?', exact=True).click()
+        expect(self.page).to_have_url(self.url + '/como-funciona')
+        expect(self.page.get_by_role('heading', name='Como funciona?', exact=True)).to_be_visible()
+        expect(self.page.locator('#flow')).to_be_empty()
+        expect(self.page.locator('.how-steps > li')).to_have_count(3)
+        expect(self.page.locator('.how-limit')).to_contain_text('códigos HEX que os fabricantes colocam nos sites')
+        expect(self.page.locator('.how-limit')).to_contain_text('não temos como corrigir essa diferença')
+        detail = self.page.locator('.how-technical details').nth(3)
+        detail.locator('summary').click()
+        expect(detail).to_have_attribute('open', '')
+        expect(detail).to_contain_text('CIEDE2000')
+        self.assertEqual(api_calls, [])
+        self.page.reload()
+        expect(self.page.get_by_role('heading', name='Como funciona?', exact=True)).to_be_visible()
+        self.page.go_back()
+        expect(self.page.get_by_role('button', name='Como funciona?', exact=True)).to_be_visible()
+        self.page.go_forward()
+        self.page.locator('#header-action').click()
+        expect(self.page.locator('#gallery-input')).to_have_count(1)
+        expect(self.page).to_have_url(self.url + '/')
+
+    def test_how_page_direct_access_mobile_and_expanded_details(self):
+        self.page.goto(self.url + '/como-funciona')
+        for width in (1366, 768, 390, 320):
+            self.page.set_viewport_size({'width': width, 'height': 844})
+            self.page.locator('.how-technical details').evaluate_all('items => items.forEach(item => item.open = true)')
+            expect(self.page.locator('.how-technical details[open]')).to_have_count(6)
+            self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), width)
+        self.page.get_by_role('button', name='Meu tom, início').click()
+        expect(self.page.get_by_role('button', name='Como funciona?', exact=True)).to_be_visible()
 
     def test_multiple_faces_requests_new_photo_before_analysis(self):
         self.page.get_by_role('button', name='Começar', exact=True).click()
@@ -484,9 +506,8 @@ class BrowserTests(unittest.TestCase):
 
     def test_old_backend_without_segmentation_keeps_photo_for_retry(self):
         self.select_sample()
-        legacy = self.page.request.get(self.url + '/api/exemplo').json()
-        legacy['exemplo'] = False
-        legacy['precheck'] = {'executado': True, 'rosto_detectado': True}
+        legacy, _, _ = selection_fixture()
+        del legacy['preprocessamento']
         self.page.route('**/api/analises', lambda route: route.fulfill(
             status=200, content_type='application/json', body=json.dumps(legacy)))
         self.page.get_by_role('button', name='Enviar para análise').click()
@@ -496,9 +517,10 @@ class BrowserTests(unittest.TestCase):
 
     def test_reset_cancels_pending_request(self):
         requests = []
-        self.page.route("**/api/exemplo", lambda route: requests.append(route))
-        self.page.get_by_role("button", name="Ver um exemplo", exact=True).click()
-        expect(self.page.get_by_role("heading", name="Preparando o exemplo…")).to_be_visible()
+        self.page.route("**/api/analises", lambda route: requests.append(route))
+        self.select_sample()
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.get_by_role("heading", name="Processando sua foto…")).to_be_visible()
         self.page.screenshot(path=str(ARTIFACTS / "processing-desktop.png"), full_page=True)
         self.page.get_by_role("button", name="Cancelar e voltar ao início").click()
         expect(self.page.get_by_role("heading", name="Encontre a base certa para o seu tom de pele.")).to_be_visible()

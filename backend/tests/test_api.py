@@ -12,6 +12,8 @@ from PIL import Image, ImageCms
 
 from backend.app import MAX_FILE_BYTES, create_app, decode_photo
 from backend.src.catalog import load_catalog
+from backend.src.tone_matching.matching import rank_foundations
+from backend.src.tone_matching.color import hex_to_lab
 from backend.tests.images import face_photo
 from backend.src.preprocessing import detectar_e_isolar_rosto
 from backend.src.segmentation.semantic import ModelUnavailableError
@@ -38,24 +40,20 @@ class ApiTests(unittest.TestCase):
                     self.assertEqual(response.status_code, 200)
         self.assertEqual(self.client.get("/backend/data/bases.csv").status_code, 404)
 
-    def test_example_is_explicitly_simulated_and_does_not_run_detector(self):
-        with patch("backend.app.detectar_e_isolar_rosto") as detector:
-            response = self.client.get("/api/exemplo")
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json["simulado"])
-        self.assertTrue(response.json["exemplo"])
-        self.assertEqual(response.json["precheck"], {"executado": False, "rosto_detectado": None})
-        detector.assert_not_called()
-        self.assertEqual(response.headers["Cache-Control"], "no-store")
+    def test_how_page_and_removed_example(self):
+        with self.client.get('/como-funciona') as response:
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers['Cache-Control'], 'no-store')
+        self.assertEqual(self.client.get('/api/exemplo').status_code, 404)
 
     def test_catalog_and_recommendations_keep_real_product_data(self):
         catalog = load_catalog()
         self.assertEqual(len(catalog), 281)
         self.assertEqual(len({p["id"] for p in catalog}), 281)
         self.assertEqual(catalog[0]["preco"], 114.9)
-        data = self.client.get("/api/exemplo").json
-        self.assertEqual(len(data["recomendacoes"]), 3)
-        for product in data["recomendacoes"]:
+        recommendations = rank_foundations(hex_to_lab("#B4785A"), catalog)
+        self.assertEqual(len(recommendations), 3)
+        for product in recommendations:
             original = next(item for item in catalog if item['id'] == product['id'])
             self.assertEqual({key: product[key] for key in original}, original)
             self.assertEqual(set(product) - set(original), {'lab', 'delta_e00'})
@@ -83,12 +81,10 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 413)
         self.assertEqual(response.json["codigo"], "FOTO_MUITO_GRANDE")
 
-    def test_no_face_blocks_mock_generation(self):
-        with patch("backend.app.generate_analysis") as generate:
-            response = self.client.post("/api/analises", data={"foto": (image_file(), "no-face.png")})
+    def test_no_face_returns_error(self):
+        response = self.client.post("/api/analises", data={"foto": (image_file(), "no-face.png")})
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response.json["codigo"], "ROSTO_NAO_ENCONTRADO")
-        generate.assert_not_called()
 
     def test_real_face_in_sample_passes(self):
         with (ROOT / "samples" / "imagem_teste.jpeg").open("rb") as sample:
@@ -105,22 +101,20 @@ class ApiTests(unittest.TestCase):
                 with self.subTest(count=count, secondary_scale=scale, stream=stream):
                     with patch('backend.src.preprocessing.face_detector.detectar_rosto_mediapipe', return_value=None):
                         with patch('backend.src.segmentation.pipeline.rgb_to_lab') as convert:
-                            with patch('backend.app.generate_analysis') as generate:
-                                response = self.client.post('/api/analises',
-                                    data={'foto': (face_photo(count, scale), 'faces.png')},
-                                    headers={'Accept': 'application/x-ndjson' if stream else 'application/json'})
-                                if stream:
-                                    events = [json.loads(line) for line in response.data.splitlines()]
-                                    self.assertEqual(len(events), 2)
-                                    self.assertEqual(events[0]['concluidas'], 0)
-                                    self.assertEqual(events[-1]['tipo'], 'erro')
-                                    self.assertEqual(events[-1]['status'], 422)
-                                    self.assertEqual(events[-1]['codigo'], 'MULTIPLOS_ROSTOS')
-                                else:
-                                    self.assertEqual(response.status_code, 422)
-                                    self.assertEqual(response.json['codigo'], 'MULTIPLOS_ROSTOS')
-                                convert.assert_not_called()
-                                generate.assert_not_called()
+                            response = self.client.post('/api/analises',
+                                data={'foto': (face_photo(count, scale), 'faces.png')},
+                                headers={'Accept': 'application/x-ndjson' if stream else 'application/json'})
+                            if stream:
+                                events = [json.loads(line) for line in response.data.splitlines()]
+                                self.assertEqual(len(events), 2)
+                                self.assertEqual(events[0]['concluidas'], 0)
+                                self.assertEqual(events[-1]['tipo'], 'erro')
+                                self.assertEqual(events[-1]['status'], 422)
+                                self.assertEqual(events[-1]['codigo'], 'MULTIPLOS_ROSTOS')
+                            else:
+                                self.assertEqual(response.status_code, 422)
+                                self.assertEqual(response.json['codigo'], 'MULTIPLOS_ROSTOS')
+                            convert.assert_not_called()
 
     def test_repeated_attempts_do_not_reuse_approved_photo(self):
         face = detectar_e_isolar_rosto(str(ROOT / 'samples/imagem_teste.jpeg'))
@@ -233,13 +227,11 @@ class ApiTests(unittest.TestCase):
 
     def test_tiny_detected_face_still_has_recommendations(self):
         with patch("backend.app.detectar_e_isolar_rosto", return_value=np.full((8, 8, 3), 150, np.uint8)):
-            with patch("backend.app.generate_analysis") as mock:
-                response = self.client.post("/api/analises", data={"foto": (image_file(), "tiny.png")})
+            response = self.client.post("/api/analises", data={"foto": (image_file(), "tiny.png")})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json["recomendacoes"]), 3)
         self.assertEqual(response.json["match"]["status"], "calculado")
         self.assertTrue(response.json["match"]["confianca_reduzida"])
-        mock.assert_not_called()
 
     def test_stream_failure_never_returns_fake_success(self):
         with patch("backend.app.detectar_e_isolar_rosto", side_effect=RuntimeError("failure")):
@@ -254,18 +246,16 @@ class ApiTests(unittest.TestCase):
         for stream in (False, True):
             with self.subTest(stream=stream):
                 with patch('backend.src.segmentation.semantic.get_session', side_effect=ModelUnavailableError('Modelo ausente.')):
-                    with patch('backend.app.generate_analysis') as generate:
-                        with (ROOT / 'samples/imagem_teste.jpeg').open('rb') as photo:
-                            response = self.client.post('/api/analises', data={'foto': (photo, 'face.jpg')},
-                                headers={'Accept': 'application/x-ndjson' if stream else 'application/json'})
-                        body = [json.loads(line) for line in response.data.splitlines()][-1] if stream else response.json
-                        result = body['dados'] if stream else body
-                        self.assertEqual(response.status_code, 200)
-                        self.assertEqual(len(result['recomendacoes']), 3)
-                        self.assertEqual(result['match']['status'], 'calculado')
-                        self.assertIn('segmentacao_indisponivel', result['match']['motivos'])
-                        self.assertEqual(result['preprocessamento']['metodo_contorno'], 'regiao_central_rosto')
-                        generate.assert_not_called()
+                    with (ROOT / 'samples/imagem_teste.jpeg').open('rb') as photo:
+                        response = self.client.post('/api/analises', data={'foto': (photo, 'face.jpg')},
+                            headers={'Accept': 'application/x-ndjson' if stream else 'application/json'})
+                    body = [json.loads(line) for line in response.data.splitlines()][-1] if stream else response.json
+                    result = body['dados'] if stream else body
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(len(result['recomendacoes']), 3)
+                    self.assertEqual(result['match']['status'], 'calculado')
+                    self.assertIn('segmentacao_indisponivel', result['match']['motivos'])
+                    self.assertEqual(result['preprocessamento']['metodo_contorno'], 'regiao_central_rosto')
 
 
 if __name__ == "__main__":

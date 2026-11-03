@@ -1,13 +1,14 @@
-import { analyzePhoto, getExample } from './api.js';
+import { analyzePhoto } from './api.js';
 import { home } from './screens/home.js';
+import { how } from './screens/how.js';
 import { capture } from './screens/capture.js';
 import { review } from './screens/review.js';
 import { processing, updateProcessing } from './screens/processing.js';
 import { result } from './screens/result.js';
 import { initializeMaskPreviews } from './screens/mask_previews.js';
 
-const state = { screen: 'home', file: null, photoURL: null, result: null, error: '', example: false };
-const screens = { home, capture, review, processing, result };
+const state = { screen: location.pathname === '/como-funciona' ? 'how' : 'home', file: null, photoURL: null, result: null, error: '' };
+const screens = { home, how, capture, review, processing, result };
 // Breve intervalo de apresentação para tornar as dez etapas legíveis.
 const PROCESSING_STAGE_DELAY_MS = 350;
 const COMPLETED_STAGE_DELAY_MS = 75;
@@ -28,11 +29,12 @@ function render(focus = true) {
   const stage = { capture: 0, review: 0, processing: 1, result: 2 }[state.screen];
   document.querySelector('#flow').innerHTML = stage === undefined ? '' : ['Foto', 'Análise', 'Resultado'].map((label, i) => `<span class="flow-step ${i === stage ? 'active' : i < stage ? 'done' : ''}" ${i === stage ? 'aria-current="step"' : ''}><span class="flow-number" aria-hidden="true">${i < stage ? '✓' : i + 1}</span>${label}</span>`).join('');
   const headerAction = document.querySelector('#header-action');
-  headerAction.textContent = state.screen === 'home' ? 'Começar' : 'Recomeçar';
-  headerAction.dataset.action = state.screen === 'home' ? 'capture' : 'home';
-  headerAction.classList.toggle('btn-primary', state.screen === 'home');
-  headerAction.classList.toggle('btn-outline-primary', state.screen !== 'home');
-  document.title = `${{ home: 'Encontre sua base', capture: 'Sua foto', review: 'Revisar foto', processing: 'Analisando sua foto', result: 'Resultado da análise' }[state.screen]} · Meu tom`;
+  const introductory = ['home', 'how'].includes(state.screen);
+  headerAction.textContent = introductory ? 'Começar' : 'Recomeçar';
+  headerAction.dataset.action = introductory ? 'capture' : 'home';
+  headerAction.classList.toggle('btn-primary', introductory);
+  headerAction.classList.toggle('btn-outline-primary', !introductory);
+  document.title = `${{ home: 'Encontre sua base', how: 'Como funciona?', capture: 'Sua foto', review: 'Revisar foto', processing: 'Analisando sua foto', result: 'Resultado da análise' }[state.screen]} · Meu tom`;
   if (focus) { main.focus(); window.scrollTo(0, 0); }
 }
 
@@ -41,7 +43,9 @@ function reset(screen) {
   pendingRequest?.abort();
   pendingRequest = null;
   releasePhoto();
-  Object.assign(state, { screen, error: '', example: false });
+  const path = screen === 'how' ? '/como-funciona' : '/';
+  if (location.pathname !== path) history.pushState(null, '', path);
+  Object.assign(state, { screen, error: '' });
   render();
 }
 
@@ -62,7 +66,7 @@ async function selectFile(file) {
     await preview.decode();
     if (preview.naturalWidth * preview.naturalHeight > 24_000_000) throw new Error('Escolha uma foto com até 24 megapixels.');
     if (current !== revision) { URL.revokeObjectURL(photoURL); return; }
-    Object.assign(state, { file, photoURL, screen: 'review', error: '', example: false });
+    Object.assign(state, { file, photoURL, screen: 'review', error: '' });
     render();
   } catch (error) {
     if (photoURL) URL.revokeObjectURL(photoURL);
@@ -73,13 +77,12 @@ async function selectFile(file) {
   }
 }
 
-async function runAnalysis(example = false) {
-  if (state.screen === 'processing' || (!example && !state.file)) return;
+async function runAnalysis() {
+  if (state.screen === 'processing' || !state.file) return;
   const current = ++revision;
   pendingRequest?.abort();
   pendingRequest = new AbortController();
-  if (example) releasePhoto();
-  Object.assign(state, { screen: 'processing', error: '', example, result: null, progress: null });
+  Object.assign(state, { screen: 'processing', error: '', result: null, progress: null });
   render();
   try {
     const onProgress = async progress => {
@@ -91,7 +94,7 @@ async function runAnalysis(example = false) {
         ? PROCESSING_STAGE_DELAY_MS : COMPLETED_STAGE_DELAY_MS;
       await new Promise(resolve => setTimeout(resolve, delay));
     };
-    const data = await (example ? getExample(pendingRequest.signal) : analyzePhoto(state.file, pendingRequest.signal, onProgress));
+    const data = await analyzePhoto(state.file, pendingRequest.signal, onProgress);
     if (current !== revision) return;
     state.result = data;
     state.screen = 'result';
@@ -101,7 +104,7 @@ async function runAnalysis(example = false) {
     if (['ROSTO_NAO_ENCONTRADO', 'MULTIPLOS_ROSTOS', 'FOTO_INVALIDA', 'FOTO_MUITO_GRANDE'].includes(error.code)) {
       releasePhoto();
       state.screen = 'capture';
-    } else state.screen = example ? 'home' : 'review';
+    } else state.screen = 'review';
   } finally {
     if (current === revision) { pendingRequest = null; render(); }
   }
@@ -116,14 +119,7 @@ document.addEventListener('click', event => {
     case 'choose': document.querySelector('#gallery-input')?.click(); break;
     case 'camera': document.querySelector('#camera-input')?.click(); break;
     case 'analyze': runAnalysis(); break;
-    case 'example': runAnalysis(true); break;
-    case 'marks': {
-      const marks = document.querySelector('#marks');
-      marks.hidden = !marks.hidden;
-      button.textContent = marks.hidden ? 'Mostrar marcações' : 'Ocultar marcações';
-      button.setAttribute('aria-pressed', String(!marks.hidden));
-      break;
-    }
+    case 'how': reset('how'); break;
   }
 });
 
@@ -156,4 +152,5 @@ document.addEventListener('drop', event => {
   } else selectFile(event.dataTransfer.files[0]);
 });
 
+window.addEventListener('popstate', () => reset(location.pathname === '/como-funciona' ? 'how' : 'home'));
 render(false);

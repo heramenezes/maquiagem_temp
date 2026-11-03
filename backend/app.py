@@ -11,7 +11,6 @@ import numpy as np
 from PIL import Image, ImageCms, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
 
-from backend.src.mock_analysis import generate_analysis
 from backend.src.preprocessing import detectar_e_isolar_rosto
 from backend.src.segmentation.pipeline import PipelineError, analysis_events
 
@@ -58,6 +57,7 @@ def create_app(test_config=None):
         return jsonify(codigo=code, mensagem=message), status
 
     @app.get("/")
+    @app.get("/como-funciona")
     def index():
         return send_from_directory(ROOT / "frontend", "index.html")
 
@@ -72,10 +72,6 @@ def create_app(test_config=None):
     @app.get("/js/<path:filename>")
     def scripts(filename):
         return send_from_directory(ROOT / "frontend" / "js", filename)
-
-    @app.get("/api/exemplo")
-    def example():
-        return jsonify(generate_analysis(example=True))
 
     @app.post("/api/analises")
     def analyze():
@@ -132,7 +128,7 @@ def create_app(test_config=None):
 
     @app.after_request
     def headers(response):
-        if request.path == "/" or request.path.startswith(("/api/", "/js/", "/css/")):
+        if request.path in {"/", "/como-funciona"} or request.path.startswith(("/api/", "/js/", "/css/")):
             response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         return response

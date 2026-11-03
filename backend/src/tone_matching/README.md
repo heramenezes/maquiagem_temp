@@ -80,8 +80,8 @@ referências e ITA. Não há aliases de compatibilidade para o contrato v2.
 Qualidade reduzida mantém a cor e as recomendações. Catálogo vazio/inválido gera
 erro; nunca é substituído pela demonstração. Todo resultado concluído inclui
 `status_analise: concluida` e pelo menos uma base. JSON e NDJSON usam o mesmo
-algoritmo. `/api/exemplo` usa uma cor fixa ilustrativa com o mesmo ranking direto
-e permanece explicitamente demonstrativo; uploads não chamam esse gerador.
+algoritmo. A demonstração e seu endpoint `/api/exemplo` foram removidos;
+`/como-funciona` documenta o funcionamento sem gerar um resultado fictício.
 
 ## Limites e interface
 

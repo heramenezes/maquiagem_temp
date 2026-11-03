@@ -68,8 +68,7 @@ As regiões reais ficam em `preprocessamento.selecao.regions`. Esquemas:
 | `marcacoes` | `nome: string`, `x: number`, `y: number`, `largura: number`, `altura: number` |
 
 `preco` é um número decimal em reais, formatado no frontend com `Intl.NumberFormat`.
-Somente `/api/exemplo` mantém marcações ilustrativas em percentuais do quadro
-visual. Fotos analisadas nunca recebem essas marcações fictícias.
+Fotos analisadas não recebem marcações fictícias; `marcacoes` permanece vazio.
 
 Uploads retornam `simulado: false`: tom e produtos dependem da medição real.
 Isso não implica validação de acurácia: `match.experimental` é `true` e
@@ -96,7 +95,7 @@ Um único aviso no topo explica os motivos e compara `quality.metrics` com
 
 A interface exige `schema_version: 3`, cor estimada e bases com Lab e ΔE00
 finitos. Respostas antigas, simuladas em uploads ou sem recomendações são
-recusadas antes da tela final. `/api/exemplo` continua demonstrativo.
+recusadas antes da tela final. Não há endpoint de demonstração.
 
 ### Pré-processamento real
 
@@ -248,20 +247,6 @@ Falhas de conexão e timeout de 90 segundos (incluindo as pausas de apresentaç�
 respectivamente como `CONEXAO` e `TEMPO_ESGOTADO`. Cancelamentos voluntários
 não exibem erro. O resultado de uma solicitação antiga não altera uma tela reiniciada.
 
-## GET /api/exemplo
-
-Retorna a mesma estrutura, com `exemplo: true` e:
-
-```json
-{"precheck": {"executado": false, "rosto_detectado": null}}
-```
-
-Usa `schema_version: 3`, `simulado: true`, uma cor fixa ilustrativa em
-`tom.lab`/`tom.cor_pele_hex` e o mesmo ranking direto por ΔE00. Não inclui `match`.
-Não recebe imagem nem executa o detector/segmentação. Não inclui o objeto
-`preprocessamento`. A interface mostra uma silhueta ilustrativa, identificando
-a ausência de pré-verificação.
-
 ## Catálogo e próximas integrações
 
 `backend/data/bases.csv` preserva o arquivo recebido e suas colunas originais:
@@ -272,7 +257,7 @@ validando os links HTTP/HTTPS. A cópia arquivada no mock não é lida pela apli
 O ranking CIEDE2000 está integrado à etapa `resultado` em
 `backend/src/segmentation/pipeline.py`, usando a medição regional ponderada ou a
 mediana global no fallback. O frontend apresenta
-os resultados reais e preserva a distinção entre foto e exemplo demonstrativo.
+os resultados reais da foto enviada.
 O fluxo real mantém a medição e o match mesmo com ressalvas de qualidade.
 Processamento distribuído permanece futuro. Detalhes dos limiares e das
 limitações estão no [README da segmentação](../backend/src/segmentation/README.md).

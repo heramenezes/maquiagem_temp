@@ -38,7 +38,7 @@ as bases com aviso de precisão reduzida. A conversão dos pesos ocorre em ambie
 - K-means descreve a anatomia sem remover pixels. A medição usa a seleção disponível; os critérios técnicos de qualidade geram avisos.
 - Progresso real em dez etapas, recorte RGB preservado, prévias e estatísticas; toda análise concluída inclui tom e bases, mesmo com ressalvas.
 - Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
-- Exemplo acessível sem enviar foto, erros de conexão, nova tentativa e cancelamento de solicitações na interface.
+- Página “Como funciona?” em `/como-funciona`, com guia de uso, detalhes técnicos e limites dos HEX do catálogo; erros de conexão, nova tentativa e cancelamento de solicitações na interface.
 
 A pré-verificação conta as detecções válidas antes do recorte: zero rostos pede outra foto, um rosto passa e mais de um aborta. Não há conferência por um segundo detector nem reagrupamento das caixas retornadas pelo detector. O Haar considera caixas a partir de 40 × 40 pixels na imagem redimensionada. A detecção ainda pode falhar em rostos muito pequenos, de perfil ou parcialmente cobertos e pode produzir falsos positivos. Ela não certifica iluminação, nitidez ou ausência de maquiagem.
 
@@ -56,8 +56,8 @@ A interface mostra a cor estimada da pele na foto e
 as bases na ordem enviada pelo backend, com preços, links e diferenças de cor.
 Análises com ressalvas mostram um único aviso no topo, explicando todos os fatores
 que podem tornar o tom incorreto. A estimativa continua usando pixels reais da foto.
-`/api/exemplo` continua usando fixtures de `backend/src/mock_analysis.py`,
-identificadas como demonstrativas. Não há percentual de compatibilidade inventado.
+A demonstração foi removida, incluindo `/api/exemplo` e seu gerador.
+Não há percentual de compatibilidade inventado.
 Veja o [algoritmo e contrato](backend/src/tone_matching/README.md).
 
 ### Por que abandonamos Monk
@@ -161,7 +161,6 @@ backend/
   models/                       Peso ONNX local (ignorado pelo Git) e procedência
   data/bases.csv                Fonte oficial do catálogo do projeto
   src/catalog.py                Leitura e normalização do CSV
-  src/mock_analysis.py          Respostas demonstrativas
   src/preprocessing/            Detectores e isolamento existentes
   src/segmentation/             Conversão, BiSeNet, estatísticas de cor e eventos
   src/skin_selection/           Especialistas, composição e qualidade

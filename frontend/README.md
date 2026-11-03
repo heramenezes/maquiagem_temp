@@ -7,12 +7,13 @@ Inicie `python -m backend.app` com as dependências instaladas e acesse http://1
 - `index.html`: cabeçalho, navegação e ponto de montagem das telas.
 - `js/app.js`: estado da sessão, seleção de foto, navegação e tratamento de eventos.
 - `js/api.js`: único ponto de acesso à API; `fetch`, leitura incremental de NDJSON, timeout de 90 segundos e cancelamento. Valida segmentação, máscaras e contrato de match direto v3, com Lab e ΔE00 finitos; respostas antigas/simuladas ou inconsistentes preservam a foto para nova tentativa com o backend atualizado.
-- `js/screens/tone_results.js`: cor estimada da pele e até três produtos na ordem do backend. Mostra diferença de cor ΔE00, preço e link. Não há classificação numérica de tom ou agrupamento de produtos. Ressalvas de precisão aparecem num único aviso no topo. O modo de exemplo permanece identificado como demonstrativo.
-- `js/screens/`: início, captura, revisão, processamento e resultado.
+- `js/screens/tone_results.js`: cor estimada da pele e até três produtos na ordem do backend. Mostra diferença de cor ΔE00, preço e link. Não há classificação numérica de tom ou agrupamento de produtos. Ressalvas de precisão aparecem num único aviso no topo.
+- `js/screens/`: início, guia de uso, captura, revisão, processamento e resultado.
+- `js/screens/how.js`: página “Como funciona?” em `/como-funciona`, com três passos de uso, aviso sobre os HEX fornecidos pelos fabricantes e detalhes técnicos expansíveis. A rota permite acesso direto, recarga e navegação pelo histórico. Substitui a demonstração, cujo fluxo e endpoint foram removidos.
 - `js/screens/preprocessing.js`: preserva as três imagens básicas — recorte, máscara anatômica e pele inicial — antes das exclusões.
 - `js/screens/selection.js`: cartões de acne, vitiligo e barba/bigode, com pixels, percentuais, regiões, tempo e disponibilidade. A imagem final mostra os pixels realmente medidos, incluindo a região alternativa quando necessária, sem repetir o aviso de precisão. Diferencia pixels da seleção estrita dos usados na medição.
 - `js/screens/mask_previews.js`: monta as sobreposições com Canvas no referencial do recorte, sem redimensionar as máscaras. Cada categoria tem uma cor; amarelo indica incerteza. Máscaras incertas são limitadas à anatomia. Os pixels usados na medição continuam sendo os originais do backend.
-- Fotos analisadas não recebem marcações fictícias. O fluxo de exemplo preserva as marcações demonstrativas e seu botão de visibilidade.
+- Fotos analisadas não recebem marcações fictícias.
 - `css/styles.css`: visual derivado do mock, com layouts responsivos.
 - `css/vendor/`: Bootstrap 5.3.8 e licença MIT, servidos localmente.
 - `assets/tonzinha.svg`: mascote reaproveitado do original.
