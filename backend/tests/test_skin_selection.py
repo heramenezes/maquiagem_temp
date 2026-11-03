@@ -1,4 +1,4 @@
-"""Invariantes de seleção, transformações e abstenção; não validam acurácia clínica."""
+"""Invariantes de seleção, transformações e ressalvas; não validam acurácia clínica."""
 
 from contextlib import nullcontext
 from io import BytesIO
@@ -17,7 +17,7 @@ from backend.src.skin_selection import acne, beard, vitiligo
 from backend.src.skin_selection.contracts import Transform, ModuleResult, CATEGORIES, probability_masks
 from backend.src.skin_selection.compose import compose
 from backend.src.skin_selection.pipeline import run_module, finish
-from backend.src.skin_selection.quality import evaluate
+from backend.src.skin_selection.quality import QualityConfig, evaluate
 
 
 def empty_modules(shape):
@@ -160,6 +160,28 @@ class AdapterTests(unittest.TestCase):
 
 
 class QualityTests(unittest.TestCase):
+    def test_threshold_equality_is_accepted_for_every_metric(self):
+        rgb = textured_skin()
+        lab = rgb_to_lab(rgb)
+        selected = compose(np.ones(rgb.shape[:2], bool), empty_modules(rgb.shape[:2]))
+        metrics = evaluate(rgb, lab, selected)['metrics']
+        boundaries = QualityConfig(
+            min_pixels=metrics['native_pixels'], min_fraction=metrics['valid_fraction'],
+            min_spatial_extent=metrics['spatial_extent'], max_clipped_fraction=metrics['clipped_fraction'],
+            min_sharpness=metrics['sharpness'], max_light_spread=metrics['light_spread'],
+            max_dispersion=metrics['dispersion_delta_e76_p90'],
+            max_uncertainty_shift=metrics['uncertainty_shift_delta_e76'],
+            max_uncertain_fraction=metrics['uncertain_fraction'])
+        self.assertEqual(evaluate(rgb, lab, selected, boundaries)['reasons'], [])
+
+    def test_smaller_sample_is_accepted_by_more_generous_thresholds(self):
+        rgb = textured_skin((10, 20))
+        selected = compose(np.ones(rgb.shape[:2], bool), empty_modules(rgb.shape[:2]))
+        current = evaluate(rgb, rgb_to_lab(rgb), selected)
+        previous = evaluate(rgb, rgb_to_lab(rgb), selected, QualityConfig(min_pixels=512))
+        self.assertTrue(current['usable'])
+        self.assertIn('poucos_pixels_nativos', previous['reasons'])
+
     def test_quality_rejects_empty_tiny_clipped_and_uncertainty_sensitive_samples(self):
         rgb = textured_skin()
         mask = np.ones(rgb.shape[:2], bool)
@@ -201,20 +223,21 @@ class PipelineIntegrationTests(unittest.TestCase):
         self.assertEqual(set(selected['module_status']), {'acne', 'vitiligo', 'barba'})
         self.assertEqual(set(selected['accepted_masks']), {'acne', 'vitiligo', 'barba'})
 
-    def test_native_resolution_and_quality_gate_prevent_measurement(self):
+    def test_native_resolution_is_preserved_and_warnings_allow_measurement(self):
         rgb = textured_skin((600, 900))
         before = rgb.copy()
         masks = anatomy(rgb.shape[:2])
         unavailable = ModuleResult.empty(rgb.shape[:2], status='indisponivel')
         with patch('backend.src.segmentation.pipeline.facial_masks', return_value=masks), \
              patch('backend.src.segmentation.pipeline.run_module', return_value=unavailable), \
-             patch('backend.src.segmentation.pipeline.measure_skin') as measure:
+             patch('backend.src.segmentation.pipeline.measure_skin', wraps=measure_skin) as measure:
             events = list(analysis_events(rgb, lambda image: image))
         result = events[-1]['dados']
-        measure.assert_not_called()
+        measure.assert_called_once()
         self.assertEqual(result['preprocessamento']['dimensoes'], {'largura': 900, 'altura': 600})
-        self.assertIsNone(result['preprocessamento']['media_lab'])
-        self.assertEqual(result['status_analise'], 'inconclusiva')
+        self.assertIsNotNone(result['preprocessamento']['media_lab'])
+        self.assertEqual(result['status_analise'], 'concluida')
+        self.assertEqual(len(result['recomendacoes']), 3)
         self.assertEqual(result['marcacoes'], [])
         self.assertEqual({c['id'] for c in result['condicoes']}, set(CATEGORIES))
         self.assertTrue(all(c['detectada'] is None for c in result['condicoes'][:3]))
@@ -226,8 +249,7 @@ class PipelineIntegrationTests(unittest.TestCase):
         masks = anatomy(rgb.shape[:2])
         modules = empty_modules(rgb.shape[:2])
         modules['acne'].accepted[:, :30] = True
-        selected = compose(masks['allowed'], modules)
-        selected['quality'] = evaluate(rgb, rgb_to_lab(rgb), selected)
+        selected = finish(rgb, rgb_to_lab(rgb), masks, modules)
         self.assertTrue(selected['quality']['usable'])
         with patch('backend.src.segmentation.pipeline.facial_masks', return_value=masks), \
              patch('backend.src.segmentation.pipeline.run_module', return_value=modules['barba']), \
@@ -256,7 +278,33 @@ class PipelineIntegrationTests(unittest.TestCase):
         streamed = events[-1]['dados']
         self.assertEqual(plain['condicoes'], streamed['condicoes'])
         self.assertEqual(plain['preprocessamento']['selecao']['quality'], streamed['preprocessamento']['selecao']['quality'])
-        self.assertIsNone(streamed['preprocessamento']['media_lab'])
+        self.assertIsNotNone(streamed['preprocessamento']['media_lab'])
+        self.assertEqual(plain['tom'], streamed['tom'])
+        self.assertEqual(plain['recomendacoes'], streamed['recomendacoes'])
+
+    def test_empty_strict_selection_uses_documented_fallback_without_mutating_exclusions(self):
+        rgb = textured_skin()
+        masks = anatomy(rgb.shape[:2])
+        for uncertain, source in ((True, 'pele_com_incertezas'), (False, 'pele_antes_exclusoes')):
+            with self.subTest(source=source):
+                modules = empty_modules(rgb.shape[:2])
+                if uncertain:
+                    modules['acne'].uncertain[:] = True
+                else:
+                    modules['acne'].accepted[:] = True
+                selected = finish(rgb, rgb_to_lab(rgb), masks, modules)
+                self.assertFalse(selected['valid_mask'].any())
+                self.assertEqual(selected['measurement_source'], source)
+                np.testing.assert_array_equal(selected['measurement_mask'], masks['allowed'])
+                self.assertIn(source, selected['quality']['reasons'])
+                with patch('backend.src.segmentation.pipeline.facial_masks', return_value=masks), \
+                     patch('backend.src.segmentation.pipeline.run_module', return_value=modules['acne']):
+                    result = list(analysis_events(rgb, lambda image: image))[-1]['dados']
+                self.assertEqual(len(result['recomendacoes']), 3)
+                self.assertEqual(result['preprocessamento']['origem_medicao'], source)
+                self.assertEqual(result['tom']['pele_utilizada'], 100)
+                np.testing.assert_allclose(result['tom']['lab'], np.median(rgb_to_lab(rgb), axis=(0, 1)))
+                json.dumps(result, allow_nan=False)
 
 
 if __name__ == '__main__':

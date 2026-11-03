@@ -229,12 +229,14 @@ class ApiTests(unittest.TestCase):
             response.close()
             detector.assert_not_called()
 
-    def test_insufficient_skin_blocks_recommendations(self):
+    def test_tiny_detected_face_still_has_recommendations(self):
         with patch("backend.app.detectar_e_isolar_rosto", return_value=np.full((8, 8, 3), 150, np.uint8)):
             with patch("backend.app.generate_analysis") as mock:
                 response = self.client.post("/api/analises", data={"foto": (image_file(), "tiny.png")})
-        self.assertEqual(response.status_code, 422)
-        self.assertEqual(response.json["codigo"], "PELE_INSUFICIENTE")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json["recomendacoes"]), 3)
+        self.assertEqual(response.json["match"]["status"], "calculado")
+        self.assertTrue(response.json["match"]["confianca_reduzida"])
         mock.assert_not_called()
 
     def test_stream_failure_never_returns_fake_success(self):
@@ -246,7 +248,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(events[-1]["codigo"], "ERRO_INTERNO")
         self.assertFalse(any(e["tipo"] == "resultado" for e in events))
 
-    def test_missing_model_never_falls_back_to_geometric_segmentation(self):
+    def test_missing_model_recommends_from_face_with_explicit_warning(self):
         for stream in (False, True):
             with self.subTest(stream=stream):
                 with patch('backend.src.segmentation.semantic.get_session', side_effect=ModelUnavailableError('Modelo ausente.')):
@@ -255,8 +257,12 @@ class ApiTests(unittest.TestCase):
                             response = self.client.post('/api/analises', data={'foto': (photo, 'face.jpg')},
                                 headers={'Accept': 'application/x-ndjson' if stream else 'application/json'})
                         body = [json.loads(line) for line in response.data.splitlines()][-1] if stream else response.json
-                        self.assertEqual(body['codigo'], 'MODELO_INDISPONIVEL')
-                        self.assertEqual(body['status'] if stream else response.status_code, 503)
+                        result = body['dados'] if stream else body
+                        self.assertEqual(response.status_code, 200)
+                        self.assertEqual(len(result['recomendacoes']), 3)
+                        self.assertEqual(result['match']['status'], 'calculado')
+                        self.assertIn('segmentacao_indisponivel', result['match']['motivos'])
+                        self.assertEqual(result['preprocessamento']['metodo_contorno'], 'regiao_central_rosto')
                         generate.assert_not_called()
 
 

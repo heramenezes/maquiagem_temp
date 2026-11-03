@@ -40,8 +40,27 @@ def run_module(key, rgb, anatomy):
 
 def finish(rgb, lab, anatomy, modules):
     result = compose(anatomy["allowed"], modules)
-    result["model_versions"]["anatomia"] = ASSETS["bisenet"].metadata()
+    result["model_versions"]["anatomia"] = (
+        {"method": anatomy["method"], "model": None}
+        if anatomy["method"] == "regiao_central_rosto" else ASSETS["bisenet"].metadata())
     result["quality"] = evaluate(rgb, lab, result)
+    # Preserva as exclusões e a seleção estrita para auditoria. A máscara de
+    # medição só é ampliada quando a seleção estrita não contém nenhum pixel.
+    candidates = (
+        ("pele_valida", result["valid_mask"]),
+        ("pele_com_incertezas", result["anatomical_mask"] & ~result["excluded_mask"]),
+        ("pele_antes_exclusoes", result["anatomical_mask"]),
+    )
+    source, mask = next((source, mask) for source, mask in candidates if mask.any())
+    result["measurement_mask"] = mask.copy()
+    result["measurement_source"] = source
+    quality = result["quality"]
+    quality["reasons"].extend(anatomy.get("quality_reasons", []))
+    if source != "pele_valida":
+        quality["reasons"].append(source)
+    quality["reasons"] = list(dict.fromkeys(quality["reasons"]))
+    quality.update(usable=not quality["reasons"],
+                   decision="com_ressalvas" if quality["reasons"] else "aprovada")
     return result
 
 

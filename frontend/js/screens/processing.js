@@ -9,8 +9,8 @@ const descriptions = {
   barba: ['Analisando barba e bigode', 'Identificamos os pelos faciais para separar a pele disponível.'],
   selecao: ['Unindo as máscaras', 'Reunimos as exclusões e verificamos a qualidade.'],
   clusters: ['Descrevendo as cores da pele', 'Contamos os grupos de cor sem alterar a seleção.'],
-  medidas: ['Avaliando a medição de cor', 'Medimos somente se os pixels restantes passarem pelos critérios de qualidade.'],
-  resultado: ['Comparando seu tom com as bases', 'Estimamos o tom Monk e selecionamos as cores mais próximas no catálogo, quando a medição é utilizável.'],
+  medidas: ['Medindo a cor', 'Medimos os pixels disponíveis e registramos os fatores que podem reduzir a precisão.'],
+  resultado: ['Comparando seu tom com as bases', 'Estimamos o tom Monk e selecionamos as cores mais próximas no catálogo.'],
 };
 const moduleStates = { indisponivel: 'Indisponível', falha: 'Falha na análise', nao_executado: 'Não executada' };
 
@@ -22,7 +22,7 @@ function stepsHTML(progress) {
     const [name, description] = descriptions[step.id] || [step.nome, step.descricao];
     return `<div class="processing-step ${limited ? 'partial' : done ? 'completed' : active ? 'active' : 'pending'}" data-step="${e(step.id)}" data-state="${e(step.estado)}" data-module-state="${e(step.estado_modulo || '')}" ${active ? 'aria-current="step"' : ''}>
       <span class="step-number">${limited ? icon('info') : done ? icon('check') : String(index + 1).padStart(2, '0')}</span>
-      <div class="stack tight"><b>${e(name)}</b><span class="small muted">${step.motivo === 'qualidade_inconclusiva' ? 'A seleção ficou inconclusiva; a cor não foi medida.' : e(description)}</span></div>
+      <div class="stack tight"><b>${e(name)}</b><span class="small muted">${e(description)}</span></div>
       ${active ? '<span class="spinner-border spinner-border-sm" aria-label="Em processamento"></span>' : `<span class="step-status">${limited || (done ? 'Concluída' : 'Aguardando')}</span>`}
     </div>`;
   }).join('');

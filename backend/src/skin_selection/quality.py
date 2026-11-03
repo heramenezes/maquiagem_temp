@@ -1,4 +1,4 @@
-"""Portão técnico antes da medição. Limiares iniciais ainda não calibrados."""
+"""Indicadores de precisão; os limiares geram avisos e nunca vetam o match."""
 
 from dataclasses import dataclass, asdict
 
@@ -8,15 +8,15 @@ import numpy as np
 
 @dataclass(frozen=True)
 class QualityConfig:
-    min_pixels: int = 512
-    min_fraction: float = .15
-    min_spatial_extent: float = .20
-    max_clipped_fraction: float = .08
-    min_sharpness: float = 8.
-    max_light_spread: float = 35.
-    max_dispersion: float = 22.
-    max_uncertainty_shift: float = 3.
-    max_uncertain_fraction: float = .35
+    min_pixels: int = 128
+    min_fraction: float = .04
+    min_spatial_extent: float = .05
+    max_clipped_fraction: float = .20
+    min_sharpness: float = 2.
+    max_light_spread: float = 70.
+    max_dispersion: float = 44.
+    max_uncertainty_shift: float = 6.
+    max_uncertain_fraction: float = .70
 
 
 def evaluate(rgb, lab, selection, config=QualityConfig()):
@@ -63,6 +63,6 @@ def evaluate(rgb, lab, selection, config=QualityConfig()):
                                   (shift > config.max_uncertainty_shift, "cor_sensivel_a_incerteza")):
             if condition:
                 reasons.append(reason)
-    return {"decision": "aprovada" if not reasons else "inconclusiva", "usable": not reasons,
+    return {"decision": "aprovada" if not reasons else "com_ressalvas", "usable": not reasons,
             "reasons": reasons, "metrics": metrics, "thresholds": asdict(config),
             "calibration": "provisoria_sem_validacao_anotada", "released_for_monk": False}

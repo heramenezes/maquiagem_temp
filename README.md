@@ -21,8 +21,8 @@ Em Linux/macOS, substitua `.venv\Scripts\python` por `.venv/bin/python`.
 
 Para a seleção completa de pele, instale também acne, vitiligo e YOLOv8l-seg de barba
 seguindo [backend/models/README.md](backend/models/README.md). A instalação
-acima inclui somente BiSeNet; sem os especialistas a API informa análise
-inconclusiva e não emite medição. A conversão dos pesos ocorre em ambiente separado.
+acima inclui somente BiSeNet; sem os especialistas a API mantém a medição e
+as bases com aviso de precisão reduzida. A conversão dos pesos ocorre em ambiente separado.
 
 ## O que funciona
 
@@ -35,8 +35,8 @@ inconclusiva e não emite medição. A conversão dos pesos ocorre em ambiente s
 - Conversão real sRGB → RGB linear → XYZ → CIELAB (D65), normalizando perfis ICC para sRGB quando presentes.
 - Segmentação semântica com BiSeNet ResNet18 pré-treinado, executada localmente em CPU via ONNX Runtime. Pele e nariz são selecionados pixel a pixel, sem exclusões geométricas grandes. O modelo não tem classe específica de barba.
 - Seleção independente com U-Net para acne, YOLO11n para vitiligo e YOLOv8l-seg específico para barba/bigode; estados e máscaras reais por módulo.
-- K-means descreve a anatomia sem remover pixels. A medição recebe somente a máscara válida aprovada pelos critérios técnicos de qualidade.
-- Progresso real em dez etapas, recorte RGB preservado, prévias e estatísticas; análise inconclusiva mantém máscaras/razões e retorna médias nulas.
+- K-means descreve a anatomia sem remover pixels. A medição usa a seleção disponível; os critérios técnicos de qualidade geram avisos.
+- Progresso real em dez etapas, recorte RGB preservado, prévias e estatísticas; toda análise concluída inclui tom e bases, mesmo com ressalvas.
 - Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
 - Exemplo acessível sem enviar foto, erros de conexão, nova tentativa e cancelamento de solicitações na interface.
 
@@ -44,118 +44,88 @@ A pré-verificação conta as detecções válidas antes do recorte: zero rostos
 
 ## Match de tom e recomendações
 
-Uploads usam a mediana Lab da pele válida aprovada para classificar o tom
+Uploads usam a mediana Lab dos pixels selecionados para classificar o tom
 Monk e recomendar bases. O ranking prioriza o mesmo Monk e refina por
 CIEDE2000 pele/base; se necessário, completa com outros grupos pela distância
-entre referências Monk. Seleção inconclusiva retorna `tom: null` e nenhuma base.
+entre referências Monk. Qualidade reduzida mantém o tom e as bases com aviso.
 ITA fica `null`; não participa dessa estratégia. O resultado é experimental,
 sem correção de iluminação ou validação de bases aplicadas na pele.
 
 A interface mostra o tom estimado, a cor medida da foto, a referência Monk e
 as bases na ordem enviada pelo backend, com preços, links e diferenças de cor.
-Análises inconclusivas mostram os motivos e permitem uma nova captura sem
-exibir tom ou produtos fictícios. Catálogo sem candidatos mantém o tom medido.
+Análises com ressalvas mostram um único aviso no topo, explicando todos os fatores
+que podem tornar o tom incorreto. A estimativa continua usando pixels reais da foto.
 `/api/exemplo` continua usando fixtures de `backend/src/mock_analysis.py`,
 identificadas como demonstrativas. Não há percentual de compatibilidade inventado.
 Veja o [algoritmo e contrato](backend/src/tone_matching/README.md).
 
-## Quando o tom e as recomendações são bloqueados
+## Avisos de precisão e recomendação contínua
 
-O site mostra um aviso **“Por que não foi possível identificar o tom?”**,
-com todos os motivos retornados, orientação para cada motivo e identificação
-dos especialistas que falharam. Em **“Ver medidas e limites desta análise”**,
-é possível comparar as medidas da foto aos limiares enviados pelo servidor.
-Falha de modelo/serviço é distinguida de qualidade da foto: trocar a foto não
-resolve um modelo indisponível. O botão “Tentar novamente” permite reenviar a
-foto nesses casos. O modo de exemplo não executa essas verificações.
+Após a confirmação de um rosto, qualidade de imagem e indisponibilidade dos
+modelos não bloqueiam o tom ou as bases. Toda resposta final inclui
+`status_analise: concluida`, `match.status: calculado`, `tom` e até três produtos.
+O catálogo precisa conter produtos; catálogo vazio/inválido e falhas inesperadas
+continuam sendo erros de serviço, sem uma tela final sem recomendações.
+Arquivos inválidos e fotos sem rosto ou com múltiplos rostos continuam recusados
+antes da análise de cor. Conexão, cancelamento e timeout mantêm seu tratamento.
 
-### 1. Interrupções antes da medição
+O frontend mostra **um único aviso no topo** quando houver ressalvas:
+**“O tom estimado pode estar incorreto.”** O aviso explica todos os motivos,
+identifica os especialistas indisponíveis e permite expandir as medidas e os
+limites recebidos do servidor. O tom e os produtos continuam visíveis.
 
-- Arquivo ausente, ilegível ou fora de JPG/PNG/WebP; perfil ICC inválido;
-  arquivo maior que **10 MiB = 10.485.760 bytes** ou imagem maior que
-  **24.000.000 pixels**. O envelope HTTP tem limite de **11 MiB**. No navegador,
-  um MIME declarado incompatível também é recusado. HEIC exige conversão.
-- **Nenhum rosto ou mais de um rosto detectado:** HTTP 422, antes de converter
-  as cores. Não há decisão por percentual de “confiança do tom”.
-- Recorte facial com menor dimensão **< 16 pixels** ou anatomia de pele/nariz
-  com **< 64 pixels**: `PELE_INSUFICIENTE`/422, antes da seleção final.
-- BiSeNet ausente/inválido ou sem runtime: `MODELO_INDISPONIVEL`/503. Outras
-  falhas inesperadas retornam erro de processamento. Não são rejeições da cor
-  da pessoa. O site exibe o erro, sem fabricar tom ou recomendação.
-- Falha de conexão, resposta incompleta ou espera superior a **90.000 ms** no
-  navegador: aviso de comunicação e possibilidade de tentar novamente. O timeout
-  inclui as pausas de apresentação das etapas; não é critério de qualidade.
-
-A imagem aceita é reduzida proporcionalmente para no máximo 1600 × 1600 pixels
-antes do recorte. Os testes de área abaixo usam essa resolução de processamento,
-sem aumentar artificialmente a imagem.
-
-### 2. Limiares exatos da qualidade da pele selecionada
+### Limiares de qualidade
 
 Fonte: [`QualityConfig` e `evaluate`](backend/src/skin_selection/quality.py).
-**Qualquer uma das condições abaixo reprova a medição.** Os comparadores são
-estritos: atingir exatamente um mínimo/máximo é permitido.
+São referências provisórias para gerar avisos, sem validação de acurácia.
+Atingir exatamente um limite é permitido; a comparação usa a precisão original.
 
-| Motivo na API | Bloqueia quando | Como a medida é calculada |
+| Motivo na API | Gera aviso quando | Medida |
 |---|---|---|
-| `modulo_obrigatorio_indisponivel` | Qualquer especialista de acne, vitiligo ou barba tem estado diferente de `executado` | Inclui `indisponivel`, `falha` e `nao_executado`. Executar com máscara vazia é permitido. |
-| `poucos_pixels_nativos` | Pixels válidos **< 512** | Contagem após exclusões e retirada das áreas incertas. |
-| `cobertura_insuficiente` | Fração válida **< 0,15 (15%)** | Pixels válidos / pixels da anatomia inicial de pele/nariz. |
-| `amostra_concentrada` | Extensão espacial **< 0,20 (20%)** | Menor razão entre a extensão vertical e horizontal da máscara válida e a extensão correspondente da anatomia inicial; extensão = coordenada máxima − mínima, denominador no mínimo 1. |
-| `clipping_excessivo` | Fração com clipping **> 0,08 (8%)** | Entre os pixels válidos, fração com qualquer canal RGB **≤ 2 ou ≥ 253**, na escala 0–255. |
-| `nitidez_insuficiente` | Nitidez **< 8,0** | Variância do Laplaciano OpenCV `CV_32F` da imagem em cinza, apenas no interior da máscara válida após erosão 3 × 3. Se não houver interior, nitidez = 0. Não é porcentagem. |
-| `iluminacao_desigual` | Amplitude de L* **> 35,0** | Percentil 95 de L* − percentil 5 de L* nos pixels válidos. |
-| `cor_inconsistente` | Dispersão **> 22,0 ΔE76** | Percentil 90 da distância euclidiana Lab de cada pixel válido à mediana Lab por canal. |
-| `cor_sensivel_a_incerteza` | Mudança **> 3,0 ΔE76** | Distância entre a média Lab dos pixels válidos e a média da anatomia sem exclusões aceitas, reincluindo os pixels incertos. |
-| `incerteza_excessiva` | Fração incerta **> 0,35 (35%)** | Pixels incertos que não estão na exclusão aceita / pixels da anatomia inicial. |
+| `modulo_obrigatorio_indisponivel` | Algum especialista não conclui | Estado diferente de `executado` |
+| `poucos_pixels_nativos` | Pixels válidos < 128 | Contagem na resolução do recorte |
+| `cobertura_insuficiente` | Fração válida < 0,04 (4%) | Pele válida / anatomia inicial |
+| `amostra_concentrada` | Extensão espacial < 0,05 (5%) | Menor razão entre extensões vertical e horizontal da seleção e da anatomia |
+| `clipping_excessivo` | Fração com clipping > 0,20 (20%) | Algum canal RGB ≤ 2 ou ≥ 253 |
+| `nitidez_insuficiente` | Nitidez < 2,0 | Variância do Laplaciano no interior erodido 3 × 3 da seleção |
+| `iluminacao_desigual` | Amplitude de L* > 70,0 | Percentil 95 − percentil 5 |
+| `cor_inconsistente` | Dispersão > 44,0 ΔE76 | Percentil 90 da distância Lab à mediana |
+| `cor_sensivel_a_incerteza` | Mudança > 6,0 ΔE76 | Distância entre médias sem e com regiões incertas |
+| `incerteza_excessiva` | Fração incerta > 0,70 (70%) | Incerteza não excluída / anatomia inicial |
 
-Para as frações, o denominador é protegido por `max(total, 1)`. As métricas
-espaciais, de clipping, nitidez e cor só são calculadas quando há algum pixel
-válido; indisponível não significa zero. A comparação usa valores sem
-arredondamento; a interface arredonda apenas a apresentação.
+As métricas descrevem a seleção estrita, antes de qualquer alternativa.
+`quality.usable` indica ausência de ressalvas, sem impedir a medição quando
+`false`. `quality.decision` é `aprovada` ou `com_ressalvas`.
+`preprocessamento.medicao_utilizavel` indica medição disponível e é `true`
+nos resultados. `match.motivos` lista as ressalvas e
+`match.confianca_reduzida` indica se a lista é não vazia; não é uma probabilidade.
 
-O percentual **“da face usada na medição”** no cartão do tom usa a máscara facial
-como denominador; ele não é o mesmo denominador de pele/nariz usado nos limites
-de 15% e 35%.
+### Quando não restam pixels na seleção
 
-**Acne, vitiligo ou barba detectados não bloqueiam automaticamente o resultado.**
-Eles retiram regiões da medição. O bloqueio ocorre se um especialista não
-concluir ou se a pele restante reprovar algum critério acima. Limiares dos
-especialistas que influenciam essa seleção:
+A medição usa a primeira região não vazia, nesta ordem:
 
-- Acne: probabilidade **≥ 0,50** é exclusão aceita; **[0,20; 0,50)** é incerta;
-  abaixo de 0,20 não gera exclusão.
-- Vitiligo e barba: confiança de instância **≥ 0,60** pode produzir exclusão
-  aceita; **[0,25; 0,60)** permanece incerta. As probabilidades da máscara usam
-  **0,65** para aceitação e **0,35** como limite inferior de incerteza. Em
-  instância aceita, máscara **≥ 0,65** é aceita e **[0,35; 0,65)** é incerta;
-  em instância intermediária, pixels de máscara **≥ 0,35** são apenas incertos.
-  Máscaras são restauradas ao recorte antes dos limiares; barba considera apenas
-  a classe `beard`, ignorando `hair`.
+1. `pele_valida`: anatomia menos exclusões e incertezas.
+2. `pele_com_incertezas`: anatomia sem exclusões aceitas, reincluindo incertezas.
+3. `pele_antes_exclusoes`: anatomia inicial, reincluindo as exclusões.
 
-Esses limites são **provisórios, sem calibração em um conjunto humano anotado**.
-Uma seleção aprovada permite o cálculo experimental, não comprova acurácia.
-O frontend usa `quality.thresholds` da resposta, em vez de fixar cópias dos
-números no JavaScript. Alterações devem ser feitas no backend e documentadas aqui.
+Se o BiSeNet estiver indisponível ou não separar nenhum pixel de pele, a anatomia
+inicial usa uma elipse central do recorte facial confirmado pelo detector.
+`segmentacao_indisponivel` ou `pele_nao_segmentada`, junto de
+`regiao_facial_aproximada`, explicam essa aproximação no aviso.
+As alternativas 2 e 3 também acrescentam seus códigos aos motivos.
+Não há limiar absoluto de cor que descarte tons de pele.
 
-### 3. Diferença entre ausência de tom e ausência de bases
+As máscaras `valid_mask`, `excluded_mask` e `uncertain_mask` são preservadas.
+`measurement_mask` registra os pixels efetivamente medidos;
+`measurement_source` e `preprocessamento.origem_medicao` identificam sua origem.
+As estatísticas, a prévia RGBA e `tom.pele_utilizada` usam essa máscara.
+As métricas da qualidade continuam referindo-se à seleção estrita original.
 
-- Seleção reprovada: `status_analise: inconclusiva`, `match.status: inconclusivo`,
-  `tom: null`, `recomendacoes: []`. O site mostra motivos, medidas disponíveis e
-  orientações; as máscaras continuam visíveis.
-- Seleção aprovada, mas sem medição entregue ao match: `medicao_ausente`, sem
-  tom/produtos. É uma indisponibilidade do processamento.
-- Catálogo vazio: o tom é mantido, `match.status: sem_candidatos` e nenhuma base.
-  O site explica que é ausência de catálogo, não defeito da foto.
-- Catálogo inválido ou erro inesperado: erro explícito, sem fallback para bases
-  de exemplo. A foto é preservada no navegador para nova tentativa quando possível.
-
-**Não existe atualmente limiar máximo de ΔE00 para rejeitar uma recomendação.**
-Uma medição aprovada com catálogo não vazio produz até três opções, ainda que
-as cores disponíveis estejam distantes. A ausência de bases no mesmo Monk não
-bloqueia o ranking: ele usa grupos complementares. Margem entre categorias Monk
-também não bloqueia a classificação. Distância de cor não é probabilidade de
-acerto nem garantia de adequação da base aplicada.
+Acne, vitiligo e barba mantêm seus limiares de segmentação: acne usa 0,20/0,50;
+vitiligo e barba usam confiança 0,25/0,60 e máscara 0,35/0,65. Nenhuma condição
+ou falha de especialista bloqueia as recomendações. Também não existe limite
+máximo de ΔE00 para rejeitar uma base. Os limites e alternativas permitem
+estimar a cor observada, sem corrigir iluminação ou comprovar adequação cosmética.
 
 ## Estrutura
 

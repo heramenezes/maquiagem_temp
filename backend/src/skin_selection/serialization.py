@@ -11,11 +11,12 @@ def serialize_selection(selection, encode):
 
     total = int(selection["anatomical_mask"].sum())
     masks = {key: png(selection[key]) for key in
-             ("anatomical_mask", "excluded_mask", "uncertain_mask", "valid_mask")}
+             ("anatomical_mask", "excluded_mask", "uncertain_mask", "valid_mask", "measurement_mask")}
     masks["accepted_masks"] = {key: png(mask) for key, mask in selection["accepted_masks"].items()}
     return {"schema_version": 1, "coordinate_space": "recorte_rgb", "masks": masks,
             "module_status": selection["module_status"], "regions": selection["regions"],
             "quality": selection["quality"], "model_versions": selection["model_versions"],
+            "measurement_source": selection["measurement_source"],
             "area_denominator": "pele_anatomica_inicial", "anatomical_pixels": total,
             "excluded_percent": round(100 * int(selection["excluded_mask"].sum()) / max(total, 1), 2),
             "percent_by_reason": {key: round(100 * int(mask.sum()) / max(total, 1), 2)

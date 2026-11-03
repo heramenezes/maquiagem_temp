@@ -7,8 +7,10 @@ O scikit-image faz parte dos requisitos de execução do backend.
 
 ## Algoritmo
 
-1. A seleção precisa passar por `quality.usable`. Somente então `measure_skin`
-   mede a máscara válida. Falha de especialista obrigatório impede a medição.
+1. `measure_skin` mede a seleção disponível, independentemente de `quality.usable`.
+   Qualidade reduzida e falhas de especialista geram avisos. Se a seleção estrita
+   estiver vazia, usa pele com incertezas ou pele antes das exclusões. BiSeNet
+   indisponível ou sem pele usa região central aproximada do rosto detectado.
 2. A mediana por canal Lab da seleção é a cor representativa inicial. A média
    permanece no pré-processamento para comparação. A escolha da mediana é uma
    hipótese de robustez, ainda sem validação de acurácia.
@@ -47,21 +49,20 @@ e IDs duplicados. As distâncias sem arredondamento determinam a ordem.
   vetor com as dez distâncias, na ordem Monk 1–10.
 - `tom.margem_delta_e00`: diferença entre segunda e primeira distâncias;
   é uma medida de ambiguidade, não confiança estatística.
-- `tom.pele_utilizada`: porcentagem de `valid_mask` sobre `face`, como nas prévias.
+- `tom.pele_utilizada`: porcentagem de `measurement_mask` sobre `face`, como nas prévias.
 - `tom.ita`: `null`. ITA não é necessário para esta estratégia nem é simulado.
 - Cada produto acrescenta `monk`, `lab`, `delta_e00` (pele/base), `mesmo_monk`
   e `delta_e00_monk` (distância entre swatches de grupo).
-- `match.status`: `calculado`, `inconclusivo` ou `sem_candidatos`.
-- `match.motivos`: razões técnicas ou `catalogo_vazio`/`medicao_ausente`.
+- `match.status`: sempre `calculado` nos resultados.
+- `match.motivos`: ressalvas técnicas, incluindo a origem alternativa da medição.
+- `match.confianca_reduzida`: indica motivos presentes; não é probabilidade de acerto.
 - `match.grupos_complementares_utilizados`: se houve produtos de outro Monk.
 - `match` registra método, estimador, fonte/versão da paleta e SHA-256 do
   catálogo normalizado, permitindo identificar mudanças de referência.
 
-Qualidade reprovada ou medição ausente retorna `tom: null` e `recomendacoes: []`.
-Catálogo vazio mantém o tom medido e retorna `sem_candidatos`. Catálogo inválido
-gera erro explícito; nunca é substituído pelo catálogo de demonstração.
-`status_analise` descreve a medição (`concluida`/`inconclusiva`), enquanto
-`match.status` descreve a disponibilidade do ranking.
+Qualidade reduzida mantém o tom e as recomendações. Catálogo vazio/inválido
+gera erro de serviço; nunca é substituído pelo catálogo de demonstração.
+Todo resultado inclui `status_analise: concluida` e pelo menos uma base.
 
 O upload não chama `generate_analysis`. `/api/exemplo` preserva suas fixtures
 e usa a mesma paleta Monk. JSON e NDJSON usam o mesmo algoritmo.
@@ -70,18 +71,20 @@ e usa a mesma paleta Monk. JSON e NDJSON usam o mesmo algoritmo.
 
 O resultado é computado da foto, mas experimental: `match.experimental: true`
 e `match.validado: false`. Não altera `quality.released_for_monk: false`, que
-registra a ausência de validação da seleção. O cálculo experimental depende da
-aprovação técnica provisória, não representa liberação validada do produto.
+registra a ausência de validação da seleção. Os critérios técnicos provisórios
+geram ressalvas, sem impedir o cálculo experimental.
 
 Não há correção de iluminação, recuperação de cor física, conversão automática
 de ITA para Monk, inferência de subtom ou percentual de compatibilidade.
 Os HEX do catálogo não são medições de bases aplicadas; isso limita a validade
 física do ranking. Classificação digital Monk não substitui anotação humana.
 
-O frontend consome esse contrato, incluindo `tom: null` e catálogo sem
-candidatos. Mostra a cor medida da foto separada do swatch Monk, preserva a ordem
+O frontend só aceita resultados com tom e bases. Mostra a cor medida da foto
+separada do swatch Monk, preserva a ordem
 do ranking e identifica grupos complementares. `/api/exemplo` permanece
-explicitamente demonstrativo. Distâncias nunca são apresentadas como confiança.
+explicitamente demonstrativo. Um único aviso no topo explica todos os fatores
+que podem tornar o tom incorreto, mantendo produtos e tom visíveis.
+Distâncias nunca são apresentadas como confiança.
 
 ## Testes
 

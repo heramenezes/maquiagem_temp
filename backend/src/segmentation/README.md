@@ -5,7 +5,7 @@ de cores. A segmentação semântica substitui a adaptação anterior por geomet
 e crescimento de regiões das seções 4.1–4.2 do artigo. A seleção independente
 em [skin_selection](../skin_selection/README.md) acrescenta acne, vitiligo,
 YOLOv8l-seg específico para barba/bigode e qualidade.
-ITA, Monk e recomendações continuam demonstrativos. Rosácea saiu do escopo.
+Monk e recomendações usam a mediana Lab real; ITA fica nulo. Rosácea saiu do escopo.
 
 ## Arquivos
 
@@ -83,8 +83,11 @@ normalizado da rede nunca é usado para medir a cor da pele.
 
 K-means continua descrevendo a anatomia antes das exclusões, em uma vista de
 até 512 pixels. Não escolhe a cor válida nem altera máscaras. Somente a
-`valid_mask` da seleção aprovada entra em `measure_skin(lab, valid_mask)`.
-Resultados inconclusivos mantêm máscaras e razões, com médias nulas.
+`measurement_mask` entra em `measure_skin(lab, measurement_mask)`.
+Normalmente é a `valid_mask`; se vazia, reinclui incertezas ou exclusões,
+nessa ordem. BiSeNet indisponível ou sem pele usa região central aproximada
+do rosto detectado. Toda alternativa gera ressalvas; qualidade não bloqueia
+a medição ou as recomendações. A seleção estrita continua preservada.
 
 `pixels_pele` conta a seleção restante; `pixels_contorno` conta as regiões faciais
 previstas (classes 1–6 e 10–13), sem orelhas, pescoço, cabelo e fundo.

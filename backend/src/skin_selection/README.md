@@ -8,11 +8,14 @@ com limiares provisórios, sem declaração de acurácia ou liberação para Mon
 ## Execução
 
 1. Preservar o RGB do recorte, após a limitação de upload a 1600 pixels.
-2. BiSeNet define anatomia candidata (pele/nariz); pele perdida não é recuperada.
+2. BiSeNet define anatomia candidata (pele/nariz); se indisponível ou sem pele,
+   uma região central aproximada do rosto detectado é usada com aviso explícito.
 3. Acne (U-Net), vitiligo (YOLO11n) e barba (YOLOv8l) recebem vistas do mesmo RGB.
 4. Restaurar probabilidades ao recorte antes dos limiares. YOLO registra e
    desfaz letterbox. Rótulos BiSeNet usam vizinho mais próximo.
-5. Compor união, avaliar qualidade e medir somente a `valid_mask` aprovada.
+5. Compor união e avaliar qualidade para gerar avisos. Medir `valid_mask` ou,
+   se vazia, anatomia sem exclusões aceitas ou anatomia inicial, nessa ordem.
+   `measurement_mask` e `measurement_source` registram a escolha real.
 
 `excluded_mask = anatomical_mask & union(accepted_masks)`;
 `valid_mask = anatomical_mask & ~excluded_mask & ~uncertain_mask`.
@@ -25,8 +28,8 @@ Regiões carregam motivo, origem, bbox, área e referência à evidência do mó
 
 `executado` com máscara vazia difere de `indisponivel`, `falha` e
 `nao_executado`. Nestes últimos, `detected` é `null`, nunca `false`.
-Falha de especialista mantém a análise parcial e impede a medição. Falha
-do BiSeNet continua erro HTTP 503. Não há fallback semântico silencioso.
+Falha de especialista mantém a medição e gera aviso. BiSeNet indisponível
+usa a região central do rosto com motivo explícito, mantendo as recomendações.
 Sessões são verificadas e carregadas uma vez por processo, com duas threads
 intra-op e uma inter-op. A orquestração é sequencial.
 
@@ -41,22 +44,23 @@ validação. O módulo não depende de textura, âncora nasal ou discordância d
 
 ## Qualidade e cor
 
-O portão técnico considera pixels nativos (≥512), fração restante (≥15%),
+Os indicadores de qualidade consideram pixels nativos (≥128), fração restante (≥4%),
 extensão espacial, clipping, nitidez, dispersão, iluminação e mudança da
 média ao incluir incertezas. Todos os valores e razões são retornados em
 `quality`; detalhes em `QualityConfig`. Não há escolha automática do cluster
 maior, testa limpa, cor mais escura ou componente único.
 
-`quality.usable` indica aprovação pelos critérios técnicos provisórios.
+`quality.usable` indica ausência de ressalvas pelos critérios técnicos provisórios.
 `calibration` é `provisoria_sem_validacao_anotada` e `released_for_monk` é
-sempre `false`. Sem aprovação, as estatísticas públicas são `null` e
-`measure_skin` não é chamada. A máscara candidata continua disponível para
-inspeção. Com aprovação, média Lab/RGB, mediana Lab, desvio e dispersão usam
-somente pixels preservados; overlays nunca entram na medição.
+sempre `false`. Mesmo com ressalvas, `measure_skin` é chamada. Média Lab/RGB,
+mediana Lab, desvio e dispersão usam os pixels reais de `measurement_mask`;
+overlays nunca entram na medição. As exclusões estritas são preservadas para
+inspeção. `quality.decision` é `aprovada` ou `com_ressalvas`; os limites completos
+estão no [README principal](../../../README.md#limiares-de-qualidade).
 
 K-means é descritivo da anatomia anterior às exclusões, limitado a uma vista
 de 512 pixels e 4.000 amostras. Nenhuma alteração em `grow_skin()` foi reativada.
-Rosácea não participa do backend; ITA/Monk e bases seguem simulados e separados.
+Rosácea não participa do backend; Monk e bases usam a mediana Lab real.
 
 ## Instalação e verificação
 
@@ -68,8 +72,8 @@ Na raiz do projeto:
 ```
 
 Testes sintéticos cobrem alinhamento não quadrado, letterbox, canais, classes,
-união, incertezas, falhas, cores preservadas e abstenção. Integração cobre
-JSON/NDJSON e garante que só a máscara aprovada entra na medição. As fotos
+união, incertezas, falhas, cores preservadas e alternativas de medição. Integração cobre
+JSON/NDJSON e garante recomendações com ressalvas e rastreabilidade da máscara medida. As fotos
 locais e a equivalência PyTorch/ONNX verificam execução, não qualidade facial.
 
 Para concluir a validação do plano faltam máscaras manuais, positivos,

@@ -1,6 +1,6 @@
 import { escapeHTML as e, safeColor, safeLink, money, scale, icon } from './shared.js';
 import { format } from './selection.js';
-import { matchFailure, technicalIssue } from './match_failure.js';
+import { matchWarning } from './match_warning.js';
 
 const monkNumber = value => String(value).padStart(2, '0');
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -8,10 +8,8 @@ const finite = value => typeof value === 'number' && Number.isFinite(value);
 export function toneSummary(data) {
   const demo = data.exemplo === true;
   const tone = data.tom;
-  const measured = Boolean(tone && Number.isInteger(tone.monk) && tone.monk >= 1 && tone.monk <= 10);
-  const technical = technicalIssue(data);
-  if (measured) {
-    return `<section class="container section result-summary stack">
+  return `<section class="container section result-summary stack">
+      ${matchWarning(data)}
       ${demo ? `<div class="alert notice demo-notice">${icon('info')}<div><b>Exemplo de resultado</b>Este exemplo não enviou uma foto. O tom e as recomendações são simulados.</div></div>` : ''}
       <div class="card tone-card tone-result" data-tone-state="${demo ? 'example' : 'measured'}">
         <div class="tone-result-main">
@@ -28,24 +26,7 @@ export function toneSummary(data) {
           <div class="result-scale">${scale(data.escala_monk, tone.monk, demo)}</div>
         </div>
       </div>
-      ${matchFailure(data)}
     </section>`;
-  }
-  const notice = demo
-    ? '<b>Resultado demonstrativo</b>Este exemplo não enviou uma foto nem executou a verificação facial. O tom, as condições e as recomendações são simulados.'
-    : '<b>Análise inconclusiva</b>Não foi possível medir o tom com qualidade suficiente. As regiões analisadas continuam disponíveis abaixo.';
-  const title = demo ? 'Uma prévia das bases para o seu tom.' : technical ? 'Não foi possível concluir a análise.' : 'Precisamos de outra foto.';
-  const description = demo ? 'Conheça um exemplo de como seu resultado será apresentado.'
-    : technical ? 'Uma análise necessária não ficou disponível. Confira o aviso e tente novamente.' : 'Tente uma foto nítida, de frente, sem filtros e com luz uniforme.';
-  const card = `<div class="card tone-card tone-unavailable" data-tone-state="unavailable"><span class="tone-empty-icon">${icon('sun')}</span><div class="stack tight"><span class="eyebrow">Tom não calculado</span><h2>Vamos tentar de novo</h2><p class="small muted">${technical ? 'A análise precisa concluir antes de medir o tom.' : 'Uma nova captura pode melhorar a medição.'}</p></div></div>`;
-  return `<section class="container section result-summary stack">
-    <div class="alert notice ${demo ? 'demo-notice' : 'match-notice'}">${icon('info')}<div>${notice}</div></div>
-    ${matchFailure(data)}
-    <div class="row g-4 g-lg-5 align-items-center result-title">
-      <div class="col-lg-7 stack"><h1>${title}</h1><p class="lead-copy">${description}</p>
-      </div><div class="col-lg-5">${card}</div>
-    </div>
-  </section>`;
 }
 
 function productCard(product, index, demo) {
@@ -67,16 +48,12 @@ function productCard(product, index, demo) {
 
 export function recommendations(data) {
   const demo = data.exemplo === true;
-  // Mesmo uma resposta inconsistente não deve mostrar produtos sem medição válida.
-  const available = demo || (data.tom && data.match?.status === 'calculado' && data.preprocessamento?.medicao_utilizavel === true);
-  const products = available && Array.isArray(data.recomendacoes) ? data.recomendacoes : [];
-  const title = products.length ? `${products.length === 1 ? 'Sua opção' : `Suas ${products.length} opções`} de base` : 'Bases ainda não disponíveis';
-  const noTone = !data.tom;
+  const products = data.recomendacoes;
+  const title = `${products.length === 1 ? 'Sua opção' : `Suas ${products.length} opções`} de base`;
   return `<section class="recommendations-section"><div class="container section stack">
     <div class="section-heading"><h2>${title}</h2><span class="small muted">${demo ? 'Seleção demonstrativa' : 'Seleção pela sua foto'} · ${e(data.catalogo_total)} cores no catálogo</span></div>
-    ${products.length ? `<div class="product-grid">${products.map((product, index) => productCard(product, index, demo)).join('')}</div>
+    <div class="product-grid">${products.map((product, index) => productCard(product, index, demo)).join('')}</div>
       ${!demo && data.match?.grupos_complementares_utilizados ? '<p class="small muted">Incluímos grupos Monk complementares porque havia poucas opções no mesmo grupo da sua pele.</p>' : ''}
-      ${demo ? '<p class="small muted">Esta seleção usa um tom fixo de exemplo.</p>' : ''}`
-      : `<div class="card match-empty" data-match-state="${noTone ? 'inconclusive' : 'no-candidates'}"><h3>${noTone ? 'Precisamos concluir a medição antes de recomendar' : 'Seu tom foi estimado, mas não há opções disponíveis'}</h3><p class="muted">${noTone ? 'Sem uma medição de tom utilizável, não selecionamos bases. Confira os motivos acima e tente novamente.' : 'O catálogo está vazio. Você pode tentar novamente mais tarde; não é necessário trocar a foto.'}</p>${noTone ? `${technicalIssue(data) ? '<button class="btn btn-primary" data-action="analyze">Tentar novamente</button>' : ''}<button class="btn btn-outline-primary" data-action="capture">Escolher outra foto</button>` : ''}</div>`}
+      ${demo ? '<p class="small muted">Esta seleção usa um tom fixo de exemplo.</p>' : ''}
   </div></section>`;
 }

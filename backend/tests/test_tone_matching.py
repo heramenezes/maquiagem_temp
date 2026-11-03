@@ -93,33 +93,29 @@ class ColorMatchingTests(unittest.TestCase):
             self.assertEqual(recommendations[0]["id"], index)
             self.assertEqual(len(recommendations), 3)
 
-    def test_quality_gate_and_missing_measurement_never_call_ranker(self):
+    def test_quality_warning_keeps_real_tone_and_recommendations(self):
         mask = np.ones((20, 20), bool)
-        for usable, skin in ((False, {"median_lab": hex_to_lab(MONK_HEX[5])}), (True, None)):
+        for usable in (False, True):
+            skin = {"median_lab": hex_to_lab(MONK_HEX[5]), "mask": mask}
             selection = {"quality": {"usable": usable, "reasons": [] if usable else ["nitidez_insuficiente"]},
                          "valid_mask": mask}
-            with patch("backend.src.tone_matching.analysis.rank_foundations") as ranker:
-                result = build_analysis(skin, selection, 400)
-            ranker.assert_not_called()
-            self.assertIsNone(result["tom"])
-            self.assertEqual(result["recomendacoes"], [])
-            self.assertEqual(result["match"]["status"], "inconclusivo")
-            self.assertTrue(result["match"]["motivos"])
+            result = build_analysis(skin, selection, 400)
+            self.assertEqual(result["tom"]["monk"], 6)
+            self.assertEqual(len(result["recomendacoes"]), 3)
+            self.assertEqual(result["match"]["status"], "calculado")
+            self.assertEqual(result["match"]["confianca_reduzida"], not usable)
+            self.assertEqual(result["match"]["motivos"], selection["quality"]["reasons"])
             json.dumps(result, allow_nan=False)
 
-    def test_empty_catalog_preserves_real_tone_and_reports_no_candidates(self):
+    def test_empty_catalog_is_a_service_error_instead_of_empty_result(self):
         selection = {"quality": {"usable": True, "reasons": []}, "valid_mask": np.ones((20, 20), bool)}
         with patch("backend.src.tone_matching.analysis.load_catalog", return_value=[]):
-            result = build_analysis({"median_lab": hex_to_lab(MONK_HEX[5])}, selection, 800)
-        self.assertEqual(result["tom"]["monk"], 6)
-        self.assertEqual(result["tom"]["pele_utilizada"], 50)
-        self.assertIsNone(result["tom"]["ita"])
-        self.assertEqual(result["match"]["status"], "sem_candidatos")
-        self.assertEqual(result["recomendacoes"], [])
+            with self.assertRaisesRegex(ValueError, "catálogo"):
+                build_analysis({"median_lab": hex_to_lab(MONK_HEX[5])}, selection, 800)
 
 
 class MatchingApiTests(unittest.TestCase):
-    def analyze(self, color, *, stream=False, fail=False):
+    def analyze(self, color, *, stream=False, fail=False, empty_anatomy=False):
         base = np.array([int(color[i:i + 2], 16) for i in (1, 3, 5)])
         noise = np.random.default_rng(1).integers(-3, 4, (100, 160, 1))
         rgb = np.clip(base + noise, 0, 255).astype(np.uint8)
@@ -128,6 +124,8 @@ class MatchingApiTests(unittest.TestCase):
         mask = np.ones(rgb.shape[:2], bool)
         anatomy = {"allowed": mask, "face": mask, "seeds": mask,
                    "method": "test", "model": "test", "warnings": []}
+        if empty_anatomy:
+            anatomy['allowed'] = np.zeros_like(mask)
 
         def module(key, *args):
             result = ModuleResult.empty(mask.shape, status="falha" if fail else "executado")
@@ -180,14 +178,34 @@ class MatchingApiTests(unittest.TestCase):
         self.assertNotEqual([p["id"] for p in light["recomendacoes"]],
                             [p["id"] for p in dark["recomendacoes"]])
 
-    def test_failed_specialist_abstains_in_json_and_ndjson(self):
+    def test_no_segmented_skin_still_recommends_in_json_and_ndjson(self):
+        for stream in (False, True):
+            with self.subTest(stream=stream):
+                result, rgb = self.analyze(MONK_HEX[5], stream=stream, empty_anatomy=True)
+                self.assertEqual(len(result['recomendacoes']), 3)
+                self.assertIn('pele_nao_segmentada', result['match']['motivos'])
+                self.assertIn('regiao_facial_aproximada', result['match']['motivos'])
+                self.assertEqual(result['status_analise'], 'concluida')
+                json.dumps(result, allow_nan=False)
+
+    def test_extreme_exposure_still_recommends_with_warning(self):
+        for color in ('#000000', '#ffffff'):
+            with self.subTest(color=color):
+                result, _ = self.analyze(color)
+                self.assertEqual(len(result['recomendacoes']), 3)
+                self.assertIn('clipping_excessivo', result['match']['motivos'])
+                self.assertTrue(result['preprocessamento']['medicao_utilizavel'])
+                self.assertEqual(result['match']['status'], 'calculado')
+                json.dumps(result, allow_nan=False)
+
+    def test_failed_specialist_recommends_with_warning_in_json_and_ndjson(self):
         for stream in (False, True):
             with self.subTest(stream=stream):
                 result, _ = self.analyze(MONK_HEX[5], stream=stream, fail=True)
-                self.assertEqual(result["status_analise"], "inconclusiva")
-                self.assertIsNone(result["tom"])
-                self.assertEqual(result["recomendacoes"], [])
-                self.assertEqual(result["match"]["status"], "inconclusivo")
+                self.assertEqual(result["status_analise"], "concluida")
+                self.assertIsNotNone(result["tom"])
+                self.assertEqual(len(result["recomendacoes"]), 3)
+                self.assertEqual(result["match"]["status"], "calculado")
                 self.assertIn("modulo_obrigatorio_indisponivel", result["match"]["motivos"])
 
 

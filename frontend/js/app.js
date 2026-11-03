@@ -98,7 +98,7 @@ async function runAnalysis(example = false) {
   } catch (error) {
     if (current !== revision || error.name === 'AbortError') return;
     state.error = error.message;
-    if (['ROSTO_NAO_ENCONTRADO', 'MULTIPLOS_ROSTOS', 'PELE_INSUFICIENTE', 'FOTO_INVALIDA', 'FOTO_MUITO_GRANDE'].includes(error.code)) {
+    if (['ROSTO_NAO_ENCONTRADO', 'MULTIPLOS_ROSTOS', 'FOTO_INVALIDA', 'FOTO_MUITO_GRANDE'].includes(error.code)) {
       releasePhoto();
       state.screen = 'capture';
     } else state.screen = example ? 'home' : 'review';

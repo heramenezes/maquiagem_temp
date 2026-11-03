@@ -8,8 +8,8 @@ import numpy as np
 from PIL import Image
 
 from .color import rgb_to_lab
-from .skin import InsufficientSkinError, adaptive_clusters
-from .semantic import ModelUnavailableError, facial_masks, measure_skin
+from .skin import adaptive_clusters
+from .semantic import ModelUnavailableError, facial_masks, fallback_facial_masks, measure_skin
 from ..preprocessing.face_detector import MultipleFacesError
 from ..skin_selection.pipeline import run_module, finish
 from ..skin_selection.serialization import serialize_selection, conditions
@@ -31,7 +31,7 @@ STAGES = [
     ("barba", "Avaliando barba e bigode", "Segmentação específica de pelos faciais", False),
     ("selecao", "Compondo a seleção de pele", "União de máscaras e avaliação de qualidade", False),
     ("clusters", "Descrevendo as cores da pele", "Agrupamento em a*/b* sem remover pixels da máscara", False),
-    ("medidas", "Medindo a pele selecionada", "Estatísticas somente da seleção aprovada pela qualidade", False),
+    ("medidas", "Medindo a pele selecionada", "Estatísticas da seleção disponível com avisos de precisão", False),
     ("resultado", "Correlacionando pele e bases", "Monk como intermediário e refinamento CIEDE2000 em Lab", False),
 ]
 
@@ -43,7 +43,7 @@ def _png_data(image):
 
 
 def summarize(rgb, masks, clusters, skin, selection):
-    mask = selection["valid_mask"]
+    mask = selection["measurement_mask"]
     rgba = np.dstack((rgb, mask.astype(np.uint8) * 255))
     area = int(masks["face"].sum())
     return {
@@ -51,13 +51,14 @@ def summarize(rgb, masks, clusters, skin, selection):
         "espaco_cor": "CIELAB", "branco_referencia": "D65", "entrada": "sRGB",
         "metodo_contorno": masks["method"], "modelo": masks["model"], "clusters": clusters["k"],
         "pixels_pele": int(mask.sum()), "pixels_contorno": area,
-        "percentual_pele": round(100 * mask.sum() / area, 2),
+        "percentual_pele": round(100 * mask.sum() / max(area, 1), 2),
         "media_lab": [round(float(v), 4) for v in skin["mean_lab"]] if skin else None,
         "media_rgb": [round(float(v), 2) for v in rgb[mask].mean(axis=0)] if skin else None,
         "mediana_lab": [round(float(v), 4) for v in skin["median_lab"]] if skin else None,
         "desvio_lab": [round(float(v), 4) for v in skin["std_lab"]] if skin else None,
         "dispersao_delta_e76_p90": skin["dispersion_delta_e76_p90"] if skin else None,
-        "medicao_utilizavel": selection["quality"]["usable"],
+        "medicao_utilizavel": skin is not None,
+        "origem_medicao": selection["measurement_source"],
         "selecao": serialize_selection(selection, _png_data),
         "clusters_referencia": "anatomia_antes_das_exclusoes",
         "dimensoes": {"largura": rgb.shape[1], "altura": rgb.shape[0]},
@@ -92,7 +93,12 @@ def analysis_events(image_bgr, detect_face):
             elif step["id"] == "cielab":
                 lab = rgb_to_lab(rgb)
             elif step["id"] == "mascara":
-                masks = facial_masks(rgb)
+                try:
+                    masks = facial_masks(rgb)
+                except ModelUnavailableError:
+                    masks = fallback_facial_masks(rgb, "segmentacao_indisponivel")
+                if not masks["allowed"].any():
+                    masks = fallback_facial_masks(rgb, "pele_nao_segmentada")
             elif step["id"] in ("acne", "vitiligo", "barba"):
                 key = step["id"]
                 modules[key] = run_module(key, rgb, masks)
@@ -107,23 +113,17 @@ def analysis_events(image_bgr, detect_face):
                 small_mask = cv2.resize(masks["allowed"].astype(np.uint8), size, interpolation=cv2.INTER_NEAREST).astype(bool)
                 clusters = adaptive_clusters(small_lab, {"allowed": small_mask, "seeds": small_mask}) if small_mask.sum() >= 64 else {"k": None}
             elif step["id"] == "medidas":
-                if selection["quality"]["usable"]:
-                    skin = measure_skin(lab, selection["valid_mask"])
-                else:
-                    step["estado_modulo"] = "nao_executado"
-                    step["motivo"] = "qualidade_inconclusiva"
+                skin = measure_skin(lab, selection["measurement_mask"])
             else:
                 result = build_analysis(skin, selection, int(masks["face"].sum()))
                 result["condicoes"] = conditions(selection)
                 result["marcacoes"] = []  # Bboxes reais estão em selecao.regions, no recorte.
                 result["preprocessamento"] = summarize(rgb, masks, clusters, skin, selection)
-                result["status_analise"] = "concluida" if skin else "inconclusiva"
+                result["status_analise"] = "concluida"
         except MultipleFacesError as exc:
             raise PipelineError("MULTIPLOS_ROSTOS", str(exc)) from exc
         except ModelUnavailableError as exc:
             raise PipelineError("MODELO_INDISPONIVEL", str(exc), status=503) from exc
-        except InsufficientSkinError as exc:
-            raise PipelineError("PELE_INSUFICIENTE", str(exc)) from exc
         step["estado"] = "concluida"
         yield {"tipo": "etapa", "etapas": [dict(s) for s in steps],
                "concluidas": index + 1, "total": len(steps)}

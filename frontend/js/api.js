@@ -83,10 +83,8 @@ export async function analyzePhoto(file, signal, onProgress) {
   const status = result.match?.status;
   const validMatch = result.schema_version === 2 && result.simulado === false && result.exemplo === false
     && Array.isArray(result.escala_monk) && result.escala_monk.length === 10 && Array.isArray(result.recomendacoes)
-    && ((status === 'inconclusivo' && result.tom === null && result.recomendacoes.length === 0)
-      || (validTone && result.preprocessamento.medicao_utilizavel === true
-        && ((status === 'sem_candidatos' && result.recomendacoes.length === 0)
-          || (status === 'calculado' && result.recomendacoes.length > 0))));
+    && validTone && result.preprocessamento.medicao_utilizavel === true
+    && status === 'calculado' && result.recomendacoes.length > 0;
   if (!validMatch) {
     throw new ApiError('O servidor não enviou um resultado válido de tom e bases. Reinicie o backend atualizado e tente novamente.', 'MATCH_AUSENTE');
   }

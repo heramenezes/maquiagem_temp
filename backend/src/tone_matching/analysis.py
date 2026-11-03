@@ -1,4 +1,4 @@
-"""Contrato do resultado real; seleção reprovada nunca gera tom ou produtos."""
+"""Toda medição do rosto gera tom e bases; qualidade reduzida gera ressalvas."""
 
 import hashlib
 import json
@@ -13,6 +13,8 @@ from .palette import MONK_HEX, PALETTE_SOURCE, PALETTE_VERSION
 
 def build_analysis(skin, selection, face_pixels):
     catalog = load_catalog()
+    if not catalog:
+        raise ValueError("O catálogo de bases está vazio.")
     fingerprint = hashlib.sha256(json.dumps(
         sorted(catalog, key=lambda product: product["id"]),
         sort_keys=True, ensure_ascii=False, separators=(",", ":"),
@@ -40,12 +42,7 @@ def build_analysis(skin, selection, face_pixels):
         "tom": None, "escala_monk": list(MONK_HEX), "catalogo_total": len(catalog),
         "recomendacoes": [], "match": match,
     }
-    if not quality["usable"] or skin is None:
-        match.update(status="inconclusivo", motivos=list(quality["reasons"]) or ["medicao_ausente"],
-                     grupos_complementares_utilizados=False)
-        return result
-
-    # measure_skin já calculou a mediana exclusivamente da valid_mask aprovada.
+    # A máscara efetivamente medida pode incluir um fallback documentado.
     lab = skin["median_lab"]
     tone, recommendations = rank_foundations(lab, catalog)
     rgb = np.rint(lab2rgb(np.asarray(lab, dtype=np.float64)) * 255).astype(np.uint8)
@@ -53,11 +50,11 @@ def build_analysis(skin, selection, face_pixels):
         lab=np.asarray(lab, dtype=float).tolist(),
         cor_pele_hex="#{:02x}{:02x}{:02x}".format(*rgb),
         ita=None,  # ITA não participa desta implementação; nenhum valor demonstrativo.
-        pele_utilizada=round(100 * int(selection["valid_mask"].sum()) / max(face_pixels, 1), 2),
+        pele_utilizada=round(100 * int(skin["mask"].sum()) / max(face_pixels, 1), 2),
     )
     result.update(tom=tone, recomendacoes=recommendations)
     fallback = any(not product["mesmo_monk"] for product in recommendations)
-    match.update(status="calculado" if recommendations else "sem_candidatos",
-                 motivos=[] if recommendations else ["catalogo_vazio"],
+    match.update(status="calculado", motivos=list(quality["reasons"]),
+                 confianca_reduzida=bool(quality["reasons"]),
                  grupos_complementares_utilizados=fallback)
     return result

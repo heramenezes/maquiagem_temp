@@ -28,12 +28,12 @@ Regras:
 6. Preservar o recorte RGB, converter para CIELAB/D65 e executar BiSeNet ONNX.
    Executar acne, vitiligo e YOLOv8l-seg de barba em vistas do mesmo RGB, restaurar as
    máscaras e compor a seleção de pele. K-means continua apenas descritivo.
-7. Anatomia insuficiente interrompe com `PELE_INSUFICIENTE`. Seleção insuficiente,
-   incerta ou com especialista indisponível retorna análise inconclusiva com
-   máscaras, razões e médias nulas; não chama a medição.
-8. Usar a mediana Lab da seleção aprovada para classificar o tom Monk e
+7. Avaliar a qualidade para gerar ressalvas, sem impedir a medição. Seleção vazia
+   usa pele com incertezas ou pele antes das exclusões. BiSeNet indisponível ou
+   sem pixels de pele usa região central aproximada do rosto, com motivo explícito.
+8. Usar a mediana Lab da seleção disponível para classificar o tom Monk e
    recomendar bases por grupo Monk com refinamento CIEDE2000 em Lab.
-   Seleção inconclusiva retorna `tom: null` e `recomendacoes: []`.
+   Toda análise concluída retorna `tom` e pelo menos uma recomendação.
 
 O servidor não aceita um parâmetro que desative a pré-verificação. Cada envio
 verifica a própria imagem; nenhuma aprovação anterior é reutilizada.
@@ -75,24 +75,24 @@ Uploads retornam `simulado: false`: tom e produtos dependem da medição real.
 Isso não implica validação de acurácia: `match.experimental` é `true` e
 `match.validado` é `false`. ITA é `null` e não participa do cálculo.
 `tom.hex` identifica o swatch Monk; `tom.cor_pele_hex` representa a cor medida.
-`tom.lab` contém a mediana da seleção aprovada; `distancias_monk` contém as dez
+`tom.lab` contém a mediana da máscara efetivamente medida; `distancias_monk` contém as dez
 distâncias ΔE00, e `margem_delta_e00` indica ambiguidade, sem ser probabilidade.
 
 O ranking prioriza o mesmo Monk, refinando por ΔE00 pele/base. Se faltarem
 produtos, usa outros grupos pela distância entre swatches Monk, com refinamento
 em cada grupo. `match.grupos_complementares_utilizados` identifica esse caso.
 Não há limiar máximo de adequação calibrado ou porcentagem de compatibilidade.
-`match.status` pode ser `calculado`, `inconclusivo` ou `sem_candidatos`.
-`match.motivos` preserva razões de qualidade ou informa ausência de catálogo.
-Catálogo vazio mantém o tom medido; seleção reprovada não emite tom/produtos.
+`match.status` é sempre `calculado`. `match.motivos` preserva todas as ressalvas;
+`match.confianca_reduzida` indica se existem motivos, sem representar probabilidade.
+Qualidade reduzida mantém o tom e as bases. Catálogo vazio/inválido é erro de serviço.
 O contrato completo está no [módulo de match](../backend/src/tone_matching/README.md).
-As condições de bloqueio, comparadores e limiares numéricos estão no
-[README principal](../README.md#quando-o-tom-e-as-recomendações-são-bloqueados).
-O aviso de falha no frontend compara `quality.metrics` com `quality.thresholds`
-e distingue falha de serviço, captura reprovada e catálogo vazio.
+As ressalvas, comparadores e limiares numéricos estão no
+[README principal](../README.md#avisos-de-precisão-e-recomendação-contínua).
+Um único aviso no topo explica os motivos e compara `quality.metrics` com
+`quality.thresholds`, mantendo o tom e os produtos visíveis.
 
-A interface consome o tom e o ranking reais, tratando tom nulo e ausência de
-candidatos sem preencher produtos fictícios. `/api/exemplo` continua demonstrativo.
+A interface só aceita resultados com tom e bases. Respostas antigas sem
+recomendações são recusadas antes da tela final. `/api/exemplo` continua demonstrativo.
 
 ### Pré-processamento real
 
@@ -132,37 +132,43 @@ antigo `pixels_recuperados` foi removido, pois não há crescimento de regiões.
 As prévias se referem ao recorte processado. `pele` tem alfa zero nos pixels excluídos. Os arrays
 `avisos` e `etapas` foram abreviados; a execução informa limites e dez etapas.
 
-### Seleção independente e resultados inconclusivos
+### Seleção independente e ressalvas de precisão
 
-`status_analise` é `concluida` ou `inconclusiva`. Em `preprocessamento`:
+`status_analise` é sempre `concluida` nos resultados. Em `preprocessamento`:
 
-- `medicao_utilizavel`: aprovação pelos critérios técnicos de qualidade.
+- `medicao_utilizavel`: medição disponível, sempre `true` nos resultados.
+- `origem_medicao`: `pele_valida`, `pele_com_incertezas` ou `pele_antes_exclusoes`.
 - `media_lab`, `media_rgb`, `mediana_lab`, `desvio_lab` e
-  `dispersao_delta_e76_p90`: estatísticas da seleção aprovada, ou `null`.
+  `dispersao_delta_e76_p90`: estatísticas dos pixels efetivamente medidos.
 - `clusters_referencia: anatomia_antes_das_exclusoes`: o K-means não é o tom final.
 - `selecao.schema_version: 1` e `coordinate_space: recorte_rgb`.
 - `selecao.masks`: PNGs 0/255 de `anatomical_mask`, `excluded_mask`,
-  `uncertain_mask`, `valid_mask` e `accepted_masks` por motivo.
+  `uncertain_mask`, `valid_mask`, `measurement_mask` e `accepted_masks` por motivo.
+- `selecao.measurement_source`: mesma origem de `origem_medicao`.
 - `selecao.module_status`: `acne`, `vitiligo`, `barba`, com
   `state`, `reason`, `source`, `elapsed_ms`, `evidence`, `detected` e contagens.
 - `selecao.regions`: `reason`, `source`, `state`, `bbox: [x,y,largura,altura]`,
   `area_pixels`, `evidence_ref`; coordenadas em pixels do recorte, não da foto completa.
 - `selecao.quality`: `decision`, `usable`, `reasons`, `metrics`, `thresholds`,
-  `calibration` e `released_for_monk`.
+  `calibration` e `released_for_monk`. `decision` é `aprovada` ou `com_ressalvas`;
+  `usable` indica ausência de ressalvas, sem controlar a execução da medição.
 - `selecao.model_versions`: fontes, versões, hashes e contratos de processamento.
 - `selecao.debug_masks`: previsões brutas e discordâncias preservadas.
 
 Estados de módulo: `executado`, `indisponivel`, `nao_executado`, `falha`.
 Somente um módulo executado pode devolver `detected: false`; indisponibilidade
 ou falha devolve `null`. `estado_modulo` no progresso expõe a execução real,
-mesmo quando a etapa de avaliação termina. `medidas` informa `nao_executado`
-e `motivo: qualidade_inconclusiva` quando se abstém.
+mesmo quando a etapa de avaliação termina. `medidas` sempre executa após o rosto
+confirmado; falhas de especialista são expostas como ressalvas do resultado.
 
 `excluded_percent` e `percent_by_reason` usam `area_denominator:
 pele_anatomica_inicial`. Os motivos podem sobrepor (`reasons_may_overlap: true`);
 seus percentuais não devem ser somados. `valid_mask` é anatomia menos união
-de exclusões e incerteza. A prévia permanece disponível mesmo quando a
-qualidade reprova a medição; `pixels_pele` não implica amostra aprovada.
+de exclusões e incerteza. `measurement_mask` registra a região realmente medida,
+podendo reincluir incertezas ou exclusões se necessário. A prévia RGBA `pele`,
+`pixels_pele` e as estatísticas usam essa máscara. `quality.metrics` mantém
+as medidas da seleção estrita. A região central aproximada é identificada por
+`metodo_contorno: regiao_central_rosto` e razões explícitas.
 
 `barba` usa YOLOv8l-seg de prashants975, classe nominal `beard` (0); a classe
 `hair` (1) é ignorada. A evidência informa `nominal_beard_class: true`, fonte
@@ -175,9 +181,9 @@ Os critérios estão em calibração provisória (`provisoria_sem_validacao_anot
 `released_for_monk` permanece `false`. O backend não implementa Monk nesta fase.
 Veja [seleção de pele](../backend/src/skin_selection/README.md) e
 [instalação dos modelos](../backend/models/README.md). O frontend mostra as
-prévias anatômicas, quatro cartões de exclusão com incertezas e a seleção final
+prévias anatômicas, três cartões de exclusão com incertezas e a seleção final
 RGBA. Cada cartão distingue ausência de exclusões de indisponibilidade/falha;
-a seleção inconclusiva apresenta as razões e não exibe médias nulas como zero.
+as ressalvas aparecem no aviso único no topo, sem bloquear tom ou produtos.
 
 ### Progresso incremental usado pelo frontend
 
@@ -200,7 +206,7 @@ de etapas concluídas não é uma estimativa de tempo restante.
 Existe exatamente um evento terminal de sucesso (`resultado`) ou erro:
 
 ```json
-{"tipo":"erro","codigo":"PELE_INSUFICIENTE","mensagem":"Não conseguimos separar pele suficiente. Tire outra foto de frente e com luz uniforme.","status":422}
+{"tipo":"erro","codigo":"ROSTO_NAO_ENCONTRADO","mensagem":"Não encontramos um rosto visível. Tire outra foto de frente, com boa luz e sem cobrir o rosto.","status":422}
 ```
 
 Erros de arquivo anteriores à abertura do stream usam o HTTP 400/413 usual.
@@ -228,9 +234,7 @@ Todos usam a estrutura:
 | 413 | `FOTO_MUITO_GRANDE` | Pedir arquivo menor |
 | 422 | `ROSTO_NAO_ENCONTRADO` | Descartar a foto selecionada e solicitar outra |
 | 422 | `MULTIPLOS_ROSTOS` | Descartar a foto e solicitar outra com somente uma pessoa; interrompe antes de converter cores ou segmentar |
-| 422 | `PELE_INSUFICIENTE` | Solicitar foto frontal mais nítida/com iluminação uniforme |
 | 500 | `ERRO_INTERNO` | Manter a prévia e permitir tentar novamente |
-| 503 | `MODELO_INDISPONIVEL` | Manter a foto e informar a instalação/reparo do modelo; não usa segmentação geométrica como substituição |
 | outros | `REQUISICAO_INVALIDA` | Exibir mensagem de erro |
 
 Falhas de conexão e timeout de 90 segundos (incluindo as pausas de apresentação) são tratados pelo cliente,
@@ -258,8 +262,8 @@ validando os links HTTP/HTTPS. A cópia arquivada no mock não é lida pela apli
 
 Monk e o ranking CIEDE2000 estão integrados à etapa `resultado` em
 `backend/src/segmentation/pipeline.py`, usando `skin['median_lab']` da máscara
-válida aprovada. ITA permanece fora dessa estratégia. O frontend apresenta
+efetivamente medida. ITA permanece fora dessa estratégia. O frontend apresenta
 os resultados reais e preserva a distinção entre foto e exemplo demonstrativo.
-O fluxo real de seleção bloqueia a medição e o match se inconclusivo.
+O fluxo real mantém a medição e o match mesmo com ressalvas de qualidade.
 Processamento distribuído permanece futuro. Detalhes dos limiares e das
 limitações estão no [README da segmentação](../backend/src/segmentation/README.md).

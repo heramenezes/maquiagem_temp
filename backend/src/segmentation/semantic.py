@@ -47,8 +47,6 @@ def get_session():
 def predict_labels(rgb):
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3 or rgb.size == 0:
         raise ValueError('A segmentação espera uma imagem RGB uint8 não vazia.')
-    if min(rgb.shape[:2]) < 16:
-        raise InsufficientSkinError('Aproxime o rosto e envie uma foto com mais detalhes.')
     session = get_session()
     resized = cv2.resize(rgb, (512, 512), interpolation=cv2.INTER_LINEAR)
     normalized = (resized.astype(np.float32) / 255 - np.array([0.485, 0.456, 0.406], np.float32)) / np.array([0.229, 0.224, 0.225], np.float32)
@@ -64,8 +62,6 @@ def masks_from_labels(labels):
     """Pele + nariz, sem expansão das exclusões nem filtro de cor/textura."""
     skin = np.isin(labels, SKIN_CLASSES)
     face = np.isin(labels, FACE_CLASSES)
-    if skin.sum() < 64:
-        raise InsufficientSkinError('Não conseguimos separar pele suficiente. Tire outra foto de frente e com luz uniforme.')
     return {'face': face, 'allowed': skin, 'seeds': skin, 'labels': labels,
             'method': 'bisenet_resnet18_onnx', 'model': MODEL_ID,
             'warnings': ['BiSeNet define apenas a anatomia candidata. Exclusões e qualidade são avaliadas separadamente.']}
@@ -73,6 +69,20 @@ def masks_from_labels(labels):
 
 def facial_masks(rgb):
     return masks_from_labels(predict_labels(rgb))
+
+
+def fallback_facial_masks(rgb, reason):
+    """Região central do recorte já confirmado pelo detector, sem inventar cor."""
+    height, width = rgb.shape[:2]
+    y, x = np.ogrid[:height, :width]
+    center = (((x - (width - 1) / 2) / max(width * .30, .5)) ** 2
+              + ((y - (height - 1) / 2) / max(height * .35, .5)) ** 2 <= 1)
+    if not center.any():
+        center[height // 2, width // 2] = True
+    return {'face': center.copy(), 'allowed': center, 'seeds': center,
+            'method': 'regiao_central_rosto', 'model': None,
+            'quality_reasons': [reason, 'regiao_facial_aproximada'],
+            'warnings': ['A seleção inicial usa uma região central aproximada do rosto detectado.']}
 
 
 def measure_skin(lab, valid_mask):

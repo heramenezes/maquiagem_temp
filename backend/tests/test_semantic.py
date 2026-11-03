@@ -10,7 +10,7 @@ import numpy as np
 
 from backend.src.segmentation import semantic
 from backend.src.segmentation.color import rgb_to_lab
-from backend.src.segmentation.skin import InsufficientSkinError, adaptive_clusters
+from backend.src.segmentation.skin import adaptive_clusters
 
 
 class SemanticTests(unittest.TestCase):
@@ -59,11 +59,14 @@ class SemanticTests(unittest.TestCase):
         self.assertTrue((labels[:, 50:] == 10).all())
         np.testing.assert_array_equal(rgb, original)
 
-    def test_no_skin_or_tiny_crop_requests_new_photo(self):
-        with self.assertRaises(InsufficientSkinError):
-            semantic.masks_from_labels(np.zeros((100, 100), np.uint8))
-        with self.assertRaises(InsufficientSkinError):
-            semantic.predict_labels(np.zeros((8, 8, 3), np.uint8))
+    def test_empty_skin_is_returned_for_pipeline_fallback(self):
+        masks = semantic.masks_from_labels(np.zeros((100, 100), np.uint8))
+        self.assertFalse(masks['allowed'].any())
+
+    def test_geometric_fallback_handles_single_pixel_crop(self):
+        masks = semantic.fallback_facial_masks(np.full((1, 1, 3), 150, np.uint8), 'pele_nao_segmentada')
+        self.assertTrue(masks['allowed'][0, 0])
+        self.assertIn('regiao_facial_aproximada', masks['quality_reasons'])
 
     def test_missing_and_corrupted_model_are_explicit_errors(self):
         with TemporaryDirectory() as directory:

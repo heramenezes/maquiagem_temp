@@ -22,11 +22,13 @@ const reasons = {
   iluminacao_desigual: 'A iluminação varia muito na pele restante.',
   cor_inconsistente: 'As cores da pele restante variam muito.',
   cor_sensivel_a_incerteza: 'Incluir as áreas incertas mudaria bastante a cor medida.',
+  segmentacao_indisponivel: 'A segmentação de pele ficou indisponível.',
+  pele_nao_segmentada: 'Não foi possível separar a pele do rosto.',
+  regiao_facial_aproximada: 'Foi usada uma região aproximada do rosto.',
+  pele_com_incertezas: 'A estimativa incluiu regiões incertas.',
+  pele_antes_exclusoes: 'A estimativa usou a pele antes das exclusões.',
 };
-export const qualityReason = code => reasons[code] || ({
-  medicao_ausente: 'A medição de cor não ficou disponível.',
-  catalogo_vazio: 'Não há cores disponíveis no catálogo neste momento.',
-}[code]) || 'Não foi possível concluir a medição com qualidade suficiente.';
+export const qualityReason = code => reasons[code] || 'Um fator pode reduzir a precisão do tom.';
 function metric(label, value) {
   return `<div><dt>${e(label)}</dt><dd>${e(value)}</dd></div>`;
 }
@@ -68,24 +70,24 @@ export function finalSelection(data) {
   const selection = data.selecao;
   const quality = selection?.quality;
   const metrics = quality?.metrics || {};
-  const usable = quality?.usable === true;
+  const fallback = data.origem_medicao !== 'pele_valida' || data.metodo_contorno === 'regiao_central_rosto';
   const lab = Array.isArray(data.media_lab) && data.media_lab.length === 3 && data.media_lab.every(Number.isFinite) ? data.media_lab : null;
   return `<section class="container section skin-section final-selection stack">
-    <h2>Pele útil após exclusões</h2>
+    <h2>Pele usada na estimativa</h2>
     <div class="row g-4 g-lg-5 align-items-start">
-      <div class="col-lg-5"><figure class="final-skin-figure card"><div class="useful-skin-image"><img id="segmentation-overlay" src="${png(data.previas?.pele)}" alt="Somente os pixels de pele restantes após todas as exclusões e incertezas" width="${Number(data.dimensoes?.largura)}" height="${Number(data.dimensoes?.altura)}"></div><figcaption>Pele anatômica − exclusões − incertezas</figcaption></figure></div>
+      <div class="col-lg-5"><figure class="final-skin-figure card"><div class="useful-skin-image"><img id="segmentation-overlay" src="${png(data.previas?.pele)}" alt="Pixels usados para estimar o tom da foto" width="${Number(data.dimensoes?.largura)}" height="${Number(data.dimensoes?.altura)}"></div><figcaption>${fallback ? 'Região alternativa usada na estimativa' : 'Pele anatômica − exclusões − incertezas'}</figcaption></figure></div>
       <div class="col-lg-7 stack">
-        <div class="card selection-quality ${usable ? '' : 'needs-review'}" data-quality="${usable ? 'approved' : 'inconclusive'}">
-          <span class="tag ${usable ? '' : 'status-warning'}">${usable ? 'Seleção aprovada pelos critérios atuais' : 'Seleção inconclusiva'}</span>
-          <p>${usable ? 'Estes pixels foram usados para estimar seu tom Monk e comparar as cores das bases.' : 'Estes são os pixels candidatos restantes. A medição de cor não foi liberada para esta foto.'}</p>
-          ${(quality?.reasons || []).length ? `<ul class="quality-reasons">${quality.reasons.map(reason => `<li>${e(reasons[reason] || 'A seleção precisa de revisão adicional.')}</li>`).join('')}</ul>` : ''}
+        <div class="card selection-quality" data-quality="${quality?.usable ? 'approved' : 'with-warnings'}">
+          <span class="tag">Medição realizada</span>
+          <p>Estes pixels foram usados para estimar seu tom Monk e comparar as cores das bases.</p>
           <dl class="selection-metrics final-metrics">
             ${metric('Pixels restantes', format(metrics.native_pixels ?? data.pixels_pele))}
+            ${metric('Pixels usados na medição', format(data.pixels_pele))}
             ${metric('Da pele inicial', fraction(metrics.valid_fraction))}
             ${metric('Exclusões unificadas', percent(selection?.excluded_percent))}
             ${metric('Incerteza restante', fraction(metrics.uncertain_fraction))}
-            ${metric('Média CIELAB · D65', usable && lab ? `L* ${format(lab[0])} · a* ${format(lab[1])} · b* ${format(lab[2])}` : 'Não calculada')}
-            ${metric('Dispersão da cor · ΔE76 p90', usable ? format(data.dispersao_delta_e76_p90) : 'Não calculada')}
+            ${metric('Média CIELAB · D65', lab ? `L* ${format(lab[0])} · a* ${format(lab[1])} · b* ${format(lab[2])}` : '—')}
+            ${metric('Dispersão da cor · ΔE76 p90', format(data.dispersao_delta_e76_p90))}
           </dl>
         </div>
         <p class="small muted">Os limiares de seleção ainda estão em calibração. As imagens mostram regiões para exclusão da medição de cor e não constituem diagnóstico.</p>

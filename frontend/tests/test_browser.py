@@ -22,15 +22,14 @@ from backend.src.segmentation.color import rgb_to_lab
 from backend.src.segmentation.semantic import measure_skin
 from backend.src.segmentation.pipeline import STAGES, summarize
 from backend.src.skin_selection.contracts import CATEGORIES, ModuleResult
-from backend.src.skin_selection.compose import compose
-from backend.src.skin_selection.quality import evaluate
+from backend.src.skin_selection.pipeline import finish
 from backend.src.skin_selection.serialization import conditions
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS = ROOT / ".test-artifacts"
 
 
-def selection_fixture(module_states=None, empty=(), base_rgb=(180, 120, 90)):
+def selection_fixture(module_states=None, empty=(), base_rgb=(180, 120, 90), exclude_all=False):
     """Recorte não quadrado com sobreposição, furos e incerteza externa."""
     shape = (60, 100)
     noise = np.random.default_rng(8).integers(-4, 5, (*shape, 1))
@@ -48,15 +47,16 @@ def selection_fixture(module_states=None, empty=(), base_rgb=(180, 120, 90)):
         modules[key] = ModuleResult.empty(shape, status='executado', source='fixture')
     for key, status in (module_states or {}).items():
         modules[key] = ModuleResult.empty(shape, status=status, source='fixture')
-    selected = compose(anatomy, modules)
+    if exclude_all:
+        modules['acne'].accepted[:] = True
     lab = rgb_to_lab(rgb)
-    selected['quality'] = evaluate(rgb, lab, selected)
-    skin = measure_skin(lab, selected['valid_mask']) if selected['quality']['usable'] else None
+    selected = finish(rgb, lab, {'allowed': anatomy, 'method': 'fixture'}, modules)
+    skin = measure_skin(lab, selected['measurement_mask'])
     result = build_analysis(skin, selected, int(anatomy.sum()))
     result['preprocessamento'] = summarize(rgb, {'face': anatomy, 'method': 'fixture', 'model': 'fixture', 'warnings': []}, {'k': 1}, skin, selected)
     result['condicoes'] = conditions(selected)
     result['marcacoes'] = []
-    result['status_analise'] = 'concluida' if skin else 'inconclusiva'
+    result['status_analise'] = 'concluida'
     return result, rgb, selected
 
 
@@ -173,33 +173,37 @@ class BrowserTests(unittest.TestCase):
         expect(self.page.locator('.tone-value')).to_have_text(f"Tom {dark['tom']['monk']:02d}")
         self.assertNotEqual(first_ids, self.page.locator('.product-card').evaluate_all('cards => cards.map(c => c.dataset.productId)'))
 
-    def test_inconclusive_hides_tone_scale_and_products_and_allows_retry(self):
+    def test_unavailable_specialist_shows_one_top_warning_and_keeps_recommendations(self):
         data, _, _ = selection_fixture({'barba': 'indisponivel'})
         self.show_fixture(data)
-        expect(self.page.locator('h1')).to_have_text('Não foi possível concluir a análise.')
-        expect(self.page.locator('.tone-card')).to_have_attribute('data-tone-state', 'unavailable')
+        expect(self.page.locator('.tone-value')).to_have_text(f"Tom {data['tom']['monk']:02d}")
         expect(self.page.locator('.match-reasons')).to_contain_text('Uma das análises necessárias')
         expect(self.page.get_by_role('alert')).to_contain_text('Barba e bigode: indisponível')
-        expect(self.page.get_by_role('alert')).to_contain_text('trocar a iluminação da foto não resolve')
-        expect(self.page.locator('.tone-swatch, .tone-value, .result-scale .selected, .product-card')).to_have_count(0)
-        expect(self.page.locator('[data-match-state="inconclusive"]')).to_be_visible()
-        self.page.get_by_role('button', name='Escolher outra foto').click()
-        expect(self.page.get_by_role('heading', name='Vamos começar pela sua foto.')).to_be_visible()
+        expect(self.page.get_by_role('alert')).to_have_count(1)
+        expect(self.page.locator('.result-summary > :first-child')).to_have_class('match-warning')
+        title_box = self.page.locator('#match-warning-title').bounding_box()
+        header_box = self.page.locator('.site-header').bounding_box()
+        self.assertGreaterEqual(title_box['y'], header_box['y'] + header_box['height'])
+        expect(self.page.locator('.result-scale .selected')).to_have_count(1)
+        expect(self.page.locator('.product-card')).to_have_count(3)
+        self.assertNotIn('Precisamos de outra foto', self.page.locator('main').inner_text())
 
-    def test_empty_catalog_keeps_tone_and_shows_no_candidates(self):
+    def test_empty_result_is_rejected_before_final_screen(self):
         data, _, _ = selection_fixture()
         data['recomendacoes'] = []
         data['catalogo_total'] = 0
         data['match']['status'] = 'sem_candidatos'
         data['match']['motivos'] = ['catalogo_vazio']
-        self.show_fixture(data)
-        expect(self.page.locator('.tone-value')).to_be_visible()
+        self.select_sample()
+        self.page.route('**/api/analises', lambda route: route.fulfill(
+            status=200, content_type='application/json', body=json.dumps(data)))
+        self.page.get_by_role('button', name='Enviar para análise').click()
+        expect(self.page.get_by_role('alert')).to_contain_text('O servidor não enviou um resultado válido de tom e bases')
+        expect(self.page.get_by_alt_text('Prévia da foto selecionada')).to_be_visible()
+        expect(self.page.locator('.result-summary')).to_have_count(0)
         expect(self.page.locator('.product-card')).to_have_count(0)
-        expect(self.page.locator('[data-match-state="no-candidates"]')).to_contain_text('Seu tom foi estimado')
-        expect(self.page.get_by_role('alert')).to_contain_text('o catálogo está vazio')
-        expect(self.page.get_by_role('alert')).to_contain_text('não indica um problema com sua foto')
 
-    def test_quality_failure_explains_each_reason_and_uses_server_thresholds(self):
+    def test_quality_warning_explains_all_reasons_and_uses_server_thresholds(self):
         data, _, _ = selection_fixture()
         quality = data['preprocessamento']['selecao']['quality']
         quality['usable'] = False
@@ -209,26 +213,44 @@ class BrowserTests(unittest.TestCase):
             'incerteza_excessiva']
         quality['thresholds']['min_pixels'] = 777  # O site deve usar o servidor, não 512 fixo.
         quality['metrics']['native_pixels'] = 400
-        data['preprocessamento']['medicao_utilizavel'] = False
-        data['tom'] = None
-        data['recomendacoes'] = []
-        data['match']['status'] = 'inconclusivo'
         data['match']['motivos'] = list(quality['reasons'])
+        data['match']['confianca_reduzida'] = True
         self.show_fixture(data)
         alert = self.page.get_by_role('alert')
-        expect(alert.get_by_role('heading')).to_have_text('Por que não foi possível identificar o tom?')
-        expect(alert.locator('[data-failure-reason]')).to_have_count(9)
+        expect(alert).to_have_count(1)
+        expect(alert.get_by_role('heading')).to_have_text('O tom estimado pode estar incorreto.')
+        expect(alert.locator('[data-warning-reason]')).to_have_count(9)
         expect(alert).to_contain_text('confira o foco no rosto')
-        expect(self.page.locator('h1')).to_have_text('Precisamos de outra foto.')
+        expect(self.page.locator('.tone-value')).to_be_visible()
+        expect(self.page.locator('.product-card')).to_have_count(3)
         alert.locator('summary').click()
         expect(alert.locator('tbody tr')).to_have_count(9)
         expect(alert.locator('tbody tr').first).to_contain_text('400')
         expect(alert.locator('tbody tr').first).to_contain_text('pelo menos 777')
-        expect(alert).to_contain_text('no máximo 35%')
-        self.page.locator('.result-summary').screenshot(path=str(ARTIFACTS / 'failure-reasons-desktop.png'))
+        expect(alert).to_contain_text('no máximo 70%')
+        self.page.locator('.result-summary').screenshot(path=str(ARTIFACTS / 'warning-reasons-desktop.png'), style='.site-header { visibility: hidden; }')
         self.page.set_viewport_size({'width': 320, 'height': 844})
         self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), 320)
-        self.page.locator('.result-summary').screenshot(path=str(ARTIFACTS / 'failure-reasons-mobile.png'))
+        self.page.locator('.result-summary').screenshot(path=str(ARTIFACTS / 'warning-reasons-mobile.png'), style='.site-header { visibility: hidden; }')
+
+    def test_approved_result_has_no_quality_warning(self):
+        data, _, _ = selection_fixture()
+        self.show_fixture(data)
+        expect(self.page.get_by_role('alert')).to_have_count(0)
+        expect(self.page.locator('.product-card')).to_have_count(3)
+
+    def test_empty_selection_shows_measured_fallback_and_one_warning(self):
+        data, rgb, selected = selection_fixture(exclude_all=True)
+        self.show_fixture(data)
+        expect(self.page.get_by_role('alert')).to_have_count(1)
+        expect(self.page.get_by_role('alert')).to_contain_text('As exclusões cobriram toda a pele')
+        expect(self.page.locator('.product-card')).to_have_count(3)
+        expect(self.page.locator('.tone-value')).to_be_visible()
+        expect(self.page.locator('.final-skin-figure')).to_contain_text('Região alternativa usada')
+        final = self.image_pixels('#segmentation-overlay')
+        np.testing.assert_array_equal(final[:, :, 3] > 0, selected['measurement_mask'])
+        np.testing.assert_array_equal(final[:, :, :3][selected['measurement_mask']], rgb[selected['measurement_mask']])
+        self.assertFalse(selected['valid_mask'].any())
 
     def test_single_candidate_and_complementary_group_are_explained(self):
         data, _, _ = selection_fixture()
@@ -308,7 +330,7 @@ class BrowserTests(unittest.TestCase):
                 && getComputedStyle(img).objectFit === 'contain';
             }'''))
 
-    def test_unavailable_is_distinct_from_empty_and_color_not_measured(self):
+    def test_unavailable_is_distinct_from_empty_and_color_is_measured(self):
         data, _, _ = selection_fixture({'vitiligo': 'indisponivel', 'barba': 'falha'}, empty=('acne',))
         self.show_fixture(data)
         expect(self.page.locator('[data-category="acne"]')).to_contain_text('Nenhuma área selecionada')
@@ -318,29 +340,28 @@ class BrowserTests(unittest.TestCase):
             expect(card).to_contain_text(label)
             expect(card.locator('img')).to_have_count(0)
             self.assertEqual(card.locator('dd').all_text_contents()[:4], ['—'] * 4)
-        expect(self.page.locator('.selection-quality')).to_have_attribute('data-quality', 'inconclusive')
-        expect(self.page.locator('.selection-quality')).to_contain_text('Uma das análises necessárias não ficou disponível.')
-        self.assertEqual(self.page.locator('.final-metrics dd').all_text_contents()[-2:], ['Não calculada'] * 2)
+        expect(self.page.locator('.selection-quality')).to_have_attribute('data-quality', 'with-warnings')
+        expect(self.page.get_by_role('alert')).to_contain_text('Uma das análises necessárias não ficou disponível.')
+        expect(self.page.locator('.final-metrics')).to_contain_text('L*')
+        expect(self.page.locator('.product-card')).to_have_count(3)
 
-    def test_processing_reports_unavailable_failed_and_skipped_modules(self):
+    def test_processing_reports_unavailable_modules_and_completed_measurement(self):
         stages = [{'id': key, 'nome': name, 'descricao': description, 'estado': 'concluida'}
                   for key, name, description, _ in STAGES]
-        states = {'acne': 'indisponivel', 'vitiligo': 'falha', 'medidas': 'nao_executado'}
+        states = {'acne': 'indisponivel', 'vitiligo': 'falha'}
         for stage in stages:
             if stage['id'] in states:
                 stage['estado_modulo'] = states[stage['id']]
-            if stage['id'] == 'medidas':
-                stage['motivo'] = 'qualidade_inconclusiva'
         self.page.evaluate('''async progress => {
           const { processing, updateProcessing } = await import('/js/screens/processing.js');
           document.querySelector('main').innerHTML = processing({ example: false });
           updateProcessing(progress);
         }''', {'etapas': stages, 'concluidas': 10, 'total': 10})
         expect(self.page.locator('.processing-step')).to_have_count(10)
-        expect(self.page.locator('.processing-step.partial')).to_have_count(3)
+        expect(self.page.locator('.processing-step.partial')).to_have_count(2)
         expect(self.page.locator('[data-step="acne"]')).to_contain_text('Indisponível')
         expect(self.page.locator('[data-step="vitiligo"]')).to_contain_text('Falha na análise')
-        expect(self.page.locator('[data-step="medidas"]')).to_contain_text('a cor não foi medida')
+        expect(self.page.locator('[data-step="medidas"]')).to_contain_text('Concluída')
         expect(self.page.locator('#processing-progress')).to_have_attribute('aria-valuenow', '100')
 
     def test_misaligned_preview_reports_error_without_hiding_other_results(self):
@@ -371,7 +392,7 @@ class BrowserTests(unittest.TestCase):
         self.page.get_by_role("button", name="Enviar para análise").click()
         self.page.wait_for_function('document.querySelector(\'[data-step="cielab"][data-state="processando"]\')', timeout=10000)
         self.page.screenshot(path=str(ARTIFACTS / "pipeline-progress-desktop.png"), full_page=True)
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
+        expect(self.page.locator('.tone-value')).to_be_visible(timeout=40000)
         states = self.page.evaluate("window.pipelineStates")
         for stage in ("rosto", "cielab", "mascara", "acne", "vitiligo", "barba", "selecao", "clusters", "medidas", "resultado"):
             self.assertIn(stage, states)
@@ -386,11 +407,11 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(self.page.locator('.mask-render[data-render-state="error"]').count(), 0)
         self.assertTrue(self.page.locator('[data-mask-preview="barba"]').evaluate(
             'img => img.getBoundingClientRect().height <= img.parentElement.getBoundingClientRect().height + 1'))
-        expect(self.page.locator('.selection-quality')).to_contain_text('Seleção inconclusiva')
-        expect(self.page.locator('.final-metrics')).to_contain_text('Não calculada')
+        expect(self.page.locator('.selection-quality')).to_contain_text('Medição realizada')
+        expect(self.page.locator('.final-metrics')).to_contain_text('L*')
         self.assertEqual(self.page.locator('.preprocessing-previews img').count(), 3)
         self.assertTrue(self.page.locator('.preprocessing-previews img').evaluate_all("images => images.every(i => i.complete && i.naturalWidth > 0)"))
-        self.assertEqual(self.page.locator(".product-card").count(), 0)
+        expect(self.page.locator('.product-card')).to_have_count(3)
         self.page.screenshot(path=str(ARTIFACTS / "result-desktop.png"), full_page=True)
         self.page.locator('.preprocessing-previews').screenshot(path=str(ARTIFACTS / 'segmentation-basic-desktop.png'))
         self.page.locator('.exclusion-grid').screenshot(path=str(ARTIFACTS / 'exclusions-desktop.png'), style='.site-header { visibility: hidden; }')
@@ -411,7 +432,7 @@ class BrowserTests(unittest.TestCase):
         self.page.screenshot(path=str(ARTIFACTS / "no-face-error.png"), full_page=True)
         self.page.locator("#gallery-input").set_input_files(str(ROOT / "samples/imagem_teste.jpeg"))
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
+        expect(self.page.locator('.tone-value')).to_be_visible(timeout=40000)
 
     def test_example_and_marks(self):
         self.page.get_by_role("button", name="Ver um exemplo", exact=True).click()
@@ -445,7 +466,7 @@ class BrowserTests(unittest.TestCase):
         expect(self.page.get_by_alt_text("Prévia da foto selecionada")).to_be_visible()
         self.page.unroute("**/api/analises")
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
+        expect(self.page.locator('.tone-value')).to_be_visible(timeout=40000)
 
     def test_invalid_file(self):
         self.page.get_by_role("button", name="Começar", exact=True).click()
@@ -503,7 +524,7 @@ class BrowserTests(unittest.TestCase):
                 self.page.get_by_role("button", name="Tirar foto", exact=True).click()
             chooser.value.set_files(str(ROOT / "samples/imagem_teste.jpeg"))
             self.page.get_by_role("button", name="Enviar para análise").click()
-            expect(self.page.get_by_text("✓ Rosto detectado · verificação real", exact=True)).to_be_visible(timeout=40000)
+            expect(self.page.locator('.tone-value')).to_be_visible(timeout=40000)
             expect(self.page.locator('.mask-render[data-render-state="loading"]')).to_have_count(0)
             expect(self.page.locator('.mask-render[data-render-state="error"]')).to_have_count(0)
             self.assertLessEqual(self.page.evaluate("document.documentElement.scrollWidth"), width)
@@ -519,15 +540,17 @@ class BrowserTests(unittest.TestCase):
         expect(self.page.get_by_role("alert")).to_contain_text("O processamento foi interrompido")
         expect(self.page.get_by_alt_text("Prévia da foto selecionada")).to_be_visible()
 
-    def test_late_skin_error_requests_new_photo(self):
+    def test_old_inconclusive_result_is_rejected_and_keeps_photo(self):
         self.select_sample()
-        body = json.dumps({"tipo": "erro", "codigo": "PELE_INSUFICIENTE",
-                           "mensagem": "Não conseguimos separar pele suficiente.", "status": 422}) + '\n'
+        data, _, _ = selection_fixture()
+        data.update(tom=None, recomendacoes=[])
+        data['match']['status'] = 'inconclusivo'
         self.page.route("**/api/analises", lambda route: route.fulfill(
-            status=200, content_type="application/x-ndjson", body=body))
+            status=200, content_type="application/json", body=json.dumps(data)))
         self.page.get_by_role("button", name="Enviar para análise").click()
-        expect(self.page.get_by_role("alert")).to_contain_text("Não conseguimos separar pele suficiente")
-        expect(self.page.get_by_role("heading", name="Vamos começar pela sua foto.")).to_be_visible()
+        expect(self.page.get_by_role('alert')).to_contain_text('O servidor não enviou um resultado válido de tom e bases')
+        expect(self.page.get_by_alt_text('Prévia da foto selecionada')).to_be_visible()
+        expect(self.page.locator('.result-summary')).to_have_count(0)
 
     def test_cancel_real_processing_does_not_show_stale_result(self):
         self.select_sample()
