@@ -59,10 +59,22 @@ o CUDA Toolkit separadamente para rodar o ONNX Runtime.
 .venv-cuda\Scripts\python -m backend.download_model
 ```
 
-### 5. Rodar a aplicação
+### 5. Rodar a aplicação (local ou como nó GPU remoto P2P)
+
+Para rodar tudo na própria máquina GPU:
 
 ```powershell
 .venv-cuda\Scripts\python -m backend.app
+```
+
+Para usar esta máquina como **nó dedicado de segmentação GPU em rede** (acelerando `BiSeNet`, `Acne`, `Vitiligo` e `Barba` em CUDA) e conectar outra máquina principal ao cluster P2P:
+
+```powershell
+# Na máquina com GPU NVIDIA (.venv-cuda):
+.venv-cuda\Scripts\python -m backend.src.distributed.node --bind 0.0.0.0:7102 --capabilities segmentation
+
+# Na máquina principal (Windows ou Linux):
+.venv\Scripts\python -m backend.src.distributed.cluster --gpu-peer IP_DA_MAQUINA_GPU:7102
 ```
 
 ---
@@ -91,7 +103,7 @@ A coluna `provider` na tabela mostrará `CUDA` quando ativo.
 
 ## Como o código funciona
 
-O arquivo [`backend/src/skin_selection/runtime.py`](runtime.py) tem a função:
+O arquivo [`backend/src/skin_selection/runtime.py`](../backend/src/skin_selection/runtime.py) tem a função:
 
 ```python
 def _build_providers():
@@ -110,7 +122,7 @@ Essa função é chamada **uma única vez por sessão ONNX**, no momento em que
 o modelo é carregado na memória. Depois disso a sessão permanece em cache
 (`_sessions`) e não é recriada.
 
-O arquivo [`backend/src/skin_selection/pipeline.py`](pipeline.py) paraleliza
+O arquivo [`backend/src/skin_selection/pipeline.py`](../backend/src/skin_selection/pipeline.py) paraleliza
 os três detectores:
 
 ```python

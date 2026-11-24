@@ -247,17 +247,64 @@ Falhas de conexão e timeout de 90 segundos (incluindo as pausas de apresentaç�
 respectivamente como `CONEXAO` e `TEMPO_ESGOTADO`. Cancelamentos voluntários
 não exibem erro. O resultado de uma solicitação antiga não altera uma tela reiniciada.
 
-## Catálogo e próximas integrações
+## GET /api/cluster
+
+Retorna o modo de orquestração ativo (`local` ou `distributed`), o estado do kernel nativo C/OpenMP e a saúde/capacidades dos nós P2P configurados:
+
+```json
+{
+  "mode": "distributed",
+  "fallback_policy": "local",
+  "openmp": {"native_loaded": true, "openmp": true, "max_threads": 12},
+  "peers": [
+    {
+      "address": "127.0.0.1:42027",
+      "node_id": "local-beard",
+      "healthy": true,
+      "capabilities": ["barba"],
+      "device": "CPU",
+      "omp_threads": 5,
+      "inflight": 0,
+      "rtt_ms": 0.22
+    }
+  ]
+}
+```
+
+## Catálogo, comparação de algoritmos e desempenho
 
 `backend/data/bases.csv` preserva o arquivo recebido e suas colunas originais:
 `id,marca,nomebase,nomecor,codigocor,preco,link`.
 `catalog.py` converte nomes de campos, preços com vírgula e cores hexadecimais,
-validando os links HTTP/HTTPS. A cópia arquivada no mock não é lida pela aplicação.
+validando os links HTTP/HTTPS com cache automático por `(mtime_ns, size)`. A cópia arquivada no mock não é lida pela aplicação.
 
 O ranking CIEDE2000 está integrado à etapa `resultado` em
 `backend/src/segmentation/pipeline.py`, usando a medição regional ponderada ou a
 mediana global no fallback. O frontend apresenta
 os resultados reais da foto enviada.
 O fluxo real mantém a medição e o match mesmo com ressalvas de qualidade.
-Processamento distribuído permanece futuro. Detalhes dos limiares e das
+Toda análise concluída inclui também dois blocos analíticos adicionais na raiz do JSON:
+
+### `comparacao_algoritmos`
+
+Compara o `pipeline_completo` (BiSeNet + exclusões de especialistas + consenso regional Lab) contra `tres_pontos_aleatorios` (média simples em CIELAB de 3 pixels sorteados deterministicamente na máscara de pele):
+
+- `mascara_amostrada`: origem da máscara amostrada (ex.: `pele_anatomica_inicial`).
+- `pipeline_completo`: `lab`, `cor_pele_hex`, `estimador`, `pixels_considerados` e top 3 `recomendacoes`.
+- `tres_pontos_aleatorios`: `lab`, `cor_pele_hex`, `pixels_candidatos`, `pixels_considerados` (`3`), `tempo_execucao_ms`, `pontos` (`[{indice, x, y, lab, hex, em_pele_valida}]`) e top 3 `recomendacoes`.
+- `metricas`: `delta_e00_entre_algoritmos`, `delta_e76_entre_algoritmos`, `diferenca_lab` (`delta_l`, `delta_a`, `delta_b`), `mesma_base_top1`, `intersecao_top3`, `taxa_acordo_top3_pct`, `pontos_fora_pele_estrita`, `proporcao_amostrada_pct` e `estabilidade_monte_carlo` (`rodadas: 200`, `delta_e00_medio_vs_pipeline`, `delta_e00_mediana_vs_pipeline`, `delta_e00_p90_vs_pipeline`, `dispersao_interna_p90_delta_e00` e `concordancia_top1_pct`).
+
+### `desempenho`
+
+Compara o tempo real de parede do pipeline paralelo/distribuído contra a soma sequencial equivalente sem reexecutar as redes neurais:
+
+- `modo_execucao` (`paralelo_local` ou `distribuido_p2p`) e `arquitetura_ativa`.
+- `tempo_pipeline_paralelo_ms`, `tempo_sequencial_equivalente_ms`, `speedup_total`, `economia_tempo_ms` e `economia_percentual`.
+- `bloco_visao_concorrente`: `tempo_paralelo_ms`, `soma_sequencial_ms` e `speedup`.
+- `openmp_cielab`: `ativo`, `threads`, `tempo_openmp_ms`, `tempo_sequencial_numpy_ms` e `speedup`.
+- `nos_ativos`: lista de processos/máquinas envolvidos (`id`, `endereco`, `papel`, `dispositivo`).
+- `rede_p2p`: `transferencia_ativa`, `bytes_rgb_comprimido`, `bytes_rgb_bruto`, `bytes_mascaras_p2p` e `bytes_lab_evitados`.
+- `etapas_ms`: duração individual medida nas 10 etapas (`rosto` a `resultado`).
+
+A execução paralela e distribuída P2P está documentada em [backend/src/distributed/README.md](../backend/src/distributed/README.md). Detalhes dos limiares e das
 limitações estão no [README da segmentação](../backend/src/segmentation/README.md).

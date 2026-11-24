@@ -2,6 +2,7 @@
 
 import base64
 from io import BytesIO
+from time import perf_counter
 
 import cv2
 import numpy as np
@@ -10,6 +11,7 @@ from PIL import Image
 from .color import rgb_to_lab
 from .skin import adaptive_clusters
 from .semantic import ModelUnavailableError, facial_masks, fallback_facial_masks, measure_skin
+from ..distributed.orchestrator import resolve_executor
 from ..preprocessing.face_detector import MultipleFacesError
 from ..skin_selection.pipeline import run_module, finish
 from ..skin_selection.serialization import serialize_selection, conditions
@@ -69,64 +71,61 @@ def summarize(rgb, masks, clusters, skin, selection):
     }
 
 
-def analysis_events(image_bgr, detect_face):
+def analysis_events(image_bgr, detect_face, *, executor=None):
     """Cada etapa anuncia início antes de executar e conclusão após executar.
 
     O consumidor pode transmitir NDJSON ou consumir tudo para produzir JSON.
-    Fechar o generator ao desconectar libera referências às fotos e matrizes.
+    Fechar o generator ao desconectar libera referências às fotos, futuros e nós P2P.
     """
     steps = [{"id": key, "nome": name, "descricao": description,
               "simulado": simulated, "estado": "aguardando"}
              for key, name, description, simulated in STAGES]
-    rgb = lab = masks = clusters = skin = result = selection = None
-    modules = {}
-    for index, step in enumerate(steps):
-        step["estado"] = "processando"
-        yield {"tipo": "etapa", "etapas": [dict(s) for s in steps],
-               "concluidas": index, "total": len(steps)}
+
+    # Etapa 0 (`rosto`): executa sempre localmente antes de qualquer despacho paralelo/remoto.
+    steps[0]["estado"] = "processando"
+    yield {"tipo": "etapa", "etapas": [dict(s) for s in steps],
+           "concluidas": 0, "total": len(steps)}
+    try:
+        t_rosto = perf_counter()
+        rgb = detect_face(image_bgr)
+        if rgb is None or rgb.size == 0:
+            raise PipelineError(
+                "ROSTO_NAO_ENCONTRADO",
+                "Não encontramos um rosto visível. Tire outra foto de frente, com boa luz e sem cobrir o rosto.",
+            )
+        # Preserva pixels nativos do recorte; só as vistas das redes são reduzidas.
+        rgb = rgb.copy()
+        rosto_ms = (perf_counter() - t_rosto) * 1000.0
+    except MultipleFacesError as exc:
+        raise PipelineError("MULTIPLOS_ROSTOS", str(exc)) from exc
+    except ModelUnavailableError as exc:
+        raise PipelineError("MODELO_INDISPONIVEL", str(exc), status=503) from exc
+
+    steps[0]["estado"] = "concluida"
+    yield {"tipo": "etapa", "etapas": [dict(s) for s in steps],
+           "concluidas": 1, "total": len(steps)}
+
+    hooks = {
+        "rgb_to_lab": rgb_to_lab,
+        "facial_masks": facial_masks,
+        "fallback_facial_masks": fallback_facial_masks,
+        "ModelUnavailableError": ModelUnavailableError,
+        "run_module": run_module,
+        "finish": finish,
+        "adaptive_clusters": adaptive_clusters,
+        "measure_skin": measure_skin,
+        "build_analysis": build_analysis,
+        "conditions": conditions,
+        "summarize": summarize,
+    }
+    active_executor = resolve_executor(executor)
+    try:
         try:
-            if step["id"] == "rosto":
-                rgb = detect_face(image_bgr)
-                if rgb is None or rgb.size == 0:
-                    raise PipelineError("ROSTO_NAO_ENCONTRADO", "Não encontramos um rosto visível. Tire outra foto de frente, com boa luz e sem cobrir o rosto.")
-                # Preserva pixels nativos do recorte; só as vistas das redes são reduzidas.
-                rgb = rgb.copy()
-            elif step["id"] == "cielab":
-                lab = rgb_to_lab(rgb)
-            elif step["id"] == "mascara":
-                try:
-                    masks = facial_masks(rgb)
-                except ModelUnavailableError:
-                    masks = fallback_facial_masks(rgb, "segmentacao_indisponivel")
-                if not masks["allowed"].any():
-                    masks = fallback_facial_masks(rgb, "pele_nao_segmentada")
-            elif step["id"] in ("acne", "vitiligo", "barba"):
-                key = step["id"]
-                modules[key] = run_module(key, rgb, masks)
-                step["estado_modulo"] = modules[key].status
-            elif step["id"] == "selecao":
-                selection = finish(rgb, lab, masks, modules)
-            elif step["id"] == "clusters":
-                # K-means é apenas descritivo; limita também os arrays intermediários.
-                factor = min(1, 512 / max(rgb.shape[:2]))
-                size = (max(1, round(rgb.shape[1] * factor)), max(1, round(rgb.shape[0] * factor)))
-                small_lab = cv2.resize(lab, size, interpolation=cv2.INTER_AREA)
-                small_mask = cv2.resize(masks["allowed"].astype(np.uint8), size, interpolation=cv2.INTER_NEAREST).astype(bool)
-                clusters = adaptive_clusters(small_lab, {"allowed": small_mask, "seeds": small_mask}) if small_mask.sum() >= 64 else {"k": None}
-            elif step["id"] == "medidas":
-                skin = measure_skin(lab, selection["measurement_mask"], rgb=rgb, face_mask=masks["face"])
-            else:
-                result = build_analysis(skin, selection, int(masks["face"].sum()))
-                result["condicoes"] = conditions(selection)
-                result["marcacoes"] = []  # Bboxes reais estão em selecao.regions, no recorte.
-                result["preprocessamento"] = summarize(rgb, masks, clusters, skin, selection)
-                result["status_analise"] = "concluida"
-        except MultipleFacesError as exc:
-            raise PipelineError("MULTIPLOS_ROSTOS", str(exc)) from exc
-        except ModelUnavailableError as exc:
-            raise PipelineError("MODELO_INDISPONIVEL", str(exc), status=503) from exc
-        step["estado"] = "concluida"
-        yield {"tipo": "etapa", "etapas": [dict(s) for s in steps],
-               "concluidas": index + 1, "total": len(steps)}
+            result = yield from active_executor.run_after_crop(rgb, steps, hooks=hooks, rosto_ms=rosto_ms)
+        except TypeError:
+            result = yield from active_executor.run_after_crop(rgb, steps, hooks=hooks)
+    except ModelUnavailableError as exc:
+        raise PipelineError("MODELO_INDISPONIVEL", str(exc), status=503) from exc
+
     result["etapas"] = [dict(s) for s in steps]
     yield {"tipo": "resultado", "dados": result}

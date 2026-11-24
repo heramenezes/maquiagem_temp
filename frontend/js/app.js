@@ -6,6 +6,7 @@ import { review } from './screens/review.js';
 import { processing, updateProcessing } from './screens/processing.js';
 import { result } from './screens/result.js';
 import { initializeMaskPreviews } from './screens/mask_previews.js';
+import { initializeRandomPointsPreview } from './screens/comparison.js';
 
 const state = { screen: location.pathname === '/como-funciona' ? 'how' : 'home', file: null, photoURL: null, result: null, error: '' };
 const screens = { home, how, capture, review, processing, result };
@@ -25,7 +26,10 @@ function releasePhoto() {
 
 function render(focus = true) {
   main.innerHTML = screens[state.screen](state);
-  if (state.screen === 'result') initializeMaskPreviews(main, state.result?.preprocessamento);
+  if (state.screen === 'result') {
+    initializeMaskPreviews(main, state.result?.preprocessamento);
+    initializeRandomPointsPreview(main, state.result);
+  }
   const stage = { capture: 0, review: 0, processing: 1, result: 2 }[state.screen];
   document.querySelector('#flow').innerHTML = stage === undefined ? '' : ['Foto', 'Análise', 'Resultado'].map((label, i) => `<span class="flow-step ${i === stage ? 'active' : i < stage ? 'done' : ''}" ${i === stage ? 'aria-current="step"' : ''}><span class="flow-number" aria-hidden="true">${i < stage ? '✓' : i + 1}</span>${label}</span>`).join('');
   const headerAction = document.querySelector('#header-action');

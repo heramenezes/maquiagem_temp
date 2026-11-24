@@ -41,8 +41,8 @@ def run_module(key, rgb, anatomy):
 def finish(rgb, lab, anatomy, modules):
     result = compose(anatomy["allowed"], modules)
     result["model_versions"]["anatomia"] = (
-        {"method": anatomy["method"], "model": None}
-        if anatomy["method"] == "regiao_central_rosto" else ASSETS["bisenet"].metadata())
+        {"method": anatomy.get("method"), "model": None}
+        if anatomy.get("method") == "regiao_central_rosto" else ASSETS["bisenet"].metadata())
     result["quality"] = evaluate(rgb, lab, result)
     # Preserva as exclusões e a seleção estrita para auditoria. A máscara de
     # medição só é ampliada quando a seleção estrita não contém nenhum pixel.

@@ -5,6 +5,7 @@ RGB recebido do pipeline; a normalização é exclusiva da entrada da rede.
 """
 
 import hashlib
+import os
 import threading
 
 import cv2
@@ -23,11 +24,13 @@ class ModelUnavailableError(RuntimeError):
     pass
 
 
-def get_session():
+def get_session(*, force_cpu: bool = False):
     global _session
     with _session_lock:
         if _session is not None:
-            return _session
+            existing_providers = _session.get_providers() if hasattr(_session, 'get_providers') else []
+            if not force_cpu or 'CUDAExecutionProvider' not in existing_providers:
+                return _session
         if not MODEL_PATH.is_file():
             raise ModelUnavailableError('O modelo de segmentação não está instalado. Execute python -m backend.download_model no servidor.')
         if hashlib.sha256(MODEL_PATH.read_bytes()).hexdigest() != MODEL_SHA256:
@@ -35,10 +38,16 @@ def get_session():
         try:
             import onnxruntime as ort
             options = ort.SessionOptions()
-            options.intra_op_num_threads = 2
+            options.intra_op_num_threads = max(1, int(os.environ.get("MAQUIAGEM_ORT_THREADS", "2")))
             options.inter_op_num_threads = 1
+            providers = ['CPUExecutionProvider']
+            if not force_cpu and os.environ.get("MAQUIAGEM_BISENET_CUDA", "").strip() in {"1", "true", "yes"}:
+                from ..skin_selection.runtime import _cuda_runtime_usable
+                available = ort.get_available_providers()
+                if 'CUDAExecutionProvider' in available and _cuda_runtime_usable():
+                    providers = [('CUDAExecutionProvider', {'cudnn_conv_algo_search': 'DEFAULT'}), 'CPUExecutionProvider']
             _session = ort.InferenceSession(str(MODEL_PATH), sess_options=options,
-                                           providers=['CPUExecutionProvider'])
+                                           providers=providers)
         except (ImportError, RuntimeError) as exc:
             raise ModelUnavailableError('Não foi possível carregar o modelo de segmentação. Confira a instalação do ONNX Runtime no servidor.') from exc
         return _session
@@ -51,7 +60,16 @@ def predict_labels(rgb):
     resized = cv2.resize(rgb, (512, 512), interpolation=cv2.INTER_LINEAR)
     normalized = (resized.astype(np.float32) / 255 - np.array([0.485, 0.456, 0.406], np.float32)) / np.array([0.229, 0.224, 0.225], np.float32)
     tensor = np.ascontiguousarray(normalized.transpose(2, 0, 1)[None])
-    output = session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: tensor})[0]
+    try:
+        output = session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: tensor})[0]
+    except Exception as exc:
+        providers = session.get_providers() if hasattr(session, 'get_providers') else []
+        if 'CUDAExecutionProvider' not in providers:
+            raise
+        from ..skin_selection.runtime import disable_cuda_globally
+        disable_cuda_globally(f"bisenet: {exc}")
+        session = get_session(force_cpu=True)
+        output = session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: tensor})[0]
     if output.shape != (1, 19, 512, 512) or not np.isfinite(output).all():
         raise RuntimeError('Saída inválida do modelo de segmentação.')
     labels = output[0].argmax(axis=0).astype(np.uint8)

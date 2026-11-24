@@ -8,9 +8,10 @@ from skimage.color import lab2rgb
 
 from ..catalog import load_catalog
 from .matching import METHOD_VERSION, rank_foundations
+from .random_points import compare_tone_algorithms
 
 
-def build_analysis(skin, selection, face_pixels):
+def build_analysis(skin, selection, face_pixels, *, lab_image=None, rgb_image=None):
     catalog = load_catalog()
     if not catalog:
         raise ValueError("O catálogo de bases está vazio.")
@@ -67,4 +68,16 @@ def build_analysis(skin, selection, face_pixels):
     reasons = list(dict.fromkeys([*quality["reasons"], *(regional["motivos"] if regional else [])]))
     match.update(status="calculado", motivos=reasons,
                  confianca_reduzida=bool(reasons))
+    pixel_count = int(skin["mask"].sum()) if "mask" in skin and hasattr(skin["mask"], "sum") else 0
+    result["comparacao_algoritmos"] = compare_tone_algorithms(
+        full_lab=lab,
+        full_recommendations=recommendations,
+        full_estimator=match["estimador"],
+        full_pixel_count=pixel_count,
+        catalog=catalog,
+        skin=skin,
+        selection=selection,
+        lab_image=lab_image,
+        rgb_image=rgb_image,
+    )
     return result

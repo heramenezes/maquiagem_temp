@@ -32,10 +32,11 @@ as bases com aviso de precisão reduzida. A conversão dos pesos ocorre em ambie
 - Correção de orientação EXIF e redimensionamento proporcional até 1600 pixels antes da detecção.
 - Pré-verificação de um único rosto: MediaPipe quando disponível; Haar/OpenCV como fallback quando o MediaPipe não retorna uma detecção. Um rosto é aceito sem uma segunda conferência; múltiplos rostos abortam imediatamente.
 - Sem rosto ou com múltiplos rostos detectados, a API retorna 422 e a interface pede outra foto. Conversão CIELAB, segmentação e resultado não são executados. No stream, o evento de erro informa o status 422.
-- Conversão real sRGB → RGB linear → XYZ → CIELAB (D65), normalizando perfis ICC para sRGB quando presentes.
-- Segmentação semântica com BiSeNet ResNet18 pré-treinado, executada localmente em CPU via ONNX Runtime. Pele e nariz são selecionados pixel a pixel, sem exclusões geométricas grandes. O modelo não tem classe específica de barba.
-- Seleção independente com U-Net para acne, YOLO11n para vitiligo e YOLOv8l-seg específico para barba/bigode; estados e máscaras reais por módulo.
+- Conversão real sRGB → RGB linear → XYZ → CIELAB (D65), normalizando perfis ICC para sRGB quando presentes, acelerada por kernel nativo em C com OpenMP (com fallback automático em NumPy).
+- Segmentação semântica com BiSeNet ResNet18 pré-treinado via ONNX Runtime (CPU por padrão; CUDA automático em nós trabalhadores GPU). Pele e nariz são selecionados pixel a pixel, sem exclusões geométricas grandes. O modelo não tem classe específica de barba.
+- Seleção independente concorrente com U-Net para acne, YOLO11n para vitiligo e YOLOv8l-seg específico para barba/bigode; estados e máscaras reais por módulo, executáveis em threads locais ou distribuídos via protocolo binário P2P entre processos/máquinas.
 - K-means descreve a anatomia sem remover pixels. A medição usa a seleção disponível; os critérios técnicos de qualidade geram avisos.
+- Comparação experimental automática contra um algoritmo simples de **média de 3 pontos aleatórios da máscara de pele** (`ΔE00`, acordo Top-1/Top-3 e estabilidade Monte Carlo em 200 sorteios) e painel de **desempenho paralelo/distribuído vs. sequencial** diretamente na tela de resultado.
 - Progresso real em dez etapas, recorte RGB preservado, prévias e estatísticas; toda análise concluída inclui tom e bases, mesmo com ressalvas.
 - Catálogo real com 281 cores, carregado de `backend/data/bases.csv`.
 - Página “Como funciona?” em `/como-funciona`, com guia de uso, detalhes técnicos e limites dos HEX do catálogo; erros de conexão, nova tentativa e cancelamento de solicitações na interface.
@@ -164,15 +165,17 @@ backend/
   src/preprocessing/            Detectores e isolamento existentes
   src/segmentation/             Conversão, BiSeNet, estatísticas de cor e eventos
   src/skin_selection/           Especialistas, composição e qualidade
-  src/tone_matching/             Ranking direto pele/base por CIEDE2000 em Lab
-  src/distributed/               Etapa futura
+  src/tone_matching/             Ranking direto por CIEDE2000 e comparação com 3 pontos aleatórios
+  src/distributed/               Execução P2P multi-processo/GPU, métricas e kernel C/OpenMP
   tests/test_api.py              Testes HTTP e integração com o detector
+  tests/test_distributed.py      Testes P2P, multi-processo, OpenMP e comparação de algoritmos
+  tests/bench_distributed.py     Benchmark ponta-a-ponta sequencial vs. paralelo/distribuído
 frontend/
   index.html                    Estrutura da página
   css/styles.css                Visual e responsividade
   js/app.js                     Estado, navegação e eventos
   js/api.js                     fetch, cancelamento, timeout e erros
-  js/screens/                   Cinco telas e funções de apresentação
+  js/screens/                   Telas, prévias e comparativos de algoritmo e desempenho
   assets/tonzinha.svg            Mascote original
   reference/                    Exportação original preservada
   tests/test_browser.py         Testes da interface
@@ -181,6 +184,50 @@ docs/API.md                    Contratos e ponto de integração futura
 ```
 
 A cópia do CSV dentro de `frontend/reference/` é apenas parte do mock arquivado. **Atualize `backend/data/bases.csv`** para alterar o catálogo usado pela aplicação. Ele é relido a cada solicitação.
+
+## Execução distribuída P2P (multi-processo e nó GPU remoto) e OpenMP
+
+O sistema funciona sem configuração extra com `python -m backend.app` (usando paralelismo DAG em memória e carregando/compilando automaticamente o kernel nativo C/OpenMP se houver compilador C instalado). Para executar os estágios em **processos SO independentes via P2P** ou integrar uma **segunda máquina com GPU NVIDIA**:
+
+### 1. Compilar manualmente o kernel C/OpenMP (opcional)
+
+```powershell
+# Windows (MSVC cl.exe ou MinGW-w64 gcc; cai para NumPy automaticamente se ausente)
+.venv\Scripts\python -m backend.src.distributed.native.build_omp --force
+```
+
+```bash
+# Linux / macOS
+.venv/bin/python -m backend.src.distributed.native.build_omp --force
+```
+
+### 2. PoC em múltiplos processos na mesma máquina
+
+```powershell
+# Pipeline P2P de 3 estágios (Gateway -> Segmentação -> Cor/OpenMP & Match)
+.venv\Scripts\python -m backend.src.distributed.cluster --topology stages
+
+# Especialistas fragmentados (isola o YOLOv8l-seg de barba em processo próprio)
+.venv\Scripts\python -m backend.src.distributed.cluster --topology sharded
+```
+
+*(Em Linux/macOS, substitua `.venv\Scripts\python` por `.venv/bin/python`.)*
+
+### 3. PoC híbrido: processos locais + nó NVIDIA GPU em outra máquina
+
+Na máquina com GPU NVIDIA (usando `.venv-cuda`, abrindo apenas a porta TCP `7102`):
+
+```powershell
+.venv-cuda\Scripts\python -m backend.src.distributed.node --bind 0.0.0.0:7102 --capabilities segmentation
+```
+
+Na máquina principal (conecta ao nó GPU remoto e executa `color_match` + OpenMP em processo local):
+
+```powershell
+.venv\Scripts\python -m backend.src.distributed.cluster --gpu-peer IP_DA_MAQUINA_GPU:7102
+```
+
+O estado dos nós P2P ativos pode ser inspecionado em `http://127.0.0.1:5000/api/cluster`. Veja todos os parâmetros e detalhes do protocolo binário em [backend/src/distributed/README.md](backend/src/distributed/README.md).
 
 ## CUDA (GPU) opcional
 
@@ -224,10 +271,19 @@ Esse arquivo fixa MediaPipe 0.10.21 e usa `opencv-contrib-python`, evitando inst
 
 ## Testar
 
-API, catálogo, detector real, rejeição de imagens sem rosto ou com múltiplos rostos, limites, orientação EXIF e recuperação entre tentativas:
+API, catálogo, detector real, rejeição de imagens sem rosto ou com múltiplos rostos, limites, orientação EXIF, recuperação entre tentativas, kernel OpenMP, cluster P2P multi-processo e comparação com 3 pontos aleatórios:
 
 ```powershell
 .venv\Scripts\python -m unittest discover -s backend/tests -v
+```
+
+Benchmarks de desempenho (sequencial vs. paralelo local + OpenMP vs. P2P multi-processo e nó GPU opcional):
+
+```powershell
+.venv\Scripts\python -m backend.tests.bench_pipeline
+.venv\Scripts\python -m backend.tests.bench_distributed
+.venv\Scripts\python -m backend.tests.bench_distributed --real 5
+.venv\Scripts\python -m backend.tests.bench_distributed --real 5 --gpu-peer IP_DA_MAQUINA_GPU:7102
 ```
 
 Interface automatizada (dependências opcionais para desenvolvimento):

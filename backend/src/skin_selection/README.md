@@ -30,8 +30,7 @@ Regiões carregam motivo, origem, bbox, área e referência à evidência do mó
 `nao_executado`. Nestes últimos, `detected` é `null`, nunca `false`.
 Falha de especialista mantém a medição e gera aviso. BiSeNet indisponível
 usa a região central do rosto com motivo explícito, mantendo as recomendações.
-Sessões são verificadas e carregadas uma vez por processo, com duas threads
-intra-op e uma inter-op. A orquestração é sequencial.
+Sessões são verificadas e carregadas uma vez por processo, escalonando `intra_op_num_threads` proporcionalmente ao custo do modelo (ex.: mais threads para o YOLOv8l-seg de barba em CPU, ou configurável via `MAQUIAGEM_ORT_THREADS`). Na rota web, a orquestração despacha `cielab`, `mascara`, `acne`, `vitiligo` e `barba` concorrentemente (`LocalParallelExecutor`) ou entre processos/máquinas P2P (`DistributedExecutor`), mantendo a emissão ordenada dos eventos NDJSON.
 
 Acne: probabilidades ≥0,50 aceitas; [0,20, 0,50) incertas. Vitiligo: confiança
 de instância ≥0,60 aceita; [0,25, 0,60) incerta; máscara usa 0,65/0,35.

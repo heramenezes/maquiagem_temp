@@ -60,7 +60,7 @@ Se aparecer `[TODOS OS TESTES PASSARAM COM SUCESSO!]`, tá tudo 100%.
 ## Etapa seguinte: já integrada à aplicação web
 
 O recorte RGB agora é convertido explicitamente para **CIELAB/D65 em ponto
-flutuante**, seguido de **BiSeNet ResNet18 pré-treinado** via ONNX Runtime em CPU.
+flutuante** (acelerado por kernel nativo C/OpenMP quando disponível), em paralelo ao **BiSeNet ResNet18 pré-treinado** e aos três especialistas via ONNX Runtime (localmente em threads ou distribuídos entre processos/máquinas via protocolo binário P2P).
 O modelo seleciona pele e nariz como anatomia candidata. **K-means adaptativo**
 em a*/b* descreve essas cores sem remover pixels. O backend preserva o recorte
 e acrescenta seleção independente antes de medir a cor. A API transmite o progresso.
@@ -73,7 +73,8 @@ permanece incerta. Não há dependência de textura ou âncora nasal.
 Qualidade insuficiente ou especialista indisponível gera ressalvas, mantendo a
 medição e as recomendações. Rosácea saiu do escopo. A cor regional ponderada
 (ou a mediana global no fallback) é comparada diretamente com as bases por
-CIEDE2000. A escala Monk foi abandonada; veja [a justificativa](../README.md#por-que-abandonamos-monk).
+CIEDE2000, e confrontada na própria interface com uma linha de base simples de
+**média de 3 pontos aleatórios da máscara** e métricas de **desempenho paralelo/distribuído vs. sequencial**. A escala Monk foi abandonada; veja [a justificativa](../README.md#por-que-abandonamos-monk).
 O frontend exibe a cor estimada, as bases e as três categorias de exclusão,
 suas máscaras e seus estados. A validação anotada e a
 calibração ainda estão pendentes; veja [seleção de pele](../backend/src/skin_selection/README.md).

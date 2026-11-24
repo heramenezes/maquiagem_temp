@@ -11,11 +11,11 @@ Rosácea saiu do escopo.
 
 ## Arquivos
 
-- `color.py`: conversão numérica explícita sRGB → RGB linear → XYZ → CIELAB.
-- `semantic.py`: inferência ONNX em CPU, máscara de pele/nariz e medições.
+- `color.py`: conversão numérica explícita sRGB → RGB linear → XYZ → CIELAB (usa kernel nativo C/OpenMP quando disponível, com fallback idêntico em NumPy).
+- `semantic.py`: inferência ONNX (CPU por padrão; CUDA automático em nós trabalhadores com `MAQUIAGEM_BISENET_CUDA=1`), máscara de pele/nariz e medições.
 - `model_asset.py`: versão, caminho, URL e SHA-256 do peso fixado.
 - `skin.py`: K-means compartilhado e método geométrico anterior, preservado para comparação acadêmica.
-- `pipeline.py`: execução sequencial, eventos de início/conclusão e prévias PNG.
+- `pipeline.py`: pré-verificação facial, delegação ao executor paralelo/distribuído (`LocalParallelExecutor` ou `DistributedExecutor`), eventos monotônicos de início/conclusão e prévias PNG.
 
 O detector existente entrega um recorte RGB, não BGR. O pipeline preserva esse
 recorte após o limite global de 1600 pixels do upload. Somente as vistas das

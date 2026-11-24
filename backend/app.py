@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image, ImageCms, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
 
+from backend.src.distributed.orchestrator import DistributedExecutor, resolve_executor
 from backend.src.preprocessing import detectar_e_isolar_rosto
 from backend.src.segmentation.pipeline import PipelineError, analysis_events
 
@@ -53,6 +54,13 @@ def create_app(test_config=None):
         app.config.update(test_config)
     app.json.ensure_ascii = False
 
+    configured_executor = app.config.get("DISTRIBUTED_EXECUTOR")
+    if configured_executor is None and app.config.get("DISTRIBUTED_PEERS"):
+        configured_executor = DistributedExecutor(
+            app.config["DISTRIBUTED_PEERS"],
+            fallback_policy=app.config.get("DISTRIBUTED_FALLBACK", "local"),
+        )
+
     def error(code, message, status):
         return jsonify(codigo=code, mensagem=message), status
 
@@ -73,6 +81,12 @@ def create_app(test_config=None):
     def scripts(filename):
         return send_from_directory(ROOT / "frontend" / "js", filename)
 
+    @app.get("/api/cluster")
+    def cluster_status():
+        active = resolve_executor(configured_executor)
+        status = active.status(probe=True) if hasattr(active, "registry") else active.status()
+        return jsonify(status)
+
     @app.post("/api/analises")
     def analyze():
         photo = request.files.get("foto")
@@ -88,7 +102,7 @@ def create_app(test_config=None):
             return error("FOTO_INVALIDA", "Não foi possível ler a foto. Use JPG, PNG ou WebP com até 24 megapixels.", 400)
 
         # O mesmo pipeline atende JSON e progresso em tempo real, sem guardar jobs.
-        events = analysis_events(image, detectar_e_isolar_rosto)
+        events = analysis_events(image, detectar_e_isolar_rosto, executor=configured_executor)
         if request.accept_mimetypes.best == "application/x-ndjson":
             def stream():
                 try:

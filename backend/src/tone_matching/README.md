@@ -38,10 +38,16 @@ ativo. Isso não calibra a captura nem as cores do catálogo.
    são heurísticos. As estatísticas globais, pixels e máscara são preservados.
 3. Converter os HEX das bases pelo mesmo caminho da foto: sRGB → RGB linear →
    XYZ → Lab/D65, observador 2°.
-4. Ordenar todo o catálogo por ΔE00 pele/base sem arredondamento; ID crescente
+4. Ordenar todo o catálogo por ΔE00 pele/base sem arredondamento (avaliado em lote pelo kernel C/OpenMP quando disponível, com fallback idêntico em `scikit-image`); ID crescente
    desempata cores idênticas. Retornar até três produtos com os dados do CSV.
 5. Calcular também o top 3 por região utilizável e registrar se os IDs ou sua
    ordem diferem do ranking final. Essa sensibilidade não é confiança estatística.
+6. Em `random_points.py`, executar também uma linha de base experimental simples que
+   sorteia **3 pontos aleatórios `(x, y)` da máscara de pele** (com semente determinística
+   derivada da foto para reprodutibilidade entre JSON, NDJSON e nós P2P), calcula sua
+   média aritmética em CIELAB/D65, ranqueia o catálogo e produz `comparacao_algoritmos`
+   com `ΔE00`/`ΔE76` entre métodos, acordo Top-1/Top-3, contagem de pontos caídos fora da
+   pele estrita e análise de estabilidade Monte Carlo em 200 sorteios aleatórios.
 
 Não há descarte por distância máxima: `limiar_aceitacao_delta_e00` é `null`.
 O primeiro colocado é o mais próximo segundo a regra, sem garantia de adequação.

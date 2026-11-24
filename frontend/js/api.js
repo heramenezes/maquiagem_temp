@@ -91,5 +91,11 @@ export async function analyzePhoto(file, signal, onProgress) {
   if (!validMatch) {
     throw new ApiError('O servidor não enviou um resultado válido de tom e bases. Reinicie o backend atualizado e tente novamente.', 'MATCH_AUSENTE');
   }
+  const comp = result.comparacao_algoritmos;
+  if (comp && (!/^#[0-9a-f]{6}$/i.test(comp.tres_pontos_aleatorios?.cor_pele_hex || '')
+      || !validLab(comp.tres_pontos_aleatorios?.lab)
+      || !Number.isFinite(comp.metricas?.delta_e00_entre_algoritmos))) {
+    throw new ApiError('O servidor enviou métricas comparativas inválidas.', 'COMPARACAO_INVALIDA');
+  }
   return result;
 }

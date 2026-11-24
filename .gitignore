@@ -5,6 +5,10 @@ __pycache__/
 
 # C extensions
 *.so
+*.dll
+*.exp
+*.lib
+*.obj
 
 # Distribution / packaging
 .Python
@@ -28,6 +32,7 @@ share/python-wheels/
 # Virtual environments
 .env
 .venv
+.venv-cuda/
 .venv-mediapipe/
 env/
 venv/

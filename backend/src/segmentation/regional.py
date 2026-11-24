@@ -7,6 +7,8 @@ Todos os pixels consultados pertencem à máscara explícita de medição.
 import numpy as np
 from skimage.color import deltaE_ciede2000
 
+from ..distributed.native import ciede2000_one_to_many
+
 MIN_PIXELS = 32
 # Coordenadas relativas ao bbox do rosto: x0, y0, x1, y1.
 REGIONS = {
@@ -52,7 +54,7 @@ def estimate_regions(lab, rgb, measurement_mask, face_mask):
         if len(pixels) < MIN_PIXELS:
             continue
         median = np.median(pixels, axis=0).astype(float)
-        spread = float(np.percentile(deltaE_ciede2000(pixels, median[None, :]), 90))
+        spread = float(np.percentile(ciede2000_one_to_many(median, pixels), 90))
         # Cobertura satura: uma região maior não domina as outras duas.
         coverage = len(pixels) / max((yb - ya) * (xb - xa), 1)
         quality = min(1., coverage / .5) * (1 - clipped) / (1 + (spread / 8.) ** 2)
