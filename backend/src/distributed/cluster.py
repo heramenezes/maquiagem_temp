@@ -187,6 +187,13 @@ def main(argv: list[str] | None = None) -> None:
             if not _wait_tcp_ready(addr, timeout=30.0):
                 raise RuntimeError(f"Nó local {node_id} ({addr}) não ficou pronto a tempo.")
 
+        # Verifica explicitamente conectividade e handshake P2P com todos os pares (especialmente GPU remota).
+        from .registry import PeerRegistry
+        probe_reg = PeerRegistry(peer_addrs, connect_timeout=3.0)
+        probe_reg.connect_all(force=True)
+        peer_statuses = probe_reg.snapshot()
+        probe_reg.close()
+
         gateway_env = {
             **os.environ,
             "MAQUIAGEM_PEERS": ",".join(peer_addrs),
@@ -198,7 +205,14 @@ def main(argv: list[str] | None = None) -> None:
         print(" Cluster PoC Meu Tom ativo!")
         print(f"   Gateway HTTP : http://{args.host}:{args.port}")
         print(f"   Status P2P   : http://{args.host}:{args.port}/api/cluster")
-        print(f"   Pares P2P    : {', '.join(peer_addrs)}")
+        for st in peer_statuses:
+            if st["healthy"]:
+                print(f"   [OK] Par P2P : {st['address']} -> id={st['node_id']} device={st['device']} caps={st['capabilities']} ({st['rtt_ms']} ms)")
+            else:
+                print(
+                    f"   [FALHA CONEXÃO] Par P2P inacessível: {st['address']} "
+                    "(verifique IP da rede, se node.py já iniciou e liberação da porta TCP no firewall!)"
+                )
         print("=" * 72, flush=True)
 
         gateway_cmd = [

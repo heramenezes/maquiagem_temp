@@ -90,10 +90,16 @@ def build_performance_metrics(
 
     is_dist = mode == "distribuido_p2p"
     has_cuda = any(str(n.get("dispositivo", "")).upper() == "CUDA" for n in active_nodes)
+    has_lan_peer = any(
+        n.get("endereco") and not str(n["endereco"]).startswith(("127.", "localhost:", "[::1]:"))
+        for n in active_nodes
+    )
     if is_dist and has_cuda:
         label = "Pipeline P2P Distribuído + GPU CUDA + OpenMP"
+    elif is_dist and has_lan_peer:
+        label = "Pipeline P2P Distribuído em Rede (LAN) + OpenMP"
     elif is_dist:
-        label = "Pipeline P2P Distribuído Multi-Processo + OpenMP"
+        label = "Pipeline P2P Multi-Processo Local + OpenMP"
     else:
         label = "DAG Paralelo Multi-Thread + OpenMP"
 

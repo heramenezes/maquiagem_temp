@@ -172,21 +172,26 @@ class WorkerNode:
             return self._inflight
 
     def warmup(self) -> None:
-        """Pré-carrega na memória/VRAM apenas os modelos atribuídos a este nó."""
+        """Pré-carrega e valida na memória/VRAM apenas os modelos atribuídos a este nó."""
+        available_caps: list[str] = []
         if "bisenet" in self.capabilities:
             from ..segmentation import semantic
             try:
                 semantic.get_session()
+                available_caps.append("bisenet")
+                logger.info("[OK] Modelo pronto em %s: bisenet", self.node_id)
             except semantic.ModelUnavailableError as exc:
-                logger.warning("Warmup BiSeNet indisponível em %s: %s", self.node_id, exc)
+                logger.warning("[INDISPONÍVEL] BiSeNet ausente/inválido em %s: %s", self.node_id, exc)
         for key in ("acne", "vitiligo", "barba"):
             if key in self.capabilities:
                 from ..skin_selection.runtime import get_session as get_specialist_session
                 from ..segmentation.semantic import ModelUnavailableError
                 try:
                     get_specialist_session(key)
+                    available_caps.append(key)
+                    logger.info("[OK] Modelo pronto em %s: %s", self.node_id, key)
                 except ModelUnavailableError as exc:
-                    logger.warning("Warmup %s indisponível em %s: %s", key, self.node_id, exc)
+                    logger.warning("[INDISPONÍVEL] Especialista %s ausente/inválido em %s: %s", key, self.node_id, exc)
         if "color_match" in self.capabilities:
             from ..catalog import load_catalog
             try:
@@ -194,11 +199,11 @@ class WorkerNode:
             except Exception as exc:
                 logger.warning("Warmup catálogo falhou em %s: %s", self.node_id, exc)
             omp_info()
+            available_caps.append("color_match")
+        if available_caps:
+            self.capabilities = tuple(available_caps)
 
     def start(self, *, warmup: bool = False) -> "WorkerNode":
-        if warmup:
-            self.warmup()
-
         family = socket.AF_INET6 if ":" in self.bind_host else socket.AF_INET
         srv = socket.socket(family, socket.SOCK_STREAM)
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -228,9 +233,13 @@ class WorkerNode:
             )
             self._sub_thread.start()
 
+        if warmup:
+            logger.info("Carregando modelos atribuídos para %s (%s)...", self.node_id, self.capabilities)
+            self.warmup()
+
         logger.info(
-            "Nó P2P iniciado: id=%s bind=%s:%d caps=%s device=%s",
-            self.node_id, self.bind_host, self.bound_port, self.capabilities, self.device,
+            "Nó P2P pronto: id=%s bind=%s:%d caps=%s device=%s",
+            self.node_id, self.bind_host, self.bound_port, self.capabilities, self.active_device,
         )
         return self
 

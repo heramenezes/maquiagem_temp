@@ -216,6 +216,7 @@ class _RemoteRequestTracker:
     modules: dict[str, ModuleResult] = field(default_factory=dict)
     color_result: dict | None = None
     color_meta: dict = field(default_factory=dict)
+    color_conn: PeerConnection | None = None
     event_timestamps: dict[str, float] = field(default_factory=dict)
     mask_wire_bytes: int = 0
     errors: dict[str, str] = field(default_factory=dict)
@@ -283,6 +284,13 @@ class DistributedExecutor:
                 tracker.cond.notify_all()
         elif msg_type == MSG_STAGE_DATA:
             try:
+                # Se um nó remoto não pôde enviar diretamente ao nó `color_match` local (ex.: NAT/firewall),
+                # o Gateway retransmite o quadro binário imediatamente via loopback para `color_conn`.
+                if tracker.color_conn is not None and not tracker.color_conn.is_closed:
+                    try:
+                        tracker.color_conn.send(MSG_STAGE_DATA, header, payload, req_id=req_id)
+                    except ConnectionError:
+                        pass
                 kind = header.get("kind")
                 if kind == "anatomy":
                     anat = decode_anatomy(header, payload)
@@ -391,6 +399,7 @@ class DistributedExecutor:
             if use_remote_color:
                 try:
                     _add_inflight(color_peer, 1)
+                    tracker.color_conn = color_peer.conn
                     color_peer.conn.send(
                         MSG_COLOR_INIT,
                         {"rgb": rgb_meta, "expected_modules": list(CATEGORIES)},
@@ -421,13 +430,19 @@ class DistributedExecutor:
                     continue
                 try:
                     _add_inflight(seg_peer, len(peer_stages))
+                    seg_is_loopback = seg_peer.address.startswith(("127.", "localhost:", "[::1]:"))
+                    color_is_loopback = bool(
+                        color_peer and color_peer.address.startswith(("127.", "localhost:", "[::1]:"))
+                    )
+                    # Nunca envia `forward_addr` 127.0.0.1 para outra máquina física na LAN.
+                    can_direct_dial = use_remote_color and color_peer and (not color_is_loopback or seg_is_loopback)
                     seg_peer.conn.send(
                         MSG_SUBMIT_BATCH,
                         {
                             "rgb": rgb_meta,
                             "stages": peer_stages,
                             "forward_node_id": color_peer.node_id if use_remote_color and color_peer else None,
-                            "forward_addr": color_peer.address if use_remote_color and color_peer else None,
+                            "forward_addr": color_peer.address if can_direct_dial else None,
                         },
                         rgb_blob,
                         req_id=req_id,
@@ -445,6 +460,12 @@ class DistributedExecutor:
                     unassigned_seg.extend(peer_stages)
 
             # 3. Qualquer estágio sem par remoto saudável entra em fallback imediato em paralelo.
+            if unassigned_seg:
+                active_nodes.append({
+                    "id": "gateway-fallback",
+                    "papel": f"Fallback local ({', '.join(unassigned_seg)}) — sem par remoto com estes modelos",
+                    "dispositivo": "CPU",
+                })
             for stage in unassigned_seg:
                 if stage == "bisenet":
                     local_futures["bisenet"] = local_pool.submit(_timed, self._fallback_anatomy, rgb, hooks)
